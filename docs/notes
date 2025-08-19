@@ -1,0 +1,8 @@
+0x002b2e3   - Updates players movement while in cutscene
+0x412d4		- Updates players movement while walking
+
+0x96184		- Updates the players position while in combat???
+	RETURNS TO 0x00095b75
+
+# ignore this
+0x00a89670 - entityBodyPlayer in save state F7

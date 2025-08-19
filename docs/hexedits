@@ -1,0 +1,89 @@
+Ignore door damage
+0007426c	e8 4f ef fa ff -> 
+        	90 90 90 90 90
+
+
+Uncap frame rate (Use DirectX Present Immediate Mode)
+00154919	74 21 			-> 
+			eb 21
+0015493c	c7 42 30 01 00 00 00  -> 
+			c7 42 30 00 00 00 80
+
+Adjust aspect ratio
+005077f8 	00 00 00 00		->
+				00 00 00 00		4:3
+				01 00 00 00		16:9
+				02 00 00 00		2.35:1
+
+
+// Prevent cutscenes from breaking aspect ratio
+set {int}0x581c4=0x90909090
+set {short}0x581c8=0x9090
+set {int}0x5825f=0x90909090
+set {char}0x58263=0x90
+
+also need to fix this
+0x3322a		g_currentAspectRatioIndex = (uint)(g_DXContext.widescreen != false);
+
+
+
+// DO NOT RUN THESE THEY WILL CRASH THE EMULATOR
+(gdb) set {short}0x154887=1920
+(gdb) set {short}0x154889=1080
+
+
+// Speedrun mod
+
+// Disable door camera switch (WORKING)
+print set {int}0x5bfc6=0x90909090
+(gdb) set {char}0x5bfca=0x90
+
+// Disable celebration (PARTIALLY WORKING)
+set {int}0x2bb36=0x90909090
+(gdb) set {char}0x2bb3a=0x90
+
+Issues
+- Ghoulies also have their celebration disabled (can affect the game)
+
+
+// Disable actionenableddelay (Haven't figured out what this does)
+set {int}0x2bb26=0x90909090
+(gdb) set {char}0x2bb2a=0x90
+
+// Disable ghoulie cam on challenge start
+set {int}0x4ee4a=0x90909090
+(gdb) set {char}0x4ee4e=0x90
+
+
+// Prevent the player from being forced into a destination (WORKING)
+set {short}0xbee86=0x9090
+set {char}0xbee88=0x90
+
+
+// Prevent energy sapper
+set {int}0x75cf5=0x90909090
+(gdb) set {int}0x75cf9=0x0000005e
+
+
+// Disable all challenges (breaks the game)
+set {char}0xd05d0=0xc3
+
+// Change player speed
+- Put break on 0x75b60
+{float}(ESP+4) = 5.0 (or whatever speed you want)
+
+EDIT: Could probably just change the ObjParams for cooper in the binary
+
+// Force cutscene skip (NOT WORKING)
+set {short}0x127ad3=0x9090
+(gdb) set {short}0x127add=0x9090
+
+// Prevent cutscene camera
+set {cset {char}0x4ecf9=0xeb
+
+
+// Tank camera controls
+set {short}0x7ff1c=0x9090
+
+
+
