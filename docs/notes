@@ -6,3 +6,21 @@
 
 # ignore this
 0x00a89670 - entityBodyPlayer in save state F7
+
+
+// Print out the name of a cutscene when it plays
+9       breakpoint     keep y   0x0004d680 
+        breakpoint already hit 44 times
+        silent
+--Type <RET> for more, q to quit, c to continue without paging--
+        x/s {int}($esp+4)
+        c
+
+
+// Disable setting doors on room spawn (All have vines)
+set {int}0x4d736=0x90909090
+(gdb) set {char}0x4d73a=0x90
+
+
+// Update cutscene progress
+0x4da9b
