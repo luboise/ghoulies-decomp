@@ -100,7 +100,7 @@ b *0x4dbba
 
 // Force cutscene length to 1
 set {int}0x4d5ac=0x90909090
-(gdb) set {int}0x4d5ae==0x9090909
+(gdb) set {int}0x4d5ae==0x90909090
 
 // Force cutscene length to 1.2
 (gdb) set {int}0x4d5ac=0xfc7650e8
