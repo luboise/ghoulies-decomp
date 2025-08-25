@@ -24,3 +24,13 @@ set {int}0x4d736=0x90909090
 
 // Update cutscene progress
 0x4da9b
+
+0xcad238
+0xcad23c
+0xcad240
+
+
+
+
+
+add 15 to z (0xcad240)

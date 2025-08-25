@@ -116,3 +116,17 @@ set {int}0x4d5ac=0x90909090
 // Force first coffin on relic
 set {int}0x81454=0x90909090
 (gdb) set {int}0x81458=0x90909090
+
+// Disabling all attack data for all entities
+set {int}0x1cb9e=0x8b909090
+
+// Disable reaper spawn but only sometimes
+set {int}0xd0d50=0x90909090
+(gdb) set {char}0xd0d54=0x90
+
+
+// Disable grim reaper spawn
+0xd0d50
+	e8 5b ea ff ff -> 90 90 90 90 90
+0xd0dda
+	e8 d1 e9 ff ff -> 90 90 90 90 90
