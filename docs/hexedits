@@ -1,4 +1,4 @@
-Ignore door damage
+Ignore vines
 0007426c	e8 4f ef fa ff -> 
         	90 90 90 90 90
 
@@ -6,8 +6,9 @@ Ignore door damage
 Uncap frame rate (Use DirectX Present Immediate Mode)
 00154919	74 21 			-> 
 			eb 21
-0015493c	c7 42 30 01 00 00 00  -> 
-			c7 42 30 00 00 00 80
+
+0015493c	c7 42 30 01 00 00 00  -> 	// UNNEEDED 
+			c7 42 30 00 00 00 80      	// UNNEEDED
 
 Adjust aspect ratio
 005077f8 	00 00 00 00		->
@@ -130,3 +131,30 @@ set {int}0xd0d50=0x90909090
 	e8 5b ea ff ff -> 90 90 90 90 90
 0xd0dda
 	e8 d1 e9 ff ff -> 90 90 90 90 90
+
+// Prevent the players input from ever being disabled
+set {int}0x7f377 = 0xe8909090
+
+// Disable most lighting
+set {short}0xf90b6=0x9090
+
+// Invis mod
+set {char}0x155f80=0xc3
+
+
+set {char}0x30c70=c3  - Prevents animations from updating globally
+- Also prevents door from opening
+
+- Prevents movement during cutscenes (breaks rooms where you spawn outside then walk in)
+
+
+Invis mode (Prevents all background children from being drawn)
+- set {char}0x121ba1=0
+
+Invis mode (alternate, prevents all actors from being drawn)
+set {char}0x28050=0xc3
+
+
+
+TRUE dark mode
+set {short}0x15aec5=0x9090
