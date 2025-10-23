@@ -158,3 +158,33 @@ set {char}0x28050=0xc3
 
 TRUE dark mode
 set {short}0x15aec5=0x9090
+
+
+Remove bat animtable hop writes (might be needed with instant bat movement)
+set {short}0x6d652=0x9090
+
+Make bat movement instant
+set {short}0x6d694=0x9090
+
+Break collisions
+set {char}0x55670=0xc3
+
+
+Enable Camera Noclip
+set {char}0x3e1d6=0xeb
+
+
+Set avatar action speed
+
+b *0x3e9eb
+commands
+silent
+set $xmm0.v4_float[0] = 2.5
+c
+end
+
+Set game speed to 2.5
+set {int}0x11c7e1=0x0007b2ac
+
+Set game speed to 4.0
+set {int}0x11c7e1=0x000809e0

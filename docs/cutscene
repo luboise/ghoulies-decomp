@@ -1,0 +1,300 @@
+     01377324 00 00 00 00float  0.0              field1_0x4
+     01377328 00 00 00 00float  0.0              field2_0x8
+     0137732c 00 00 80 3ffloat  1.0              field3_0xc
+     01377330 00 00 80 3ffloat  1.0              field4_0x10
+     01377334 00 00 80 3ffloat  1.0              field5_0x14
+     01377338 00 00 00 00float  0.0              field6_0x18
+     0137733c 00 00 00 00float  0.0              field7_0x1c
+     01377340 00 00 00 00float  0.0              field8_0x20
+     01377344 00 00 00 00void * 00000000         cameraEvents
+     01377348 00 00 00 00uint   0h               someFlag
+     0137734c 89 88 08 3ffloat  0.53333336       field11_0x2c
+     01377350 00 00 00 3ffloat  0.5              field12_0x30
+     01377354 aa aa 12 40Asset *4012aaaa         asset
+     01377358 89         ??     89h              field14_0x38
+     01377359 88         ??     88h              field15_0x39
+     0137735a 08         ??     08h              field16_0x3a
+     0137735b 3d         ??     3Dh    =         field17_0x3b
+     0137735c d4 c0 06 03Cutsc  0306c0d4         resource
+     01377360 00 00 00 00uint   0h               eventCount
+     01377364 b0 74 37 01Cutsc  013774b0         events
+     01377368 ff ff ff ffuint   FFFFFFFFh        field21_0x48
+     0137736c ff ff      ushort FFFFh            field22_0x4c
+     0137736e 00         ??     00h              field23_0x4e
+     0137736f 00         ??     00h              field24_0x4f
+     01377370 00         ??     00h              field25_0x50
+     01377371 00         ??     00h              field26_0x51
+     01377372 00         ??     00h              field27_0x52
+     01377373 00         ??     00h              field28_0x53
+     01377374 00         ??     00h              field29_0x54
+     01377375 00         ??     00h              field30_0x55
+     01377376 00         ??     00h              field31_0x56
+     01377377 00         ??     00h              field32_0x57
+     01377378 00         ??     00h              field33_0x58
+     01377379 00         ??     00h              field34_0x59
+     0137737a 00         ??     00h              field35_0x5a
+     0137737b 00         ??     00h              field36_0x5b
+     0137737c 00         ??     00h              field37_0x5c
+     0137737d 00         ??     00h              field38_0x5d
+     0137737e 00         ??     00h              field39_0x5e
+     0137737f 00         ??     00h              field40_0x5f
+     01377380 00         ??     00h              field41_0x60
+     01377381 00         ??     00h              field42_0x61
+     01377382 00         ??     00h              field43_0x62
+     01377383 00         ??     00h              field44_0x63
+     01377384 00         ??     00h              field45_0x64
+     01377385 00         ??     00h              field46_0x65
+     01377386 00         ??     00h              field47_0x66
+     01377387 00         ??     00h              field48_0x67
+     01377388 00         ??     00h              field49_0x68
+     01377389 00         ??     00h              field50_0x69
+     0137738a 00         ??     00h              field51_0x6a
+     0137738b 00         ??     00h              field52_0x6b
+     0137738c 00         ??     00h              field53_0x6c
+     0137738d 00         ??     00h              field54_0x6d
+     0137738e 00         ??     00h              field55_0x6e
+     0137738f 00         ??     00h              field56_0x6f
+     01377390 00         ??     00h              field57_0x70
+     01377391 00         ??     00h              field58_0x71
+     01377392 00         ??     00h              field59_0x72
+     01377393 00         ??     00h              field60_0x73
+     01377394 00         ??     00h              field61_0x74
+     01377395 00         ??     00h              field62_0x75
+     01377396 00         ??     00h              field63_0x76
+     01377397 00         ??     00h              field64_0x77
+     01377398 00         ??     00h              field65_0x78
+     01377399 00         ??     00h              field66_0x79
+     0137739a 00         ??     00h              field67_0x7a
+     0137739b 00         ??     00h              field68_0x7b
+     0137739c 00         ??     00h              field69_0x7c
+     0137739d 00         ??     00h              field70_0x7d
+     0137739e 00         ??     00h              field71_0x7e
+     0137739f 00         ??     00h              field72_0x7f
+     013773a0 00         ??     00h              field73_0x80
+     013773a1 00         ??     00h              field74_0x81
+     013773a2 00         ??     00h              field75_0x82
+     013773a3 00         ??     00h              field76_0x83
+     013773a4 00         ??     00h              field77_0x84
+     013773a5 00         ??     00h              field78_0x85
+     013773a6 00         ??     00h              field79_0x86
+     013773a7 00         ??     00h              field80_0x87
+     013773a8 00         ??     00h              field81_0x88
+     013773a9 00         ??     00h              field82_0x89
+     013773aa 00         ??     00h              field83_0x8a
+     013773ab 00         ??     00h              field84_0x8b
+     013773ac 00         ??     00h              field85_0x8c
+     013773ad 00         ??     00h              field86_0x8d
+     013773ae 00         ??     00h              field87_0x8e
+     013773af 00         ??     00h              field88_0x8f
+     013773b0 00         ??     00h              field89_0x90
+     013773b1 00         ??     00h              field90_0x91
+     013773b2 00         ??     00h              field91_0x92
+     013773b3 00         ??     00h              field92_0x93
+     013773b4 00         ??     00h              field93_0x94
+     013773b5 00         ??     00h              field94_0x95
+     013773b6 00         ??     00h              field95_0x96
+     013773b7 00         ??     00h              field96_0x97
+     013773b8 00         ??     00h              field97_0x98
+     013773b9 00         ??     00h              field98_0x99
+     013773ba 00         ??     00h              field99_0x9a
+     013773bb 00         ??     00h              field100_0x9b
+     013773bc 00         ??     00h              field101_0x9c
+     013773bd 00         ??     00h              field102_0x9d
+     013773be 00         ??     00h              field103_0x9e
+     013773bf 00         ??     00h              field104_0x9f
+     013773c0 00         ??     00h              field105_0xa0
+     013773c1 00         ??     00h              field106_0xa1
+     013773c2 00         ??     00h              field107_0xa2
+     013773c3 00         ??     00h              field108_0xa3
+     013773c4 00         ??     00h              field109_0xa4
+     013773c5 00         ??     00h              field110_0xa5
+     013773c6 00         ??     00h              field111_0xa6
+     013773c7 00         ??     00h              field112_0xa7
+     013773c8 00         ??     00h              field113_0xa8
+     013773c9 00         ??     00h              field114_0xa9
+     013773ca 00         ??     00h              field115_0xaa
+     013773cb 00         ??     00h              field116_0xab
+     013773cc 00         ??     00h              field117_0xac
+     013773cd 00         ??     00h              field118_0xad
+     013773ce 00         ??     00h              field119_0xae
+     013773cf 00         ??     00h              field120_0xaf
+     013773d0 00         ??     00h              field121_0xb0
+     013773d1 00         ??     00h              field122_0xb1
+     013773d2 00         ??     00h              field123_0xb2
+     013773d3 00         ??     00h              field124_0xb3
+     013773d4 00         ??     00h              field125_0xb4
+     013773d5 00         ??     00h              field126_0xb5
+     013773d6 00         ??     00h              field127_0xb6
+     013773d7 00         ??     00h              field128_0xb7
+     013773d8 00         ??     00h              field129_0xb8
+     013773d9 00         ??     00h              field130_0xb9
+     013773da 00         ??     00h              field131_0xba
+     013773db 00         ??     00h              field132_0xbb
+     013773dc 00         ??     00h              field133_0xbc
+     013773dd 00         ??     00h              field134_0xbd
+     013773de 00         ??     00h              field135_0xbe
+     013773df 00         ??     00h              field136_0xbf
+     013773e0 00         ??     00h              field137_0xc0
+     013773e1 00         ??     00h              field138_0xc1
+     013773e2 00         ??     00h              field139_0xc2
+     013773e3 00         ??     00h              field140_0xc3
+     013773e4 00         ??     00h              field141_0xc4
+     013773e5 00         ??     00h              field142_0xc5
+     013773e6 00         ??     00h              field143_0xc6
+     013773e7 00         ??     00h              field144_0xc7
+     013773e8 00         ??     00h              field145_0xc8
+     013773e9 00         ??     00h              field146_0xc9
+     013773ea 00         ??     00h              field147_0xca
+     013773eb 00         ??     00h              field148_0xcb
+     013773ec 00         ??     00h              field149_0xcc
+     013773ed 00         ??     00h              field150_0xcd
+     013773ee 00         ??     00h              field151_0xce
+     013773ef 00         ??     00h              field152_0xcf
+     013773f0 00         ??     00h              field153_0xd0
+     013773f1 00         ??     00h              field154_0xd1
+     013773f2 00         ??     00h              field155_0xd2
+     013773f3 00         ??     00h              field156_0xd3
+     013773f4 00         ??     00h              field157_0xd4
+     013773f5 00         ??     00h              field158_0xd5
+     013773f6 00         ??     00h              field159_0xd6
+     013773f7 00         ??     00h              field160_0xd7
+     013773f8 00         ??     00h              field161_0xd8
+     013773f9 00         ??     00h              field162_0xd9
+     013773fa 00         ??     00h              field163_0xda
+     013773fb 00         ??     00h              field164_0xdb
+     013773fc 00         ??     00h              field165_0xdc
+     013773fd 00         ??     00h              field166_0xdd
+     013773fe 00         ??     00h              field167_0xde
+     013773ff 00         ??     00h              field168_0xdf
+     01377400 00         ??     00h              field169_0xe0
+     01377401 00         ??     00h              field170_0xe1
+     01377402 00         ??     00h              field171_0xe2
+     01377403 00         ??     00h              field172_0xe3
+     01377404 00         ??     00h              field173_0xe4
+     01377405 00         ??     00h              field174_0xe5
+     01377406 00         ??     00h              field175_0xe6
+     01377407 00         ??     00h              field176_0xe7
+     01377408 00         ??     00h              field177_0xe8
+     01377409 00         ??     00h              field178_0xe9
+     0137740a 00         ??     00h              field179_0xea
+     0137740b 00         ??     00h              field180_0xeb
+     0137740c 00         ??     00h              field181_0xec
+     0137740d 00         ??     00h              field182_0xed
+     0137740e 00         ??     00h              field183_0xee
+     0137740f 00         ??     00h              field184_0xef
+     01377410 00         ??     00h              field185_0xf0
+     01377411 00         ??     00h              field186_0xf1
+     01377412 00         ??     00h              field187_0xf2
+     01377413 00         ??     00h              field188_0xf3
+     01377414 00         ??     00h              field189_0xf4
+     01377415 00         ??     00h              field190_0xf5
+     01377416 00         ??     00h              field191_0xf6
+     01377417 00         ??     00h              field192_0xf7
+     01377418 00         ??     00h              field193_0xf8
+     01377419 00         ??     00h              field194_0xf9
+     0137741a 00         ??     00h              field195_0xfa
+     0137741b 00         ??     00h              field196_0xfb
+     0137741c 00         ??     00h              field197_0xfc
+     0137741d 00         ??     00h              field198_0xfd
+     0137741e 00         ??     00h              field199_0xfe
+     0137741f 00         ??     00h              field200_0xff
+     01377420 00         ??     00h              field201_0x100
+     01377421 00         ??     00h              field202_0x101
+     01377422 00         ??     00h              field203_0x102
+     01377423 00         ??     00h              field204_0x103
+     01377424 00         ??     00h              field205_0x104
+     01377425 00         ??     00h              field206_0x105
+     01377426 00         ??     00h              field207_0x106
+     01377427 00         ??     00h              field208_0x107
+     01377428 00         ??     00h              field209_0x108
+     01377429 00         ??     00h              field210_0x109
+     0137742a 00         ??     00h              field211_0x10a
+     0137742b 00         ??     00h              field212_0x10b
+     0137742c 00         ??     00h              field213_0x10c
+     0137742d 00         ??     00h              field214_0x10d
+     0137742e 00         ??     00h              field215_0x10e
+     0137742f 00         ??     00h              field216_0x10f
+     01377430 00         ??     00h              field217_0x110
+     01377431 00         ??     00h              field218_0x111
+     01377432 00         ??     00h              field219_0x112
+     01377433 00         ??     00h              field220_0x113
+     01377434 00         ??     00h              field221_0x114
+     01377435 00         ??     00h              field222_0x115
+     01377436 00         ??     00h              field223_0x116
+     01377437 00         ??     00h              field224_0x117
+     01377438 00         ??     00h              field225_0x118
+     01377439 00         ??     00h              field226_0x119
+     0137743a 00         ??     00h              field227_0x11a
+     0137743b 00         ??     00h              field228_0x11b
+     0137743c 00         ??     00h              field229_0x11c
+     0137743d 00         ??     00h              field230_0x11d
+     0137743e 00         ??     00h              field231_0x11e
+     0137743f 00         ??     00h              field232_0x11f
+     01377440 00         ??     00h              field233_0x120
+     01377441 00         ??     00h              field234_0x121
+     01377442 00         ??     00h              field235_0x122
+     01377443 00         ??     00h              field236_0x123
+     01377444 00         ??     00h              field237_0x124
+     01377445 00         ??     00h              field238_0x125
+     01377446 00         ??     00h              field239_0x126
+     01377447 00         ??     00h              field240_0x127
+     01377448 00         ??     00h              field241_0x128
+     01377449 00         ??     00h              field242_0x129
+     0137744a 00         ??     00h              field243_0x12a
+     0137744b 00         ??     00h              field244_0x12b
+     0137744c 00         ??     00h              field245_0x12c
+     0137744d 00         ??     00h              field246_0x12d
+     0137744e 00         ??     00h              field247_0x12e
+     0137744f 00         ??     00h              field248_0x12f
+     01377450 00         ??     00h              field249_0x130
+     01377451 00         ??     00h              field250_0x131
+     01377452 00         ??     00h              field251_0x132
+     01377453 00         ??     00h              field252_0x133
+     01377454 00         ??     00h              field253_0x134
+     01377455 00         ??     00h              field254_0x135
+     01377456 00         ??     00h              field255_0x136
+     01377457 00         ??     00h              field256_0x137
+     01377458 00         ??     00h              field257_0x138
+     01377459 00         ??     00h              field258_0x139
+     0137745a 00         ??     00h              field259_0x13a
+     0137745b 00         ??     00h              field260_0x13b
+     0137745c 00         ??     00h              field261_0x13c
+     0137745d 00         ??     00h              field262_0x13d
+     0137745e 00         ??     00h              field263_0x13e
+     0137745f 00         ??     00h              field264_0x13f
+     01377460 00         ??     00h              field265_0x140
+     01377461 00         ??     00h              field266_0x141
+     01377462 00         ??     00h              field267_0x142
+     01377463 00         ??     00h              field268_0x143
+     01377464 00         ??     00h              field269_0x144
+     01377465 00         ??     00h              field270_0x145
+     01377466 00         ??     00h              field271_0x146
+     01377467 00         ??     00h              field272_0x147
+     01377468 00         ??     00h              field273_0x148
+     01377469 00         ??     00h              field274_0x149
+     0137746a 00         ??     00h              field275_0x14a
+     0137746b 00         ??     00h              field276_0x14b
+     0137746c 00         ??     00h              field277_0x14c
+     0137746d 00         ??     00h              field278_0x14d
+     0137746e 00         ??     00h              field279_0x14e
+     0137746f 00         ??     00h              field280_0x14f
+     01377470 00 00 00 00undef  00000000h        field281_0x150
+     01377474 00 00 00 00undef  00000000h        field282_0x154
+     01377478 00 00 00 00undef  00000000h        field283_0x158
+     0137747c 00 00 00 00undef  00000000h        field284_0x15c
+     01377480 00 00 00 00undef  00000000h        field285_0x160
+     01377484 00 00 00 00undef  00000000h        field286_0x164
+     01377488 01 00 00 00uint   1h               someUint
+     0137748c 00 00 80 bffloat  -1.0             field288_0x16c
+     01377490 00 00 80 bffloat  -1.0             field289_0x170
+     01377494 00 00 00   vec3                    v1
+              00 00 00 
+              00 00 00 
+     013774a0 00 00 00 00float  0.0              field291_0x180
+     013774a4 00 00 00 00float  0.0              field292_0x184
+     013774a8 00 00 00 00float  0.0              field293_0x188
+     013774ac 00 00 80 3ffloat  1.0              field294_0x18c
+     013774b0 34 12 03   Cutsc                   field295_0x190
+              00 00 00 
+              00 00 00 
+
