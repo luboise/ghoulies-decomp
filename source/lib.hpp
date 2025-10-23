@@ -4,6 +4,9 @@
 
 class SDL_Window;
 class SDL_GPUDevice;
+class SDL_GPUShader;
+class SDL_CommandBuffer;
+class SDL_GPUGraphicsPipeline;
 
 /**
  * @brief The core implementation of the executable
@@ -28,13 +31,21 @@ struct GhouliesLib
 
   [[nodiscard]] bool ShouldQuit() const { return this->quit_; }
 
-  void UpdateFrame();
+  void UpdateEvents();
+  void DrawRectangle();
 
 private:
-  bool initialised_ {false};
-  bool quit_ {false};
+  bool initialised_;
+  bool quit_;
 
   std::string name_;
+
   SDL_Window* window_;
+
   SDL_GPUDevice* device_;
+  SDL_GPUShader* pbr_vert_shader_;
+  SDL_GPUShader* pbr_frag_shader_;
+  SDL_GPUGraphicsPipeline* pbr_pipeline_;
+
+  // SDL_CommandBuffer* command_buffer_;
 };

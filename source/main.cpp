@@ -9,10 +9,13 @@ auto main() -> int
 
   if (!lib.Initialised()) {
     std::cerr << "Unable to initialise core library. Exiting now." << '\n';
+    return 1;
   }
 
   while (!lib.ShouldQuit()) {
-    lib.UpdateFrame();
+    lib.UpdateEvents();
+
+    lib.DrawRectangle();
   }
 
   std::cout << "Ghoulies launcher launched." << '\n';

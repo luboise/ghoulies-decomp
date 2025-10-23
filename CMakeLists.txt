@@ -15,7 +15,7 @@ include(cmake/variables.cmake)
 
 # ---- Declare library ----
 
-add_library(ghoulies_launcher_lib OBJECT source/lib.cpp)
+add_library(ghoulies_launcher_lib OBJECT source/lib.cpp source/file.cpp)
 
 target_include_directories(
   ghoulies_launcher_lib ${warning_guard}
