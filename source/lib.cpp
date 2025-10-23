@@ -1,7 +1,9 @@
 #include <array>
+#include <cstring>
 #include <filesystem>
 #include <format>
 #include <iostream>
+#include <stdexcept>
 
 #include "lib.hpp"
 
@@ -39,21 +41,26 @@ GhouliesLib::GhouliesLib()
     return;
   }
 
-  SDL_Window* window = SDL_CreateWindow(
+  window_ = SDL_CreateWindow(
       "Ghoulies Launcher", kWindowWidth, kWindowHeight, SDL_WINDOW_RESIZABLE);
+  if (window_ == nullptr) {
+    return;
+  }
 
-  SDL_GPUDevice* device =
-      SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
+  device_ = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
+  if (device_ == nullptr) {
+    return;
+  }
 
-  SDL_ClaimWindowForGPUDevice(device, window);
+  SDL_ClaimWindowForGPUDevice(device_, window_);
 
   // Get window surface
-  SDL_Surface* surface = SDL_GetWindowSurface(window);
+  SDL_Surface* surface = SDL_GetWindowSurface(window_);
 
   SDL_FillSurfaceRect(
       surface, nullptr, SDL_MapSurfaceRGB(surface, 0xFF, 0xFF, 0xFF));
 
-  SDL_UpdateWindowSurface(window);
+  SDL_UpdateWindowSurface(window_);
 
   auto vs_bytes = ReadFile("source/shaders/pbr.vert").value();
   auto fs_bytes = ReadFile("source/shaders/pbr.frag").value();
@@ -82,23 +89,23 @@ GhouliesLib::GhouliesLib()
       .num_uniform_buffers = 0,
       .props = 0};
 
-  auto* pbr_vert_shader = SDL_CreateGPUShader(device, &vs_create_info);
-  if (pbr_vert_shader == nullptr) {
+  pbr_vert_shader_ = SDL_CreateGPUShader(device_, &vs_create_info);
+  if (pbr_vert_shader_ == nullptr) {
     std::cerr << std::format("Failed to create vertex shader! SDL_Error: {}\n",
                              SDL_GetError());
     return;
   }
 
-  auto* pbr_frag_shader = SDL_CreateGPUShader(device, &fs_create_info);
-  if (pbr_frag_shader == nullptr) {
+  pbr_frag_shader_ = SDL_CreateGPUShader(device_, &fs_create_info);
+  if (pbr_frag_shader_ == nullptr) {
     std::cerr << std::format(
         "Failed to create fragment shader! SDL_Error: {}\n", SDL_GetError());
     return;
   }
 
   SDL_GPUGraphicsPipelineCreateInfo pipeline_create_info {
-      .vertex_shader = this->pbr_vert_shader_,
-      .fragment_shader = this->pbr_frag_shader_,
+      .vertex_shader = pbr_vert_shader_,
+      .fragment_shader = pbr_frag_shader_,
 
       .rasterizer_state = SDL_GPURasterizerState {},
 
@@ -109,25 +116,15 @@ GhouliesLib::GhouliesLib()
       .target_info = SDL_GPUGraphicsPipelineTargetInfo {},
   };
 
-  SDL_GPUGraphicsPipeline* graphics_pipeline {
-      SDL_CreateGPUGraphicsPipeline(device, &pipeline_create_info)};
+  this->pbr_pipeline_ =
+      SDL_CreateGPUGraphicsPipeline(device_, &pipeline_create_info);
 
-  if (graphics_pipeline == nullptr) {
+  if (this->pbr_pipeline_ == nullptr) {
     std::cerr << std::format(
         "Failed to create pbr graphics pipeline! SDL_Error: {}\n",
         SDL_GetError());
     return;
   }
-
-  this->window_ = window;
-  this->device_ = device;
-
-  this->pbr_vert_shader_ = pbr_vert_shader;
-  this->pbr_frag_shader_ = pbr_frag_shader;
-
-  this->pbr_pipeline_ = graphics_pipeline;
-
-  this->quit_ = false;
 
   this->initialised_ = true;
 }
@@ -156,23 +153,73 @@ void GhouliesLib::UpdateEvents()
 
 void GhouliesLib::DrawRectangle()
 {
+  SDL_GPUBuffer* vertex_buffer {nullptr};
+  SDL_GPUBuffer* index_buffer {nullptr};
+
+  SDL_GPUBufferCreateInfo buffer_create_info {};
+
+  std::array vertices {PBRVertex {.a_position = {-1, -1, 0}},
+                       PBRVertex {.a_position = {0, 1, 0}},
+                       PBRVertex {.a_position = {1, -1, 0}}};
+  const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
+
+  std::array indices {Uint16 {0}, Uint16 {1}, Uint16 {2}};
+  const Uint32 indices_size = sizeof(Uint16) * indices.size();
+
   auto* command_buffer = SDL_AcquireGPUCommandBuffer(this->device_);
+
   // Create buffers
+  {
+    buffer_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    buffer_create_info.size = vertices_size;
+    vertex_buffer = SDL_CreateGPUBuffer(this->device_, &buffer_create_info);
 
-  std::vector<PBRVertex> vertices {PBRVertex {.a_position = {-1, -1, 0}},
-                                   PBRVertex {.a_position = {0, 1, 0}},
-                                   PBRVertex {.a_position = {1, -1, 0}}};
+    buffer_create_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+    buffer_create_info.size = indices_size;
+    index_buffer = SDL_CreateGPUBuffer(this->device_, &buffer_create_info);
+  }
 
-  SDL_GPUBufferCreateInfo buffer_info {
-      .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
-      .size = static_cast<Uint32>(sizeof(PBRVertex) * vertices.size())};
+  if ((vertex_buffer == nullptr) or (index_buffer == nullptr)
+      or (command_buffer == nullptr))
+  {
+    throw std::runtime_error("Bad ptr.");
+  }
 
-  auto* vertex_buffer = SDL_CreateGPUBuffer(this->device_, &buffer_info);
+  {  // Transfer data
 
-  buffer_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-  buffer_info.size = sizeof(Uint32) * 3;
+    auto* copy_pass {SDL_BeginGPUCopyPass(command_buffer)};
 
-  auto* index_buffer = SDL_CreateGPUBuffer(this->device_, &buffer_info);
+    if (copy_pass == nullptr) {
+      throw std::runtime_error("Bad copy pass.");
+    }
+
+    SDL_GPUBufferRegion transfer_region {
+        .buffer = vertex_buffer, .offset = 0, .size = vertices_size};
+
+    SDL_GPUTransferBufferCreateInfo tb_info {
+        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+        .size = std::max(vertices_size, indices_size)};
+    auto* transfer_buffer {
+        SDL_CreateGPUTransferBuffer(this->device_, &tb_info)};
+
+    SDL_GPUTransferBufferLocation tb_location {
+        .transfer_buffer = transfer_buffer, .offset = 0};
+
+    auto* ptr {SDL_MapGPUTransferBuffer(this->device_, transfer_buffer, false)};
+
+    std::memcpy(ptr, vertices.data(), vertices_size);
+    transfer_region.buffer = vertex_buffer;
+    transfer_region.size = vertices_size;
+    SDL_UploadToGPUBuffer(copy_pass, &tb_location, &transfer_region, false);
+
+    std::memcpy(ptr, indices.data(), indices_size);
+    transfer_region.buffer = index_buffer;
+    transfer_region.size = indices_size;
+    SDL_UploadToGPUBuffer(copy_pass, &tb_location, &transfer_region, false);
+
+    SDL_UnmapGPUTransferBuffer(this->device_, transfer_buffer);
+    SDL_ReleaseGPUTransferBuffer(this->device_, transfer_buffer);
+  }
 
   SDL_GPUColorTargetInfo color_target_info {};
   SDL_GPUDepthStencilTargetInfo depth_stencil_target_info {};
@@ -180,6 +227,10 @@ void GhouliesLib::DrawRectangle()
   // Create render pass and do commands
   SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(
       command_buffer, &color_target_info, 1, &depth_stencil_target_info);
+
+  if (render_pass == nullptr) {
+    throw std::runtime_error("Bad render pass.");
+  }
 
   SDL_BindGPUGraphicsPipeline(render_pass, this->pbr_pipeline_);
 
