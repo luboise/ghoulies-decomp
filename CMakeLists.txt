@@ -24,14 +24,16 @@ target_include_directories(
 target_compile_features(ghoulies_launcher_lib PUBLIC cxx_std_20)
 
 find_package(fmt REQUIRED)
+find_package(glm REQUIRED)
 
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 
-target_link_libraries(ghoulies_launcher_lib PRIVATE fmt::fmt SDL3::SDL3)
+target_link_libraries(ghoulies_launcher_lib PRIVATE fmt::fmt SDL3::SDL3
+                                                    glm::glm)
 
 # ---- Declare executable ----
 
-add_executable(ghoulies_launcher_exe source/main.cpp)
+add_executable(ghoulies_launcher_exe source/main.cpp source/graphics.cpp)
 add_executable(ghoulies_launcher::exe ALIAS ghoulies_launcher_exe)
 
 set_property(TARGET ghoulies_launcher_exe PROPERTY OUTPUT_NAME

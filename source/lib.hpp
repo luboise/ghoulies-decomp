@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "graphics.hpp"
+
 class SDL_Window;
 class SDL_GPUDevice;
 class SDL_GPUShader;
@@ -47,5 +49,8 @@ private:
   SDL_GPUShader* pbr_frag_shader_;
   SDL_GPUGraphicsPipeline* pbr_pipeline_;
 
+  graphics::Camera camera_;
+
+  const bool* key_states_;
   // SDL_CommandBuffer* command_buffer_;
 };

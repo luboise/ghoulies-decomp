@@ -9,21 +9,15 @@ layout(location = 0) out vec4 colour;
 layout(location = 1) out vec3 normal;
 layout(location = 2) out vec2 tex_coords;
 
-layout(push_constant) uniform ViewUniforms {
+layout(std140, set = 1, binding = 0) uniform ViewUniforms {
     mat4 model;
     mat4 view;
     mat4 projection;
 };
 
-layout(binding = 1) uniform PBROptions {
-    vec4 u_baseColour;
-    float u_metallic;
-    float u_roughness;
-};
-
 void main() {
-    // gl_Position = projection * view * model * vec4(a_position, 1.0);
-    gl_Position = vec4(a_position, 1.0);
+    gl_Position = projection * view * model * vec4(a_position, 1.0);
+
     colour = vec4(a_colour, 1.0);
     tex_coords = a_texcoords;
 

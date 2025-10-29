@@ -12,7 +12,8 @@ Checks: "*,\
   -llvmlibc-*,\
   -misc-non-private-member-variables-in-classes,\
   -modernize-use-trailing-return-type,\
-  -*-magic-numbers"
+  -*-magic-numbers,\
+  -performance-enum-size"
 
 WarningsAsErrors: ""
 CheckOptions:

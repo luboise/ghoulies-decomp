@@ -12,9 +12,12 @@
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_log.h>
+#include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_surface.h>
 #include <SDL3/SDL_video.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "file.hpp"
 #include "graphics.hpp"
@@ -38,6 +41,19 @@ GhouliesLib::GhouliesLib()
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     std::cerr << std::format("SDL could not initialize! SDL_Error: {}\n",
                              SDL_GetError());
+
+    this->key_states_ = nullptr;
+    return;
+  }
+
+  int num_keys = 101;
+  this->key_states_ = SDL_GetKeyboardState(&num_keys);
+
+  if (key_states_ == nullptr) {
+    std::cerr << std::format(
+        "SDL is not able to retrieve the keyboard state. SDL_Error: {}\n",
+        SDL_GetError());
+
     return;
   }
 
@@ -82,7 +98,7 @@ GhouliesLib::GhouliesLib()
       .num_samplers = 0,
       .num_storage_textures = 0,
       .num_storage_buffers = 0,
-      .num_uniform_buffers = 0};
+      .num_uniform_buffers = 1};
 
   const SDL_GPUShaderCreateInfo fs_create_info {
       .code_size = fs_bytes.size(),
@@ -211,12 +227,32 @@ void GhouliesLib::DrawRectangle()
 
   SDL_GPUBufferCreateInfo buffer_create_info {};
 
+  /*
+  PBRVertex f1 {.a_position = {-1, -1, 1}};
+  PBRVertex f2 {.a_position = {1, -1, 1}};
+  PBRVertex f3 {.a_position = {-1, 1, 1}};
+  PBRVertex f4 {.a_position = {1, 1, 1}};
+
+  PBRVertex b1 {.a_position = {-1, -1, -1}};
+  PBRVertex b2 {.a_position = {1, -1, -1}};
+  PBRVertex b3 {.a_position = {-1, 1, -1}};
+  PBRVertex b4 {.a_position = {1, 1, -1}};
+
+  std::array vertices {f1, f2, f3, f4, b1, b2, b3, b4};
+  const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
+  */
+
   std::array vertices {PBRVertex {.a_position = {-1, -1, 0}},
                        PBRVertex {.a_position = {0, 1, 0}},
                        PBRVertex {.a_position = {1, -1, 0}}};
   const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
 
-  std::array indices {Uint16 {0}, Uint16 {1}, Uint16 {2}};
+  std::array<Uint16, 3> indices {
+      0,
+      1,
+      2,
+  };
+
   const Uint32 indices_size = sizeof(Uint16) * indices.size();
 
   // TODO: Check command buffer is not null
@@ -335,6 +371,26 @@ void GhouliesLib::DrawRectangle()
   SDL_Log("Binding index buffer.");
   SDL_BindGPUIndexBuffer(
       render_pass, &ib_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+
+  const glm::mat4 identity(1.0F);
+
+  const auto right = glm::vec3 {0.001, 0, 0};
+  const auto forwards = glm::vec3 {0, 0, 0.001};
+
+  if (key_states_[SDL_SCANCODE_A]) {
+    camera_.position += right;
+  } else if (key_states_[SDL_SCANCODE_D]) {
+    camera_.position -= right;
+  } else if (key_states_[SDL_SCANCODE_W]) {
+    camera_.position += forwards;
+  } else if (key_states_[SDL_SCANCODE_S]) {
+    camera_.position -= forwards;
+  }
+  const auto view {this->camera_.GetViewMatrix()};
+
+  graphics::ViewUniforms uniforms {
+      .model = identity, .view = view, .projection = identity};
+  SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
 
   // SDL_BindGPUVertexSamplers()
 
