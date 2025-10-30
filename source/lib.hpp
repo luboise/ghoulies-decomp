@@ -39,6 +39,9 @@ struct GhouliesLib
 
   std::unique_ptr<graphics::Model> LoadModel(const std::filesystem::path& path);
 
+  std::unique_ptr<graphics::Texture> LoadTexture(
+      graphics::TextureParams params);
+
 private:
   bool initialised_;
   bool quit_;

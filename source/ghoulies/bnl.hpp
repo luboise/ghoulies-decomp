@@ -138,8 +138,6 @@ struct Asset
 class BNLFile
 {
 public:
-  std::optional<Asset> GetAsset(std::string_view asset_name);
-
   /// Reads a BNLFile from a byte stream
   static std::expected<BNLFile, std::string> FromBytes(std::span<std::byte>);
 
@@ -148,6 +146,8 @@ public:
 
   /// Construct from list of assets
   explicit BNLFile(std::span<Asset> assets);
+
+  const Asset* GetAsset(std::string_view asset_name);
 
 private:
   std::vector<Asset> assets_;

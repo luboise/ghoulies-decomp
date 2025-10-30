@@ -2,6 +2,7 @@
 
 #include "file.hpp"
 #include "ghoulies/bnl.hpp"
+#include "graphics/graphics.hpp"
 #include "lib.hpp"
 
 using ghoulies::BNLFile, ghoulies::Bytes;
@@ -32,6 +33,29 @@ auto main(int argc, char** argv) -> int
   }
 
   BNLFile bnl {std::move(bnl_exp).value()};
+
+  const auto* asset {
+      bnl.GetAsset("aid_texture_ghoulies_powerups_knockdownmania")};
+
+  if (asset == nullptr) {
+    std::cerr << "Failed to get asset "
+                 "aid_texture_ghoulies_powerups_knockdownmania.\n";
+    return 1;
+  }
+
+  std::cout << std::format("Descriptor size: {}     Resource size: {}\n",
+                           asset->descriptor.size(),
+                           asset->resource.size());
+
+  graphics::TextureParams params {
+      .width = 128, .height = 128, .data = asset->resource};
+
+  auto tex {lib.LoadTexture(params)};
+
+  if (tex == nullptr) {
+    std::cerr << "Failed to create texture.\n";
+    return 1;
+  }
 
   std::cout << "Ghoulies launcher launched." << '\n';
 

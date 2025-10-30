@@ -1,11 +1,15 @@
 #pragma once
 
+#include <SDL3/SDL_gpu.h>
 #include <glm/glm.hpp>
 
+#include "../ghoulies/bnl.hpp"
 #include "model.hpp"
 
 namespace graphics
 {
+
+using ghoulies::Asset;
 
 struct PBRVertex
 {
@@ -62,6 +66,33 @@ struct Camera
 
   [[nodiscard]] glm::vec3 Left() const;
   [[nodiscard]] glm::vec3 Forwards() const;
+};
+
+struct TextureParams
+{
+  uint32_t width;
+  uint32_t height;
+  std::vector<std::byte> data;
+};
+
+class Texture
+{
+public:
+  /// Throws std::runtime_error on failure, creates a texture otherwise.
+  Texture(struct SDL_GPUDevice* device, TextureParams params);
+  ~Texture();
+
+  [[nodiscard]] auto Width() const { return params_.width; }
+
+  [[nodiscard]] auto Height() const { return params_.height; }
+
+  [[nodiscard]] const auto& Params() const { return this->params_; }
+
+private:
+  TextureParams params_;
+
+  SDL_GPUDevice* device_;
+  SDL_GPUTexture* handle_;
 };
 
 }  // namespace graphics

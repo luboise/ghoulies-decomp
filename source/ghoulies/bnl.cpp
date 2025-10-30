@@ -223,4 +223,19 @@ std::size_t LocatorList::Size() const
                     { return acc + loc.size; });
 }
 
+const Asset* BNLFile::GetAsset(std::string_view asset_name)
+{
+  auto found = std::ranges::find_if(
+      this->assets_,
+      [&asset_name](const Asset& asset)
+      {
+        return strncmp(asset.description.metadata.name.data(),
+                       asset_name.data(),
+                       sizeof(asset.description.metadata.name))
+            == 0;
+      });
+
+  return found == this->assets_.end() ? nullptr : found.base();
+};
+
 }  // namespace ghoulies

@@ -21,7 +21,8 @@ Checks: "*,\
   -readability-identifier-length,\
   -cppcoreguidelines-pro-type-reinterpret-cast,\
   -readability-container-data-pointer,\
-  -boost-use-*"
+  -boost-use-*,\
+  -bugprone-suspicious-stringview-data-usage"
 
 WarningsAsErrors: ""
 CheckOptions:

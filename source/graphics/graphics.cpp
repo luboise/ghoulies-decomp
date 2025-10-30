@@ -1,5 +1,9 @@
 #include "graphics.hpp"
 
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_error.h>
+#include <SDL3/SDL_gpu.h>
+#include <SDL3/SDL_render.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
@@ -68,5 +72,36 @@ glm::mat4 Camera::RotationMatrix() const
 
   return matrix;
 };
+
+Texture::Texture(SDL_GPUDevice* device, TextureParams params)
+    : device_(nullptr)
+    , handle_(nullptr)
+{
+  SDL_GPUTextureCreateInfo texture_info {
+      .type = SDL_GPU_TEXTURETYPE_2D,
+      .format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM,
+      .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+      .width = params.width,
+      .height = params.height,
+      .num_levels = 1,
+  };
+
+  SDL_GPUTexture* texture {SDL_CreateGPUTexture(device, &texture_info)};
+
+  if (texture == nullptr) {
+    throw std::runtime_error(std::string(SDL_GetError()));
+  }
+
+  this->params_ = std::move(params);
+  this->device_ = device;
+  this->handle_ = texture;
+}
+
+Texture::~Texture()
+{
+  if (device_ != nullptr && handle_ != nullptr) {
+    SDL_ReleaseGPUTexture(device_, handle_);
+  }
+}
 
 }  // namespace graphics

@@ -10,6 +10,7 @@
 #include "lib.hpp"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_init.h>
@@ -423,6 +424,21 @@ void GhouliesLib::DrawRectangle()
 
   SDL_ReleaseGPUBuffer(device_, vertex_buffer);
   SDL_ReleaseGPUBuffer(device_, index_buffer);
+}
+
+std::unique_ptr<graphics::Texture> GhouliesLib::LoadTexture(
+    graphics::TextureParams params)
+{
+  try {
+    auto tex {
+        std::make_unique<graphics::Texture>(this->device_, std::move(params))};
+
+    return tex;
+  } catch (std::runtime_error& e) {
+    std::cerr << e.what() << "\n";
+  }
+
+  return nullptr;
 }
 
 /*
