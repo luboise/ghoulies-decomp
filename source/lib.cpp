@@ -27,9 +27,9 @@
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
 
-using std::filesystem::path;
-
-using ghoulies::ModelDescriptor;
+// using std::filesystem::path;
+// using ghoulies::ModelDescriptor;
+//
 using ghoulies::utils::ReadFile;
 using graphics::PBRVertex;
 

@@ -32,11 +32,13 @@ target_compile_features(ghoulies_launcher_lib PUBLIC cxx_std_23)
 
 find_package(fmt REQUIRED)
 find_package(glm REQUIRED)
+find_package(libdeflate REQUIRED)
 
 find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 
-target_link_libraries(ghoulies_launcher_lib PRIVATE fmt::fmt SDL3::SDL3
-                                                    glm::glm)
+target_link_libraries(
+  ghoulies_launcher_lib PRIVATE fmt::fmt SDL3::SDL3 glm::glm
+                                libdeflate::libdeflate_shared)
 
 # ---- Declare executable ----
 

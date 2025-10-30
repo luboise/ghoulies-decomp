@@ -15,4 +15,8 @@ std::optional<std::vector<uint8_t>> ReadFile(
 
 std::optional<Bytes> ReadFileBytes(const std::filesystem::path& file_path);
 
+std::optional<Bytes> ZLibDecompress(const Bytes& bytes,
+                                    /// The minimum decompressed size
+                                    uint32_t decompressed_size = 0);
+
 }  // namespace ghoulies::utils

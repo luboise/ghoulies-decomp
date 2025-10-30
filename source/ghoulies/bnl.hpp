@@ -21,6 +21,13 @@ struct Locator
 {
   uint32_t offset;
   uint32_t size;
+
+  [[nodiscard]] std::size_t Offset() const { return offset; }
+
+  [[nodiscard]] std::size_t MaxOffset() const
+  {
+    return static_cast<std::size_t>(offset) + size;
+  }
 };
 
 static_assert(sizeof(Locator) == 8);
@@ -39,7 +46,67 @@ struct BNLHeader
 
 static_assert(sizeof(BNLHeader) == 40);
 
+// Taken from project_grabbed
+// https://github.com/x1nixmzeng/project-grabbed
+enum class AssetType
+{
+  ResTexture = 1,
+  ResAnim = 2,
+  ResUnknown3 = 3,
+  ResModel = 4,
+  ResAnimEvents = 5,
+
+  ResCutscene = 7,
+  ResCutsceneEvents = 8,
+
+  ResMisc = 10,
+  ResActorGoals = 11,
+  ResMarker = 12,
+  ResFxCallout = 13,
+  ResAidList = 14,
+
+  ResLoctext = 16,
+
+  ResXSoundbank = 18,
+  ResXDSP = 19,
+  ResXCueList = 20,
+  ResFont = 21,
+  ResGhoulybox = 22,
+  ResGhoulyspawn = 23,
+  ResScript = 24,
+  ResActorAttribs = 25,
+  ResEmitter = 26,
+  ResParticle = 27,
+  ResRumble = 28,
+  ResShakeCam = 29,
+
+  ResCount,  // This will automatically take the next value (30)
+};
+
+struct AssetMetadata
+{
+  std::array<char, 128> name;
+  AssetType asset_type;
+  uint32_t unk_1;
+  uint32_t unk_2;
+};
+
+struct AssetDescription
+
+{
+  AssetMetadata metadata;
+  uint32_t chunk_count;
+  uint32_t descriptor_ptr;
+  uint32_t descriptor_size;
+  uint32_t dataview_list_ptr;
+  uint32_t resource_size;  // The total size needed for this asset, including
+                           // its descriptor list
+};
+
+static_assert(sizeof(AssetDescription) == 160);
+
 struct Asset
+
 {
   /// Bytes which form the descriptor of the asset
   Bytes descriptor;

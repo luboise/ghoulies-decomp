@@ -4,7 +4,7 @@
 #include "ghoulies/bnl.hpp"
 #include "lib.hpp"
 
-using ghoulies::BNLFile;
+using ghoulies::BNLFile, ghoulies::Bytes;
 using ghoulies::utils::ReadFileBytes;
 
 auto main(int argc, char** argv) -> int
@@ -21,19 +21,24 @@ auto main(int argc, char** argv) -> int
     return 1;
   }
 
-  auto bytes {ReadFileBytes(argv[1]).value()};
+  Bytes bytes {ReadFileBytes(argv[1]).value()};
+  auto bnl_exp {BNLFile::FromBytes(bytes)};
 
-  auto bnl {BNLFile::FromBytes(bytes)};
+  if (!bnl_exp.has_value()) {
+    std::cerr << std::format("Unable to load BNL file. Error: {}\n",
+                             bnl_exp.error());
 
-  // lib.LoadModel(argv[0]);
+    return 1;
+  }
+
+  BNLFile bnl {std::move(bnl_exp).value()};
+
+  std::cout << "Ghoulies launcher launched." << '\n';
 
   while (!lib.ShouldQuit()) {
     lib.UpdateEvents();
-
     lib.DrawRectangle();
   }
-
-  std::cout << "Ghoulies launcher launched." << '\n';
 
   return 0;
 }
