@@ -17,35 +17,6 @@ namespace ghoulies
 
 using utils::Bytes;
 
-struct Locator
-{
-  uint32_t offset;
-  uint32_t size;
-
-  [[nodiscard]] std::size_t Offset() const { return offset; }
-
-  [[nodiscard]] std::size_t MaxOffset() const
-  {
-    return static_cast<std::size_t>(offset) + size;
-  }
-};
-
-static_assert(sizeof(Locator) == 8);
-
-struct BNLHeader
-{
-  uint16_t file_count;
-  uint8_t flags;
-  std::array<std::byte, 5> unknown_2;
-
-  Locator asset_desc_loc;
-  Locator buffer_views_loc;
-  Locator buffer_loc;
-  Locator descriptor_loc;
-};
-
-static_assert(sizeof(BNLHeader) == 40);
-
 // Taken from project_grabbed
 // https://github.com/x1nixmzeng/project-grabbed
 enum class AssetType
@@ -83,6 +54,38 @@ enum class AssetType
   ResCount,  // This will automatically take the next value (30)
 };
 
+// Prevent packing of these types
+#pragma pack(push, 1)
+
+struct Locator
+{
+  uint32_t offset;
+  uint32_t size;
+
+  [[nodiscard]] std::size_t Offset() const { return offset; }
+
+  [[nodiscard]] std::size_t MaxOffset() const
+  {
+    return static_cast<std::size_t>(offset) + size;
+  }
+};
+
+static_assert(sizeof(Locator) == 8);
+
+struct BNLHeader
+{
+  uint16_t file_count;
+  uint8_t flags;
+  std::array<std::byte, 5> unknown_2;
+
+  Locator asset_desc_loc;
+  Locator buffer_views_loc;
+  Locator buffer_loc;
+  Locator descriptor_loc;
+};
+
+static_assert(sizeof(BNLHeader) == 40);
+
 struct AssetMetadata
 {
   std::array<char, 128> name;
@@ -98,16 +101,34 @@ struct AssetDescription
   uint32_t chunk_count;
   uint32_t descriptor_ptr;
   uint32_t descriptor_size;
-  uint32_t dataview_list_ptr;
+  uint32_t locator_list_ptr;
   uint32_t resource_size;  // The total size needed for this asset, including
                            // its descriptor list
 };
 
 static_assert(sizeof(AssetDescription) == 160);
 
-struct Asset
-
+struct LocatorList
 {
+  uint32_t size;
+  uint32_t num_views;
+  std::vector<Locator> views;
+
+  /// Gets the resource specified by this locator list from a span elsewhere.
+  /// This span must begin at the start of the buffer section of the BNL file
+  std::optional<Bytes> GetResource(std::span<std::byte> span);
+
+  [[nodiscard]] std::size_t Size() const;
+
+  static std::optional<LocatorList> FromSpan(std::span<std::byte> span);
+};
+
+#pragma pack(pop)
+
+struct Asset
+{
+  AssetDescription description;
+
   /// Bytes which form the descriptor of the asset
   Bytes descriptor;
   /// Bytes which form the resource of the asset
@@ -126,10 +147,10 @@ public:
   BNLFile() = default;
 
   /// Construct from list of assets
-  explicit BNLFile(std::unordered_map<std::string, Asset> assets);
+  explicit BNLFile(std::span<Asset> assets);
 
 private:
-  std::unordered_map<std::string, Asset> assets_;
+  std::vector<Asset> assets_;
 };
 
 }  // namespace ghoulies

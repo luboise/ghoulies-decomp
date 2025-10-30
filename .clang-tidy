@@ -19,7 +19,9 @@ Checks: "*,\
   -hicpp-vararg,\
   -cppcoreguidelines-pro-type-union-access,\
   -readability-identifier-length,\
-  -cppcoreguidelines-pro-type-reinterpret-cast"
+  -cppcoreguidelines-pro-type-reinterpret-cast,\
+  -readability-container-data-pointer,\
+  -boost-use-*"
 
 WarningsAsErrors: ""
 CheckOptions:
