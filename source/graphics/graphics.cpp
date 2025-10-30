@@ -75,33 +75,145 @@ glm::mat4 Camera::RotationMatrix() const
 
 Texture::Texture(SDL_GPUDevice* device, TextureParams params)
     : device_(nullptr)
-    , handle_(nullptr)
+    , texture_(nullptr)
+    , sampler_(nullptr)
 {
   SDL_GPUTextureCreateInfo texture_info {
       .type = SDL_GPU_TEXTURETYPE_2D,
-      .format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM,
+      .format = SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM,
+
       .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
       .width = params.width,
       .height = params.height,
-      .num_levels = 1,
-  };
+      .layer_count_or_depth = 1,
+      .num_levels = 1};
 
   SDL_GPUTexture* texture {SDL_CreateGPUTexture(device, &texture_info)};
 
   if (texture == nullptr) {
-    throw std::runtime_error(std::string(SDL_GetError()));
+    throw std::runtime_error(std::format("Failed to create SDL texture: {}",
+                                         std::string(SDL_GetError())));
+  }
+
+  SDL_GPUSamplerCreateInfo sampler_info {
+      .min_filter = SDL_GPU_FILTER_LINEAR,
+      .mag_filter = SDL_GPU_FILTER_LINEAR,
+      .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+      .address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+      .address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+      .address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+      .mip_lod_bias = 0,
+      .max_anisotropy = 8,
+      .compare_op = SDL_GPU_COMPAREOP_GREATER,
+      .enable_anisotropy = true,
+  };
+
+  SDL_GPUSampler* sampler {SDL_CreateGPUSampler(device, &sampler_info)};
+  if (sampler == nullptr) {
+    throw std::runtime_error(std::format("Failed to create SDL sampler: {}",
+                                         std::string(SDL_GetError())));
   }
 
   this->params_ = std::move(params);
   this->device_ = device;
-  this->handle_ = texture;
+  this->texture_ = texture;
+  this->sampler_ = sampler;
+
+  this->Write(params_.data);
+  params_.data.clear();
 }
 
 Texture::~Texture()
 {
-  if (device_ != nullptr && handle_ != nullptr) {
-    SDL_ReleaseGPUTexture(device_, handle_);
+  if (device_ != nullptr && texture_ != nullptr) {
+    SDL_ReleaseGPUTexture(device_, texture_);
   }
+}
+
+SDL_GPUTextureSamplerBinding Texture::SDLBinding() const
+{
+  return {.texture = texture_, .sampler = sampler_};
+}
+
+bool Texture::Write(const ghoulies::Bytes& bytes)
+{
+  SDL_GPUCommandBuffer* command_buffer {SDL_AcquireGPUCommandBuffer(device_)};
+
+  if (command_buffer == nullptr) {
+    std::cerr << "Unable to acquire command buffer.\n";
+    return false;
+  }
+
+  SDL_GPUTransferBufferCreateInfo transfer_buffer_info {
+      .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+      .size = static_cast<Uint32>(bytes.size()),
+  };
+
+  SDL_GPUTransferBuffer* transfer_buffer {
+      SDL_CreateGPUTransferBuffer(device_, &transfer_buffer_info)};
+
+  if (transfer_buffer == nullptr) {
+    std::cerr << "Failed to create SDL transfer buffer.\n";
+    SDL_CancelGPUCommandBuffer(command_buffer);
+    return false;
+  }
+
+  auto* buf {SDL_MapGPUTransferBuffer(device_, transfer_buffer, false)};
+
+  if (buf == nullptr) {
+    std::cerr << "Failed to map GPU transfer buffer.\n";
+    SDL_ReleaseGPUTransferBuffer(device_, transfer_buffer);
+    SDL_CancelGPUCommandBuffer(command_buffer);
+
+    return false;
+  }
+
+  std::memcpy(buf, bytes.data(), bytes.size());
+
+  SDL_GPUCopyPass* copy_pass {SDL_BeginGPUCopyPass(command_buffer)};
+
+  if (copy_pass == nullptr) {
+    std::cerr << "Failed to retrieve copy pass when writing texture.\n";
+
+    SDL_ReleaseGPUTransferBuffer(device_, transfer_buffer);
+    SDL_CancelGPUCommandBuffer(command_buffer);
+    return false;
+  }
+
+  auto w = params_.width / 4;
+  auto h = params_.height / 4;
+
+  SDL_GPUTextureTransferInfo transfer_info {
+      .transfer_buffer = transfer_buffer,
+      .offset = 0,
+  };
+
+  SDL_GPUTextureRegion destination {.texture = texture_,
+                                    .mip_level = 0,
+                                    .layer = 0,
+                                    .x = 0,
+                                    .y = 0,
+                                    .w = params_.width,
+                                    .h = params_.height,
+                                    .d = 1};
+
+  SDL_UploadToGPUTexture(copy_pass, &transfer_info, &destination, false);
+
+  SDL_EndGPUCopyPass(copy_pass);
+
+  bool success = true;
+
+  if (!SDL_SubmitGPUCommandBuffer(command_buffer)) {
+    std::cerr << "Failed to submit command buffer. Error: " << SDL_GetError()
+              << "\n";
+
+    success = false;
+  }
+
+  SDL_UnmapGPUTransferBuffer(this->device_, transfer_buffer);
+  SDL_ReleaseGPUTransferBuffer(device_, transfer_buffer);
+
+  return success;
 }
 
 }  // namespace graphics

@@ -82,17 +82,23 @@ public:
   Texture(struct SDL_GPUDevice* device, TextureParams params);
   ~Texture();
 
+  /// Returns true if the texture was successfully updated, and false otherwise
+  bool Write(const ghoulies::Bytes& bytes);
+
   [[nodiscard]] auto Width() const { return params_.width; }
 
   [[nodiscard]] auto Height() const { return params_.height; }
 
   [[nodiscard]] const auto& Params() const { return this->params_; }
 
+  [[nodiscard]] SDL_GPUTextureSamplerBinding SDLBinding() const;
+
 private:
   TextureParams params_;
 
   SDL_GPUDevice* device_;
-  SDL_GPUTexture* handle_;
+  SDL_GPUTexture* texture_;
+  SDL_GPUSampler* sampler_;
 };
 
 }  // namespace graphics

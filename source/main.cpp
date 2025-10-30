@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <fstream>
 #include <iostream>
 
 #include "file.hpp"
@@ -50,6 +52,32 @@ auto main(int argc, char** argv) -> int
   graphics::TextureParams params {
       .width = 128, .height = 128, .data = asset->resource};
 
+  /*
+  Bytes colour = {std::byte {0},
+                  std::byte {
+                      0,
+                  },
+                  std::byte {
+                      0,
+                  },
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {255},
+                  std::byte {0},
+                  std::byte {0},
+                  std::byte {0},
+                  std::byte {255}};
+
+  Bytes bytess {colour.begin(), colour.end()};
+  */
+  // graphics::TextureParams params {.width = 2, .height = 2, .data = bytess};
+
   auto tex {lib.LoadTexture(params)};
 
   if (tex == nullptr) {
@@ -61,7 +89,7 @@ auto main(int argc, char** argv) -> int
 
   while (!lib.ShouldQuit()) {
     lib.UpdateEvents();
-    lib.DrawRectangle();
+    lib.DrawTestObjects(*tex);
   }
 
   return 0;

@@ -189,11 +189,12 @@ std::optional<Bytes> LocatorList::GetResource(std::span<std::byte> span)
     // Locator reads out of bounds
     if (view.MaxOffset() > span.size()) {
       std::cerr
-          << std::format(
-                 "Resource locator reads to offset {}, but the resource span "
-                 "has size " "{}.\n",
-                 view.MaxOffset(),
-                 span.size());
+          << std::
+                 format(
+                     "Resource locator reads to offset {}, but the resource "
+                     "span " "has size {}.\n",
+                     view.MaxOffset(),
+                     span.size());
 
       return {};
     }

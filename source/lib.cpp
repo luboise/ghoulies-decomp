@@ -68,11 +68,14 @@ GhouliesLib::GhouliesLib()
   window_ = SDL_CreateWindow(
       "Ghoulies Launcher", kWindowWidth, kWindowHeight, SDL_WINDOW_RESIZABLE);
   if (window_ == nullptr) {
+    std::cerr << "Failed to create window.\n";
     return;
   }
 
   device_ = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, false, nullptr);
   if (device_ == nullptr) {
+    std::cerr << "Failed to create SDL GPU device. Error: " << SDL_GetError()
+              << "\n";
     return;
   }
 
@@ -114,7 +117,7 @@ GhouliesLib::GhouliesLib()
       .entrypoint = "main",
       .format = SDL_GPU_SHADERFORMAT_SPIRV,
       .stage = SDL_GPU_SHADERSTAGE_FRAGMENT,
-      .num_samplers = 0,
+      .num_samplers = 1,
       .num_storage_textures = 0,
       .num_storage_buffers = 0,
       .num_uniform_buffers = 0};
@@ -248,7 +251,7 @@ void GhouliesLib::UpdateEvents()
   }
 }
 
-void GhouliesLib::DrawRectangle()
+void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
 {
   SDL_GPUBuffer* vertex_buffer {nullptr};
   SDL_GPUBuffer* index_buffer {nullptr};
@@ -270,16 +273,14 @@ void GhouliesLib::DrawRectangle()
   const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
   */
 
-  std::array vertices {PBRVertex {.a_position = {-1, -1, 0}},
-                       PBRVertex {.a_position = {0, 1, 0}},
-                       PBRVertex {.a_position = {1, -1, 0}}};
+  std::array vertices {
+      PBRVertex {.a_position = {1, 1, 0}, .a_texcoords = {1, 1}},
+      PBRVertex {.a_position = {1, -1, 0}, .a_texcoords = {1, 0}},
+      PBRVertex {.a_position = {-1, 1, 0}, .a_texcoords = {0, 1}},
+      PBRVertex {.a_position = {-1, -1, 0}, .a_texcoords = {0, 0}}};
   const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
 
-  std::array<Uint16, 3> indices {
-      0,
-      1,
-      2,
-  };
+  std::array<Uint16, 6> indices {0, 1, 2, 1, 2, 3};
 
   const Uint32 indices_size = sizeof(Uint16) * indices.size();
 
@@ -412,7 +413,8 @@ void GhouliesLib::DrawRectangle()
       .model = identity, .view = view, .projection = projection};
   SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
 
-  // SDL_BindGPUVertexSamplers()
+  std::array bindings = {texture.SDLBinding()};
+  SDL_BindGPUFragmentSamplers(render_pass, 0, bindings.data(), bindings.size());
 
   // SDL_Log("Drawing primitives.");
   SDL_DrawGPUIndexedPrimitives(render_pass, indices.size(), 1, 0, 0, 0);
