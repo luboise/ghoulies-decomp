@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include "model.hpp"
+
 namespace graphics
 {
 
@@ -26,7 +28,20 @@ struct Camera
   glm::vec3 rotation;
   glm::vec3 scale;
 
-  [[nodiscard]] glm::mat4 GetViewMatrix() const;
+  glm::float32_t fov_h;
+  glm::float32_t near;
+  glm::float32_t far;
+
+  glm::uint32_t viewport_width;
+  glm::uint32_t viewport_height;
+
+  [[nodiscard]] glm::mat4 ModelMatrix() const;
+  [[nodiscard]] glm::mat4 ViewMatrix() const;
+  [[nodiscard]] glm::mat4 ProjectionMatrix() const;
+
+  [[nodiscard]] glm::mat4 RotationMatrix() const;
+
+  [[nodiscard]] glm::float32_t AspectRatio() const;
 
   Camera()
       : Camera({0, 0, 0}, {0, 0, 0}, {1, 1, 1})
@@ -37,8 +52,16 @@ struct Camera
       : position(position)
       , rotation(rotation)
       , scale(scale)
+      , fov_h(90)
+      , near(0.01F)
+      , far(1000.0F)
+      , viewport_width(1280)
+      , viewport_height(720)
   {
   }
+
+  [[nodiscard]] glm::vec3 Left() const;
+  [[nodiscard]] glm::vec3 Forwards() const;
 };
 
 }  // namespace graphics

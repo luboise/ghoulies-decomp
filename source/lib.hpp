@@ -1,8 +1,9 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 
-#include "graphics.hpp"
+#include "graphics/graphics.hpp"
 
 class SDL_Window;
 class SDL_GPUDevice;
@@ -29,12 +30,14 @@ struct GhouliesLib
 
   ~GhouliesLib();
 
-  [[nodiscard]] bool Initialised() const { return this->initialised_; };
+  [[nodiscard]] bool Initialised() const { return this->initialised_; }
 
   [[nodiscard]] bool ShouldQuit() const { return this->quit_; }
 
   void UpdateEvents();
   void DrawRectangle();
+
+  std::unique_ptr<graphics::Model> LoadModel(const std::filesystem::path& path);
 
 private:
   bool initialised_;

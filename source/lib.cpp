@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <format>
 #include <iostream>
+#include <memory>
+#include <span>
 #include <stdexcept>
 
 #include "lib.hpp"
@@ -11,6 +13,7 @@
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_init.h>
+#include <SDL3/SDL_iostream.h>
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_stdinc.h>
@@ -20,10 +23,14 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "file.hpp"
-#include "graphics.hpp"
+#include "ghoulies/nd.hpp"
+#include "graphics/graphics.hpp"
+#include "graphics/model.hpp"
 
 using std::filesystem::path;
 
+using ghoulies::ModelDescriptor;
+using ghoulies::utils::ReadFile;
 using graphics::PBRVertex;
 
 constexpr auto kWindowWidth = 1280;
@@ -195,6 +202,10 @@ GhouliesLib::GhouliesLib()
     return;
   }
 
+  camera_ = graphics::Camera {};
+
+  camera_.position = {0, 0, -1};
+
   initialised_ = true;
 }
 
@@ -216,7 +227,23 @@ void GhouliesLib::UpdateEvents()
   while (SDL_PollEvent(&e)) {
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
+    } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
+      camera_.rotation.y += e.motion.xrel * 0.001;
+      camera_.rotation.x += e.motion.yrel * 0.001;
     }
+  }
+
+  const auto left = 0.01F * camera_.Left();
+  const auto forwards = 0.01F * camera_.Forwards();
+
+  if (key_states_[SDL_SCANCODE_A]) {
+    camera_.position += left;
+  } else if (key_states_[SDL_SCANCODE_D]) {
+    camera_.position -= left;
+  } else if (key_states_[SDL_SCANCODE_W]) {
+    camera_.position += forwards;
+  } else if (key_states_[SDL_SCANCODE_S]) {
+    camera_.position -= forwards;
   }
 }
 
@@ -263,7 +290,7 @@ void GhouliesLib::DrawRectangle()
   Uint32 swapchain_width {};
   Uint32 swapchain_height {};
 
-  SDL_Log("Acquiring swapchain.");
+  // SDL_Log("Acquiring swapchain.");
   if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer,
                                              window_,
                                              &swapchain_texture,
@@ -277,7 +304,7 @@ void GhouliesLib::DrawRectangle()
     return;
   }
 
-  SDL_Log("Creating buffers.");
+  // SDL_Log("Creating buffers.");
   // Create buffers
   {
     buffer_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
@@ -295,7 +322,7 @@ void GhouliesLib::DrawRectangle()
     throw std::runtime_error("Bad ptr.");
   }
 
-  SDL_Log("Writing buffers.");
+  // SDL_Log("Writing buffers.");
   {  // Transfer data
     auto* copy_pass {SDL_BeginGPUCopyPass(command_buffer)};
 
@@ -322,7 +349,9 @@ void GhouliesLib::DrawRectangle()
     transfer_region.size = vertices_size;
     SDL_UploadToGPUBuffer(copy_pass, &tb_location, &transfer_region, false);
 
-    std::memcpy(((char*)ptr) + vertices_size, indices.data(), indices_size);
+    std::memcpy((static_cast<char*>(ptr)) + vertices_size,
+                indices.data(),
+                indices_size);
     transfer_region.buffer = index_buffer;
     transfer_region.size = indices_size;
     tb_location.offset = vertices_size;
@@ -332,11 +361,12 @@ void GhouliesLib::DrawRectangle()
     SDL_ReleaseGPUTransferBuffer(this->device_, transfer_buffer);
   }
 
-  SDL_Log("Beginning render pass.");
-  SDL_GPUColorTargetInfo color_target_info {.texture = swapchain_texture,
-                                            .clear_color = {0.2, 0.2, 0.2, 1},
-                                            .load_op = SDL_GPU_LOADOP_CLEAR,
-                                            .store_op = SDL_GPU_STOREOP_STORE};
+  // SDL_Log("Beginning render pass.");
+  SDL_GPUColorTargetInfo color_target_info {
+      .texture = swapchain_texture,
+      .clear_color = {0.2F, 0.2F, 0.2F, 1.0F},
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_STORE};
 
   // Create render pass and do commands
   SDL_GPURenderPass* render_pass =
@@ -346,7 +376,7 @@ void GhouliesLib::DrawRectangle()
     throw std::runtime_error("Bad render pass.");
   }
 
-  SDL_Log("Binding Graphics Pipeline.");
+  // SDL_Log("Binding Graphics Pipeline.");
   SDL_BindGPUGraphicsPipeline(render_pass, this->pbr_pipeline_);
 
   SDL_GPUViewport viewport {.x = 0,
@@ -356,52 +386,69 @@ void GhouliesLib::DrawRectangle()
                             .min_depth = 0,
                             .max_depth = 1};
 
-  SDL_Log("Setting viewport.");
+  // SDL_Log("Setting viewport.");
   SDL_SetGPUViewport(render_pass, &viewport);
 
   void* buffer = nullptr;
 
-  SDL_Log("Binding vertex buffers.");
+  // SDL_Log("Binding vertex buffers.");
   std::array<SDL_GPUBufferBinding, 1> vb_bindings {
       SDL_GPUBufferBinding {.buffer = vertex_buffer, .offset = 0}};
   SDL_BindGPUVertexBuffers(render_pass, 0, vb_bindings.data(), 1);
 
   SDL_GPUBufferBinding ib_binding {.buffer = index_buffer, .offset = 0};
 
-  SDL_Log("Binding index buffer.");
+  // SDL_Log("Binding index buffer.");
   SDL_BindGPUIndexBuffer(
       render_pass, &ib_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 
   const glm::mat4 identity(1.0F);
 
-  const auto right = glm::vec3 {0.001, 0, 0};
-  const auto forwards = glm::vec3 {0, 0, 0.001};
-
-  if (key_states_[SDL_SCANCODE_A]) {
-    camera_.position += right;
-  } else if (key_states_[SDL_SCANCODE_D]) {
-    camera_.position -= right;
-  } else if (key_states_[SDL_SCANCODE_W]) {
-    camera_.position += forwards;
-  } else if (key_states_[SDL_SCANCODE_S]) {
-    camera_.position -= forwards;
-  }
-  const auto view {this->camera_.GetViewMatrix()};
+  const auto view {this->camera_.ModelMatrix()};
+  const auto projection {this->camera_.ProjectionMatrix()};
 
   graphics::ViewUniforms uniforms {
-      .model = identity, .view = view, .projection = identity};
+      .model = identity, .view = view, .projection = projection};
   SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
 
   // SDL_BindGPUVertexSamplers()
 
-  SDL_Log("Drawing primitives.");
+  // SDL_Log("Drawing primitives.");
   SDL_DrawGPUIndexedPrimitives(render_pass, indices.size(), 1, 0, 0, 0);
 
-  SDL_Log("Ending render pass.");
+  // SDL_Log("Ending render pass.");
   SDL_EndGPURenderPass(render_pass);
 
   SDL_SubmitGPUCommandBuffer(command_buffer);
 
   SDL_ReleaseGPUBuffer(device_, vertex_buffer);
   SDL_ReleaseGPUBuffer(device_, index_buffer);
-};
+}
+
+/*
+std::unique_ptr<graphics::Model> GhouliesLib::LoadModel(
+    const std::filesystem::path& path)
+{
+  size_t file_size {0};
+
+  void* bytes {SDL_LoadFile(path.c_str(), &file_size)};
+
+  if (bytes == nullptr) {
+    std::cerr << "Unable to load file " << path << "\n";
+    return nullptr;
+  }
+
+  std::span<uint8_t> span {static_cast<uint8_t*>(bytes), file_size};
+
+  auto descriptor_exp {ModelDescriptor::FromBytes(span)};
+  if (!descriptor_exp) {
+    std::cerr << descriptor_exp.error()
+              << "\nFailed to construct ModelDescriptor.";
+    return nullptr;
+  }
+
+  ModelDescriptor descriptor {std::move(descriptor_exp).value()};
+
+  return std::make_unique<graphics::Model>(descriptor, span);
+}
+*/

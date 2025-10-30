@@ -13,7 +13,13 @@ Checks: "*,\
   -misc-non-private-member-variables-in-classes,\
   -modernize-use-trailing-return-type,\
   -*-magic-numbers,\
-  -performance-enum-size"
+  -performance-enum-size,\
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,\
+  -cppcoreguidelines-pro-type-vararg,\
+  -hicpp-vararg,\
+  -cppcoreguidelines-pro-type-union-access,\
+  -readability-identifier-length,\
+  -cppcoreguidelines-pro-type-reinterpret-cast"
 
 WarningsAsErrors: ""
 CheckOptions:
