@@ -17,9 +17,14 @@ include(cmake/variables.cmake)
 
 add_library(
   ghoulies_launcher_lib OBJECT
-  source/lib.cpp source/file.cpp
-  # source/graphics/model.cpp source/ghoulies/nd.cpp
-  source/graphics/graphics.cpp source/ghoulies/bnl.cpp)
+  source/lib.cpp
+  source/file.cpp
+  source/graphics/model.cpp
+  source/ghoulies/nd.cpp
+  source/ghoulies/model.cpp
+  source/ghoulies/bnl.cpp
+  source/graphics/model.cpp
+  source/graphics/graphics.cpp)
 
 target_include_directories(
   ghoulies_launcher_lib ${warning_guard}

@@ -16,6 +16,7 @@
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_iostream.h>
 #include <SDL3/SDL_log.h>
+#include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_oldnames.h>
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_surface.h>
@@ -210,6 +211,7 @@ GhouliesLib::GhouliesLib()
 
   camera_.position = {0, 0, -1};
 
+  SDL_CaptureMouse(true);
   initialised_ = true;
 }
 
@@ -248,6 +250,8 @@ void GhouliesLib::UpdateEvents()
     camera_.position += forwards;
   } else if (key_states_[SDL_SCANCODE_S]) {
     camera_.position -= forwards;
+  } else if (key_states_[SDL_SCANCODE_ESCAPE]) {
+    SDL_CaptureMouse(false);
   }
 }
 
@@ -443,30 +447,27 @@ std::unique_ptr<graphics::Texture> GhouliesLib::LoadTexture(
   return nullptr;
 }
 
-/*
 std::unique_ptr<graphics::Model> GhouliesLib::LoadModel(
-    const std::filesystem::path& path)
+    const ghoulies::Asset& asset)
 {
-  size_t file_size {0};
+  using namespace graphics;
 
-  void* bytes {SDL_LoadFile(path.c_str(), &file_size)};
+  // std::span<uint8_t> span {static_cast<uint8_t*>(bytes), file_size};
 
-  if (bytes == nullptr) {
-    std::cerr << "Unable to load file " << path << "\n";
+  auto model_asset_exp {ghoulies::ModelAsset::FromAsset(asset)};
+
+  if (!model_asset_exp.has_value()) {
+    std::cerr << "Failed to load model "
+              << asset.description.metadata.name.data()
+              << "\nError: " << model_asset_exp.error() << "\n";
     return nullptr;
   }
 
-  std::span<uint8_t> span {static_cast<uint8_t*>(bytes), file_size};
-
-  auto descriptor_exp {ModelDescriptor::FromBytes(span)};
-  if (!descriptor_exp) {
-    std::cerr << descriptor_exp.error()
-              << "\nFailed to construct ModelDescriptor.";
-    return nullptr;
+  try {
+    return std::make_unique<Model>(model_asset_exp.value());
+  } catch (std::runtime_error& e) {
+    std::cerr << "Error loading model: " << e.what() << "\n";
   }
 
-  ModelDescriptor descriptor {std::move(descriptor_exp).value()};
-
-  return std::make_unique<graphics::Model>(descriptor, span);
+  return nullptr;
 }
-*/

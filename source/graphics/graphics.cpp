@@ -180,9 +180,6 @@ bool Texture::Write(const ghoulies::Bytes& bytes)
     return false;
   }
 
-  auto w = params_.width / 4;
-  auto h = params_.height / 4;
-
   SDL_GPUTextureTransferInfo transfer_info {
       .transfer_buffer = transfer_buffer,
       .offset = 0,

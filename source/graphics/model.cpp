@@ -4,11 +4,9 @@
 
 #include <SDL3/SDL_stdinc.h>
 
-#include "../ghoulies/nd.hpp"
-
 namespace graphics
 {
-using ghoulies::ModelDescriptor;
+using ghoulies::ModelAsset;
 
 /*
 Model::Model(ghoulies::ModelDescriptor descriptor, std::span<uint8_t> bytes)
@@ -18,18 +16,13 @@ Model::Model(ghoulies::ModelDescriptor descriptor, std::span<uint8_t> bytes)
 }
 */
 
-std::expected<Model, std::string> Model::FromBytes(std::span<uint8_t> bytes)
+Model::Model(const ModelAsset& asset)
 {
-  ModelDescriptor descriptor {};
+  // ModelDescriptor descriptor {};
 
-  std::memcpy(&descriptor, bytes.data(), sizeof(ModelDescriptor));
+  // std::memcpy(&descriptor, bytes.data(), sizeof(ModelDescriptor));
 }
 
-Model::~Model()
-{
-  if (span_.data() != nullptr) {
-    SDL_free(span_.data());
-  }
-}
+Model::~Model() {}
 
 }  // namespace graphics

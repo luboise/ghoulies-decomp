@@ -22,7 +22,8 @@ Checks: "*,\
   -cppcoreguidelines-pro-type-reinterpret-cast,\
   -readability-container-data-pointer,\
   -boost-use-*,\
-  -bugprone-suspicious-stringview-data-usage"
+  -bugprone-suspicious-stringview-data-usage,\
+  -misc-no-recursion"
 
 WarningsAsErrors: ""
 CheckOptions:

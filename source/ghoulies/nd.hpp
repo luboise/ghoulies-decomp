@@ -2,22 +2,29 @@
 
 #include <cstdint>
 #include <expected>
+#include <ostream>
 #include <span>
+#include <sstream>
 #include <string>
+
+#include "bnl.hpp"
 
 namespace ghoulies
 {
 
-class Nd
+template<typename T1, typename T2>
+void RebasePointer(T1*& ptr, T2* base)
 {
-};
+  ptr = static_cast<T1*>(static_cast<uint64_t>(ptr)
+                         + reinterpret_cast<uint64_t>(base));
+}
 
 struct MeshHeader
 {
   uint32_t var_size;
   uint32_t field1_0x4;
-  struct NdNode** mesh_nodes;
-  uint32_t num_nodes;
+  uint32_t root_nodes_ptr;
+  uint32_t num_root_nodes;
   struct KeyValueMap* attrib_map;
   void* some_ptr2;
   float field6_0x18;
@@ -32,21 +39,21 @@ enum ModelSubresourceType : uint32_t
   kModel = 0,
   kUnknown0x2 = 2,
   kUnknown0x3 = 3,
-  kMatrix = 5,
+  kMatrices = 5,
   kColliders = 6,
-  kTexture = 7,
-  kVertexBuffer = 18
+  kTextures = 7,
+  kVertexBuffer = 18,
 };
 
-class ModelBaseSubresource
-{
-};
+std::ostream& operator<<(std::ostream&, ModelSubresourceType);
 
 struct ModelFooterEntry
 {
   ModelSubresourceType subresource_type;
-  ModelBaseSubresource* subresource;
+  uint32_t subresource_ptr;
 };
+
+static_assert(sizeof(ModelFooterEntry) == 8);
 
 struct ModelRuntimeContext
 {
@@ -66,34 +73,118 @@ struct ModelRuntimeContext
 
 struct ModelDescriptor
 {
-  ModelFooterEntry* footer_entries;
+  uint32_t footer_entries_ptr;
   uint32_t num_footer_entries;
   uint32_t field2_0x8;
   uint32_t field3_0xc;
+
+  /// Written at runtime, doesn't exist serialised
   ModelRuntimeContext* runtime_ctx;
   uint32_t field5_0x14;
 
+  /*
   static std::expected<ModelDescriptor, std::string> FromBytes(
       std::span<uint8_t> bytes);
+          */
+};
+
+enum class NdType : uint16_t
+{
+  kGroup = 0x01,
+  kSkeleton = 0x02,
+
+  kRigidSkinIdx = 0x0b,
+  kMtxArray = 0x0c,
+
+  kShader2 = 0x11,
+  kShaderParam2 = 0x12,
+  kVertexBuffer = 0x13,
+  kPushBuffer = 0x14,
+  kVertexShader = 0x15,
+  kBGPushBuffer = 0x16,
+  kBlendShape = 0x17,
+};
+
+std::ostream& operator<<(std::ostream&, NdType);
+
+struct NdHeader
+{
+  uint32_t subres_name_ptr;
+  NdType nd_type;
+  uint16_t unknown_u16;
+  uint32_t unknown_str;
+  uint32_t unknown_str2;
+  uint32_t unused_callback_ctx;  // Used by original game
+  uint32_t next_child_ptr;
+  uint32_t next_sibling_ptr;
+  uint32_t prev_node_ptr;  // Previous node or parent if no previous siblings
 };
 
 struct NdNode
 {
+  NdType nd_type;
+
   char* subres_name;
-  uint16_t callback_index;
-  uint16_t field2_0x6;
-  char* field3_0x8;
   char* some_ptr;
-  struct BigBlockCallbackCtx* callback_ctx;
-  NdNode* next_child;
-  NdNode* next_sibling;
-  NdNode* prev;
+
+  std::shared_ptr<NdNode> next_child {nullptr};
+  std::shared_ptr<NdNode> next_sibling {nullptr};
+  std::shared_ptr<NdNode> prev_node {nullptr};
 };
 
-class MeshSubresource : public ModelBaseSubresource
+enum class VertexBufferViewType : uint8_t
 {
-  MeshHeader* header_;
-  void* resource_offset_;
+  kSkin = 0x0,
+  kSkinWeight = 0x8,
+  kVertex = 0x9,
+  kUnknown10 = 0xa,
+  kUnknown11 = 0xb,
+  kUV = 0xd,
+  kUnknown14 = 0xe,
+  kUnknown15 = 0xf,
+  kUnknown16 = 0x10,
+  kKnknownFf = 0xff,
 };
+
+struct VertexBufferResourceView
+{
+  uint8_t stride;
+  VertexBufferViewType res_type;
+  uint16_t unknown_u16;
+
+  uint32_t unknown_u32_1;
+
+  // 0x8
+  uint32_t unknown_u32_2;
+  uint32_t unknown_u32_3;
+
+  // 0x16
+  uint32_t view_start;
+  uint32_t view_size;
+};
+
+struct NdVertexBuffer
+{
+  uint32_t resource_views_ptr;
+  uint32_t num_resource_views;
+};
+
+std::expected<std::shared_ptr<NdNode>, std::string> ParseNdTree(
+    std::span<const std::byte> bytes,
+    std::span<const std::byte> resource_bytes,
+    uint32_t node_offset);
 
 }  // namespace ghoulies
+
+template<>
+struct std::formatter<ghoulies::ModelSubresourceType>
+    : std::formatter<std::string>
+{
+  auto format(ghoulies::ModelSubresourceType p, format_context& ctx) const
+  {
+    std::stringstream ss;
+    ss << p;
+
+    return formatter<string>::format(ss.str(), ctx);
+  }
+};

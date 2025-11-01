@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <span>
 
+#include "../ghoulies/model.hpp"
 #include "../ghoulies/nd.hpp"
 
 namespace graphics
@@ -11,15 +12,14 @@ namespace graphics
 class Model
 {
 public:
-  // Model(const Model&) = default;
-  // Model(ghoulies::ModelDescriptor descriptor, std::span<uint8_t> span);
-
+  /// Throws std::runtime_error on fail, creates Model otherwise
+  explicit Model(const ghoulies::ModelAsset&);
   ~Model();
-  Model(Model&&) = delete;
   Model& operator=(const Model&) = default;
-  Model& operator=(Model&&) = delete;
 
-  static std::expected<Model, std::string> FromBytes(std::span<uint8_t> bytes);
+  Model(const Model&) = delete;
+  Model(Model&&) = delete;
+  Model& operator=(Model&&) = delete;
 
 private:
   ghoulies::ModelDescriptor descriptor_;

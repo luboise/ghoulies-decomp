@@ -36,52 +36,36 @@ auto main(int argc, char** argv) -> int
 
   BNLFile bnl {std::move(bnl_exp).value()};
 
-  const auto* asset {
+  const auto* tex_asset {
       bnl.GetAsset("aid_texture_ghoulies_powerups_knockdownmania")};
 
-  if (asset == nullptr) {
+  if (tex_asset == nullptr) {
     std::cerr << "Failed to get asset "
                  "aid_texture_ghoulies_powerups_knockdownmania.\n";
     return 1;
   }
 
   std::cout << std::format("Descriptor size: {}     Resource size: {}\n",
-                           asset->descriptor.size(),
-                           asset->resource.size());
+                           tex_asset->descriptor.size(),
+                           tex_asset->resource.size());
 
   graphics::TextureParams params {
-      .width = 128, .height = 128, .data = asset->resource};
+      .width = 128, .height = 128, .data = tex_asset->resource};
 
-  /*
-  Bytes colour = {std::byte {0},
-                  std::byte {
-                      0,
-                  },
-                  std::byte {
-                      0,
-                  },
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {255},
-                  std::byte {0},
-                  std::byte {0},
-                  std::byte {0},
-                  std::byte {255}};
-
-  Bytes bytess {colour.begin(), colour.end()};
-  */
   // graphics::TextureParams params {.width = 2, .height = 2, .data = bytess};
 
   auto tex {lib.LoadTexture(params)};
-
   if (tex == nullptr) {
     std::cerr << "Failed to create texture.\n";
+    return 1;
+  }
+
+  const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_door_square_1");
+
+  std::unique_ptr<graphics::Model> model {lib.LoadModel(*model_asset)};
+
+  if (model == nullptr) {
+    std::cerr << "Bad model load.\n";
     return 1;
   }
 
