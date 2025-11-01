@@ -1,12 +1,15 @@
 #include <cstring>
 #include <expected>
 #include <iostream>
+#include <memory>
 #include <stack>
 
 #include "nd.hpp"
 
 #include "bnl.hpp"
+#include "d3d.hpp"
 
+using d3d::D3DPrimitiveType;
 using std::unexpected;
 
 namespace ghoulies
@@ -70,10 +73,10 @@ std::expected<void, std::string> ParseNdNode(
 {
   if (node_offset + sizeof(NdHeader) > bytes.size()) {
     return unexpected(
-        std::format(
-            "NdHeader at offset {} is out of range of " "model " "subresour" "c" "e" " " "des" "cri" "pto" "r " "of size {}.",
-            node_offset,
-            bytes.size()));
+        std::format("NdHeader at offset {} is out of range of model "
+                    "subresource descriptor of size {}.",
+                    node_offset,
+                    bytes.size()));
   }
 
   NdHeader header {};
@@ -81,21 +84,129 @@ std::expected<void, std::string> ParseNdNode(
   std::memcpy(&header, &bytes[node_offset], sizeof(NdHeader));
 
   // TODO: Validate NDHeader
-  auto node {std::make_shared<NdNode>()};
+  std::shared_ptr<NdNode> node {nullptr};
   switch (header.nd_type) {
-    case NdType::kVertexBuffer:
+    case NdType::kVertexBuffer: {
+      std::array<uint32_t, 2> reads {};
+
+      std::memcpy(
+          reads.data(), &bytes[node_offset + sizeof(NdHeader)], sizeof(reads));
+
+      const auto [vb_views_ptr, num_views] = reads;
+
+      // TODO: Validate views and num_views
+
+      std::vector<NdVertexBufferView> buffer_views(num_views);
+
+      std::memcpy(buffer_views.data(),
+                  &bytes[vb_views_ptr],
+                  sizeof(NdVertexBufferView) * num_views);
+
+      Bytes res_bytes(resource_bytes.begin(), resource_bytes.end());
+
+      // TODO: Make this only grab the relevant bytes from the resource instead
+      node = std::shared_ptr<NdVertexBuffer> {
+          new NdVertexBuffer {header.nd_type,
+                              nullptr,
+                              nullptr,
+                              nullptr,
+                              buffer_views,
+                              static_cast<Bytes>(res_bytes)}};
+      break;
+    }
+    case NdType::kPushBuffer: {
+      std::array<uint32_t, 7> values {};
+
+      std::memcpy(values.data(),
+                  &bytes[node_offset + sizeof(NdHeader)],
+                  sizeof(values));
+
+      const auto [num_draws,
+                  idk1,
+                  idk2,
+                  idk3,
+                  data_ptrs_ptr,
+                  primitive_types_ptr,
+                  index_counts_ptr] = values;
+
+      bool skip_culling {};
+
+      std::memcpy(&skip_culling,
+                  &bytes[node_offset + sizeof(NdHeader) + sizeof(values)],
+                  1);
+
+      std::array<uint8_t, 3> pad {};  // TODO: Implement for serialisation
+
+      std::vector<uint32_t> data_ptrs(num_draws);
+      std::memcpy(data_ptrs.data(),
+                  &bytes[data_ptrs_ptr],
+                  sizeof(uint32_t) * num_draws);
+
+      std::vector<D3DPrimitiveType> primitive_types(num_draws);
+      std::memcpy(primitive_types.data(),
+                  &bytes[primitive_types_ptr],
+                  sizeof(uint32_t) * num_draws);
+
+      std::vector<uint32_t> index_counts(num_draws);
+      std::memcpy(index_counts.data(),
+                  &bytes[index_counts_ptr],
+                  sizeof(uint32_t) * num_draws);
+
+      std::vector<NdPushBufferDraw> draw_commands(num_draws);
+
+      for (std::size_t i = 0; i < num_draws; i++) {
+        const auto data_ptr {data_ptrs[i]};
+        const auto index_count {index_counts[i]};
+        const auto primitive_type {primitive_types[i]};
+
+        std::vector<uint16_t> indices(index_count);
+
+        if (index_count > 67108864) {
+          return unexpected(
+              std::format("Too many indices to allocate (attempted {} bytes. "
+                          "Max allowed is {}, or 64MB)",
+                          index_count,
+                          67108864));
+        }
+
+        std::memcpy(
+            indices.data(), &bytes[data_ptr], index_count * sizeof(uint16_t));
+
+        draw_commands[i] = {.primitive_type = primitive_type,
+                            .indices = std::move(indices)};
+      }
+
+      node = std::shared_ptr<NdPushBuffer> {new NdPushBuffer {header.nd_type,
+                                                              nullptr,
+                                                              nullptr,
+                                                              nullptr,
+                                                              num_draws,
+                                                              idk1,
+                                                              idk2,
+                                                              idk3,
+                                                              skip_culling,
+                                                              draw_commands}};
+
+      break;
+    }
     case NdType::kGroup:
     case NdType::kSkeleton:
     case NdType::kRigidSkinIdx:
     case NdType::kMtxArray:
     case NdType::kShader2:
     case NdType::kShaderParam2:
-    case NdType::kPushBuffer:
     case NdType::kVertexShader:
     case NdType::kBGPushBuffer:
     case NdType::kBlendShape:
     default:
+      node = std::make_shared<NdNode>(NdNode {.nd_type = header.nd_type});
   }
+
+  if (node == nullptr) {
+    return unexpected("Unhandled NDNode (node is nullptr).");
+  }
+
+  std::cout << node->nd_type << "\n";
 
   if (ctx.root == nullptr) {
     ctx.root = node;

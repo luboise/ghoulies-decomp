@@ -8,6 +8,7 @@
 #include <string>
 
 #include "bnl.hpp"
+#include "d3d.hpp"
 
 namespace ghoulies
 {
@@ -124,15 +125,12 @@ struct NdNode
 {
   NdType nd_type;
 
-  char* subres_name;
-  char* some_ptr;
-
   std::shared_ptr<NdNode> next_child {nullptr};
   std::shared_ptr<NdNode> next_sibling {nullptr};
   std::shared_ptr<NdNode> prev_node {nullptr};
 };
 
-enum class VertexBufferViewType : uint8_t
+enum class NdVertexBufferViewType : uint8_t
 {
   kSkin = 0x0,
   kSkinWeight = 0x8,
@@ -143,36 +141,53 @@ enum class VertexBufferViewType : uint8_t
   kUnknown14 = 0xe,
   kUnknown15 = 0xf,
   kUnknown16 = 0x10,
-  kKnknownFf = 0xff,
 };
 
-struct VertexBufferResourceView
+struct NdVertexBufferView
 {
   uint8_t stride;
-  VertexBufferViewType res_type;
-  uint16_t unknown_u16;
+  NdVertexBufferViewType type;
+  uint16_t idk1;
 
   uint32_t unknown_u32_1;
-
-  // 0x8
   uint32_t unknown_u32_2;
   uint32_t unknown_u32_3;
 
-  // 0x16
-  uint32_t view_start;
-  uint32_t view_size;
+  uint32_t start_ptr;
+  uint32_t size;
 };
 
-struct NdVertexBuffer
+static_assert(sizeof(NdVertexBufferView) == 24);
+
+struct NdVertexBuffer : public NdNode
 {
-  uint32_t resource_views_ptr;
-  uint32_t num_resource_views;
+  std::vector<NdVertexBufferView> resource_views;
+  Bytes data;
 };
 
 std::expected<std::shared_ptr<NdNode>, std::string> ParseNdTree(
     std::span<const std::byte> bytes,
     std::span<const std::byte> resource_bytes,
     uint32_t node_offset);
+
+struct NdPushBufferDraw
+{
+  d3d::D3DPrimitiveType primitive_type;
+  std::vector<uint16_t> indices;
+};
+
+struct NdPushBuffer : public NdNode
+{
+  uint32_t num_draws;
+  uint32_t idk1;
+  uint32_t idk2;
+  uint32_t idk3;
+  bool skip_culling;
+
+  // DO NOT SERIALISE
+
+  std::vector<NdPushBufferDraw> draw_commands;
+};
 
 }  // namespace ghoulies
 

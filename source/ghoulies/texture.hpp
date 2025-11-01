@@ -6,18 +6,11 @@
 #include <SDL3/SDL_gpu.h>
 
 #include "../file.hpp"
-
-enum class D3DTextureType : uint32_t
-{
-  kDXT1 = 0x0000000C,
-  kDXT2 = 0x0000000E,
-  kDXT3 = 0x0000000E,
-  kA8R8G8B8 = 0x00000012,
-};
+#include "d3d.hpp"
 
 struct TextureDescriptor
 {
-  D3DTextureType format;
+  d3d::D3DTextureType format;
   std::uint32_t header_size;  // 28
   std::uint16_t width;
   std::uint16_t height;

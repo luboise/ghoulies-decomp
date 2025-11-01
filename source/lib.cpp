@@ -182,6 +182,9 @@ GhouliesLib::GhouliesLib()
 
       .vertex_input_state = input_state,
 
+      // TODO: Make a pipeline for each
+      .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP,
+
       .rasterizer_state = SDL_GPURasterizerState {},
 
       .multisample_state =
