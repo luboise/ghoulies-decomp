@@ -18,6 +18,76 @@ using ghoulies::NdNode;
 using ghoulies::NdVertexBuffer;
 using std::shared_ptr;
 
+struct ModelDrawCall
+{
+  SDL_GPUPrimitiveType primitive_type;
+  std::vector<Index> indices;
+};
+
+namespace
+{
+void FindDrawsFromNodeRecursive(const NdNode& node,
+                                std::vector<ModelDrawCall>& draws)
+{
+  if (node.nd_type == ghoulies::NdType::kPushBuffer) {
+    const auto* push_buffer {(const ghoulies::NdPushBuffer*)&node};
+
+    for (const auto& draw_command : push_buffer->draw_commands) {
+      SDL_GPUPrimitiveType primitive_type {};
+
+      switch (draw_command.primitive_type) {
+        case d3d::D3DPrimitiveType::kPointList:
+          primitive_type = SDL_GPU_PRIMITIVETYPE_POINTLIST;
+          break;
+        case d3d::D3DPrimitiveType::kLineList:
+          primitive_type = SDL_GPU_PRIMITIVETYPE_LINELIST;
+          break;
+        case d3d::D3DPrimitiveType::kLineStrip:
+          primitive_type = SDL_GPU_PRIMITIVETYPE_LINESTRIP;
+          break;
+        case d3d::D3DPrimitiveType::kTriangleList:
+          primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+          break;
+        case d3d::D3DPrimitiveType::kTriangleStrip:
+          primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
+          break;
+
+          // Unsupported primitive types
+        case d3d::D3DPrimitiveType::kNone:
+        case d3d::D3DPrimitiveType::kMax:
+        case d3d::D3DPrimitiveType::kInvalid:
+        case d3d::D3DPrimitiveType::kLineLoop:
+        case d3d::D3DPrimitiveType::kTriangleFan:
+        case d3d::D3DPrimitiveType::kQuadList:
+        case d3d::D3DPrimitiveType::kQuadStrip:
+        case d3d::D3DPrimitiveType::kPolygon:
+        default:
+          // TODO: Return std::unexpected
+          primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+          break;
+      }
+
+      draws.emplace_back(primitive_type, draw_command.indices);
+    }
+  }
+
+  if (node.next_child != nullptr) {
+    FindDrawsFromNodeRecursive(*node.next_child, draws);
+  }
+  if (node.next_sibling != nullptr) {
+    FindDrawsFromNodeRecursive(*node.next_sibling, draws);
+  }
+}
+
+inline std::vector<ModelDrawCall> FindDrawsFromNode(const NdNode& node)
+{
+  std::vector<ModelDrawCall> draws;
+  FindDrawsFromNodeRecursive(node, draws);
+
+  return draws;
+}
+}  // namespace
+
 Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
 {
   // Transform vertices
@@ -31,6 +101,10 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
             << nd_vertex_buffer->vertex_buffer_bytes.size() << "\n";
 
   // auto vb {std::shared_ptr<NdVertexBuffer> {next_child}};
+
+  std::vector<ModelDrawCall> draw_calls {FindDrawsFromNode(*nd_vertex_buffer)};
+
+  std::cout << "Found " << draw_calls.size() << " draw calls.\n";
 
   if (nd_vertex_buffer == nullptr) {
     throw std::runtime_error("No vertex buffer available.");
@@ -89,9 +163,6 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
     throw std::runtime_error("Unable to create index buffer for model.");
   }
   this->index_buffer_ = std::move(index_buffer).value();
-
-  // TODO: Check command buffer is not null
-  // auto* command_buffer = SDL_AcquireGPUCommandBuffer(this->device_);
 
   // Allocate one big index buffer
   // Cache the draw call
