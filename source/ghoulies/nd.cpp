@@ -65,7 +65,7 @@ struct NdParseContext
 
 namespace
 {
-std::expected<void, std::string> ParseNdNode(
+std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
     const std::span<const std::byte>& bytes,
     const std::span<const std::byte>& resource_bytes,
     uint32_t node_offset,
@@ -73,10 +73,10 @@ std::expected<void, std::string> ParseNdNode(
 {
   if (node_offset + sizeof(NdHeader) > bytes.size()) {
     return unexpected(
-        std::format("NdHeader at offset {} is out of range of model "
-                    "subresource descriptor of size {}.",
-                    node_offset,
-                    bytes.size()));
+        std::format(
+            "NdHeader at offset {} is out of range of " "model " "subresour" "c" "e" " " "des" "cri" "pto" "r " "of size {}.",
+            node_offset,
+            bytes.size()));
   }
 
   NdHeader header {};
@@ -163,10 +163,10 @@ std::expected<void, std::string> ParseNdNode(
 
         if (index_count > 67108864) {
           return unexpected(
-              std::format("Too many indices to allocate (attempted {} bytes. "
-                          "Max allowed is {}, or 64MB)",
-                          index_count,
-                          67108864));
+              std::format(
+                  "Too many indices to allocate " "(attempted " "{} " "bytes." " " "Ma" "x " "al" "lo" "we" "d " "is {}, or " "64MB)",
+                  index_count,
+                  67108864));
         }
 
         std::memcpy(
@@ -215,26 +215,26 @@ std::expected<void, std::string> ParseNdNode(
   if (header.next_child_ptr != 0) {
     ctx.tree.push(node);
 
-    if (auto result {
-            ParseNdNode(bytes, resource_bytes, header.next_child_ptr, ctx)};
-        !result.has_value())
-    {
+    auto result {
+        ParseNdNode(bytes, resource_bytes, header.next_child_ptr, ctx)};
+    if (!result.has_value()) {
       return unexpected(result.error());
     }
+    node->next_child = result.value();
 
     ctx.tree.pop();
   }
 
   if (header.next_sibling_ptr != 0) {
-    if (auto result {
-            ParseNdNode(bytes, resource_bytes, header.next_sibling_ptr, ctx)};
-        !result.has_value())
-    {
+    auto result {
+        ParseNdNode(bytes, resource_bytes, header.next_sibling_ptr, ctx)};
+    if (!result.has_value()) {
       return unexpected(result.error());
     }
+    node->next_sibling = result.value();
   }
 
-  return {};
+  return node;
 }
 
 }  // namespace
@@ -286,6 +286,23 @@ std::ostream& operator<<(std::ostream& os, NdType nd_type)
   }
 
   return os;
+}
+
+std::optional<NdVertexBufferView*> NdVertexBuffer::GetBufferView(
+    NdVertexBufferViewType view_type)
+{
+  if (auto found {
+          std::ranges::find_if(this->resource_views,
+                               [view_type](const NdVertexBufferView& view)
+                               { return view.type == view_type; })
+
+      };
+      found != this->resource_views.end())
+  {
+    return found.base();
+  }
+
+  return nullptr;
 }
 
 }  // namespace ghoulies

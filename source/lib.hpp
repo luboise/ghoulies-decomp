@@ -35,7 +35,9 @@ struct GhouliesLib
   [[nodiscard]] bool ShouldQuit() const { return this->quit_; }
 
   void UpdateEvents();
+
   void DrawTestObjects(const graphics::Texture& texture);
+  void DrawTestModel(graphics::Model& model, const graphics::Texture& texture);
 
   std::unique_ptr<graphics::Model> LoadModel(const ghoulies::Asset&);
   std::unique_ptr<graphics::Texture> LoadTexture(

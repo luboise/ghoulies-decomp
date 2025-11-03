@@ -162,7 +162,10 @@ static_assert(sizeof(NdVertexBufferView) == 24);
 struct NdVertexBuffer : public NdNode
 {
   std::vector<NdVertexBufferView> resource_views;
-  Bytes data;
+  Bytes vertex_buffer_bytes;
+
+  std::optional<NdVertexBufferView*> GetBufferView(
+      NdVertexBufferViewType view_type);
 };
 
 std::expected<std::shared_ptr<NdNode>, std::string> ParseNdTree(

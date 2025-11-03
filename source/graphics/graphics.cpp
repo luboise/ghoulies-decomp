@@ -229,7 +229,29 @@ std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
         std::format("Unable to create buffer. Error: {}", SDL_GetError()));
   }
 
-  return Buffer<Index> {device, BufferType::kIndex, data.size(), index_buffer};
+  Buffer<Index> buffer {device, BufferType::kIndex, data.size(), index_buffer};
+
+  auto* command_buffer {SDL_AcquireGPUCommandBuffer(device)};
+
+  if (command_buffer == nullptr) {
+    return unexpected(
+        std::format(
+            "Unable to acquire new command buffer when " "initialising " "buffe" "r. " "Error" ": {}",
+            SDL_GetError()));
+  }
+
+  if (auto result {buffer.Write(command_buffer, data)}; !result.has_value()) {
+    return unexpected(std::format(
+        "Failed to write data to vertex buffer. Error: {}", result.error()));
+  }
+
+  if (!SDL_SubmitGPUCommandBuffer(command_buffer)) {
+    return unexpected(
+        std::format("Failed to submit command buffer when initialising vertex "
+                    "buffer. Error: {}",
+                    SDL_GetError()));
+  }
+  return buffer;
 }
 
 }  // namespace graphics

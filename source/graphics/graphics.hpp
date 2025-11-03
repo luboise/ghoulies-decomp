@@ -125,6 +125,14 @@ struct Buffer
 
   std::size_t Size() { return this->count * sizeof(T); }
 
+  Buffer()
+      : device(nullptr)
+      , buffer_type(BufferType::kVertex)
+      , count(0)
+      , handle(nullptr)
+  {
+  }
+
   Buffer(SDL_GPUDevice* device,
          BufferType buffer_type,
          std::size_t count,
@@ -145,6 +153,18 @@ struct Buffer
     other.device = nullptr;
     other.handle = nullptr;
     other.count = 0;
+  }
+
+  Buffer& operator=(Buffer&& other) noexcept
+  {
+    this->device = other.device;
+
+    this->handle = other.handle;
+    other.handle = nullptr;
+
+    this->count = other.count;
+
+    return *this;
   }
 
   ~Buffer()
@@ -225,7 +245,28 @@ std::expected<Buffer<T>, std::string> CreateVertexBuffer(
         std::format("Unable to create buffer. Error: {}", SDL_GetError()));
   }
 
-  return Buffer<T> {device, BufferType::kVertex, data.size(), vertex_buffer};
+  Buffer<T> buffer {device, BufferType::kVertex, data.size(), vertex_buffer};
+
+  auto* command_buffer {SDL_AcquireGPUCommandBuffer(device)};
+  if (command_buffer == nullptr) {
+    return unexpected(
+        std::format(
+            "Unable to acquire new command buffer when " "initialising " "buffe" "r. " "Error" ": {}",
+            SDL_GetError()));
+  }
+
+  if (auto result {buffer.Write(command_buffer, data)}; !result.has_value()) {
+    return unexpected(std::format(
+        "Failed to write data to vertex buffer. Error: {}", result.error()));
+  }
+
+  if (!SDL_SubmitGPUCommandBuffer(command_buffer)) {
+    return unexpected(
+        std::format(
+            "Failed to submit command buffer when " "initialising " "vertex" " " "bu" "ff" "er" ". " "Error: " "{}",
+            SDL_GetError()));
+  }
+  return buffer;
 }
 
 std::expected<Buffer<Index>, std::string> CreateIndexBuffer(

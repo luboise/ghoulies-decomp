@@ -450,3 +450,82 @@ std::unique_ptr<graphics::Model> GhouliesLib::LoadModel(
 
   return nullptr;
 }
+
+void GhouliesLib::DrawTestModel(graphics::Model& model,
+                                const graphics::Texture& texture)
+{
+  auto* command_buffer {SDL_AcquireGPUCommandBuffer(this->device_)};
+
+  // TODO: Replace this with proper error handling, even though this should
+  // never really happen
+  if (command_buffer == nullptr) {
+    throw std::runtime_error("Bad ptr.");
+  }
+
+  // SDL_Log("Creating buffers.");
+  SDL_GPUTexture* swapchain_texture {nullptr};
+
+  Uint32 swapchain_width {};
+  Uint32 swapchain_height {};
+
+  // SDL_Log("Acquiring swapchain.");
+  if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer,
+                                             window_,
+                                             &swapchain_texture,
+                                             &swapchain_width,
+                                             &swapchain_height)
+
+  )
+  {
+    SDL_CancelGPUCommandBuffer(command_buffer);
+    SDL_Log("Failed to acquire swapchain texture.");
+    return;
+  }
+
+  // SDL_Log("Beginning render pass.");
+  SDL_GPUColorTargetInfo color_target_info {
+      .texture = swapchain_texture,
+      .clear_color = {0.2F, 0.2F, 0.2F, 1.0F},
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_STORE};
+
+  // Create render pass and do commands
+  SDL_GPURenderPass* render_pass {
+      SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr)};
+
+  if (render_pass == nullptr) {
+    throw std::runtime_error("Bad render pass.");
+  }
+
+  // SDL_Log("Binding Graphics Pipeline.");
+  SDL_BindGPUGraphicsPipeline(render_pass, this->pbr_pipeline_);
+
+  SDL_GPUViewport viewport {.x = 0,
+                            .y = 0,
+                            .w = static_cast<float>(swapchain_width),
+                            .h = static_cast<float>(swapchain_height),
+                            .min_depth = 0,
+                            .max_depth = 1};
+
+  // SDL_Log("Setting viewport.");
+  SDL_SetGPUViewport(render_pass, &viewport);
+
+  const glm::mat4 identity(1.0F);
+
+  const auto view {this->camera_.ModelMatrix()};
+  const auto projection {this->camera_.ProjectionMatrix()};
+
+  graphics::ViewUniforms uniforms {
+      .model = identity, .view = view, .projection = projection};
+  SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
+
+  std::array bindings = {texture.SDLBinding()};
+  SDL_BindGPUFragmentSamplers(render_pass, 0, bindings.data(), bindings.size());
+
+  model.DrawBasic(render_pass);
+
+  // SDL_Log("Ending render pass.");
+  SDL_EndGPURenderPass(render_pass);
+
+  SDL_SubmitGPUCommandBuffer(command_buffer);
+};
