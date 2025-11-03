@@ -8,6 +8,7 @@
 #include "../ghoulies/model.hpp"
 #include "../ghoulies/nd.hpp"
 #include "graphics.hpp"
+#include "material.hpp"
 
 namespace graphics
 {
@@ -35,6 +36,8 @@ private:
   Buffer<PBRVertex> vertex_buffer_;
   Buffer<Index> index_buffer_;
   std::vector<DrawCommand> draw_commands_;
+
+  std::vector<PBRMaterial> materials_;
 };
 
 }  // namespace graphics

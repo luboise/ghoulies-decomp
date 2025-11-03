@@ -73,20 +73,19 @@ glm::mat4 Camera::RotationMatrix() const
   return matrix;
 };
 
-Texture::Texture(SDL_GPUDevice* device, TextureParams params)
+Texture::Texture(SDL_GPUDevice* device, TextureAsset asset)
     : device_(nullptr)
     , texture_(nullptr)
     , sampler_(nullptr)
 {
-  SDL_GPUTextureCreateInfo texture_info {
-      .type = SDL_GPU_TEXTURETYPE_2D,
-      .format = SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM,
+  SDL_GPUTextureCreateInfo texture_info {.type = SDL_GPU_TEXTURETYPE_2D,
+                                         .format = asset.format,
 
-      .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
-      .width = params.width,
-      .height = params.height,
-      .layer_count_or_depth = 1,
-      .num_levels = 1};
+                                         .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+                                         .width = asset.width,
+                                         .height = asset.height,
+                                         .layer_count_or_depth = 1,
+                                         .num_levels = 1};
 
   SDL_GPUTexture* texture {SDL_CreateGPUTexture(device, &texture_info)};
 
@@ -114,19 +113,23 @@ Texture::Texture(SDL_GPUDevice* device, TextureParams params)
                                          std::string(SDL_GetError())));
   }
 
-  this->params_ = std::move(params);
+  this->asset_ = std::move(asset);
   this->device_ = device;
   this->texture_ = texture;
   this->sampler_ = sampler;
 
-  this->Write(params_.data);
-  params_.data.clear();
+  this->Write(asset_.data);
+  asset_.data.clear();
 }
 
 Texture::~Texture()
 {
   if (device_ != nullptr && texture_ != nullptr) {
     SDL_ReleaseGPUTexture(device_, texture_);
+  }
+
+  if (device_ != nullptr && sampler_ != nullptr) {
+    SDL_ReleaseGPUSampler(device_, sampler_);
   }
 }
 
@@ -137,6 +140,8 @@ SDL_GPUTextureSamplerBinding Texture::SDLBinding() const
 
 bool Texture::Write(const ghoulies::Bytes& bytes)
 {
+  assert(bytes.size() > 0);
+
   SDL_GPUCommandBuffer* command_buffer {SDL_AcquireGPUCommandBuffer(device_)};
 
   if (command_buffer == nullptr) {
@@ -190,8 +195,8 @@ bool Texture::Write(const ghoulies::Bytes& bytes)
                                     .layer = 0,
                                     .x = 0,
                                     .y = 0,
-                                    .w = params_.width,
-                                    .h = params_.height,
+                                    .w = asset_.width,
+                                    .h = asset_.height,
                                     .d = 1};
 
   SDL_UploadToGPUTexture(copy_pass, &transfer_info, &destination, false);
@@ -247,11 +252,53 @@ std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
 
   if (!SDL_SubmitGPUCommandBuffer(command_buffer)) {
     return unexpected(
-        std::format("Failed to submit command buffer when initialising vertex "
-                    "buffer. Error: {}",
-                    SDL_GetError()));
+        std::format(
+            "Failed to submit command buffer when " "initialising " "vertex" " " "bu" "ff" "er" ". " "Error: " "{}",
+            SDL_GetError()));
   }
   return buffer;
+}
+
+/*
+Texture& Texture::operator=(Texture&& other) noexcept
+{
+
+
+
+  if (this->texture_ != nullptr && this->device_ != nullptr) {
+    SDL_ReleaseGPUTexture(device_, texture_);
+    this->texture_ = nullptr;
+  }
+
+  if (device_ != nullptr && sampler_ != nullptr) {
+    SDL_ReleaseGPUSampler(device_, sampler_);
+  }
+
+  this->texture_ = other.texture_;
+  other.texture_ = nullptr;
+
+  this->sampler_ = other.sampler_;
+  other.sampler_ = nullptr;
+
+  this->asset_ = std::move(other.asset_);
+  this->device_ = other.device_;
+
+  return *this;
+}
+*/
+
+Texture::Texture(Texture&& other) noexcept
+{
+  assert(this->texture_ != other.texture_);
+
+  this->texture_ = other.texture_;
+  other.texture_ = nullptr;
+
+  this->sampler_ = other.sampler_;
+  other.sampler_ = nullptr;
+
+  this->asset_ = std::move(other.asset_);
+  this->device_ = other.device_;
 }
 
 }  // namespace graphics

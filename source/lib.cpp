@@ -412,11 +412,11 @@ void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
 }
 
 std::unique_ptr<graphics::Texture> GhouliesLib::LoadTexture(
-    graphics::TextureParams params)
+    graphics::TextureAsset asset)
 {
   try {
     auto tex {
-        std::make_unique<graphics::Texture>(this->device_, std::move(params))};
+        std::make_unique<graphics::Texture>(this->device_, std::move(asset))};
 
     return tex;
   } catch (std::runtime_error& e) {

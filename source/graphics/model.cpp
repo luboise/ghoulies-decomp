@@ -5,18 +5,17 @@
 #include <iostream>
 #include <memory>
 #include <numeric>
-#include <ranges>
 
 #include "model.hpp"
 
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_stdinc.h>
 
+#include "../ghoulies/nd.hpp"
 #include "graphics.hpp"
 
 namespace graphics
 {
-using ghoulies::kVertexBuffer;
 using ghoulies::ModelAsset;
 using ghoulies::NdNode;
 using ghoulies::NdVertexBuffer;
@@ -238,7 +237,17 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
   // Allocate one big index buffer
   // Cache the draw call
 
-  // TODO: Materials
+  for (const TextureAsset& texture : asset.textures) {
+    try {
+      PBRMaterial new_material {device,
+                                PBRMaterialParams {.diffuse_texture = texture}};
+
+      this->materials_.push_back(std::move(new_material));
+
+    } catch (std::runtime_error& e) {
+      throw e;
+    }
+  }
 }
 
 Model::~Model() = default;

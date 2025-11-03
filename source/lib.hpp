@@ -40,8 +40,7 @@ struct GhouliesLib
   void DrawTestModel(graphics::Model& model, const graphics::Texture& texture);
 
   std::unique_ptr<graphics::Model> LoadModel(const ghoulies::Asset&);
-  std::unique_ptr<graphics::Texture> LoadTexture(
-      graphics::TextureParams params);
+  std::unique_ptr<graphics::Texture> LoadTexture(graphics::TextureAsset asset);
 
 private:
   bool initialised_;

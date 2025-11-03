@@ -2,6 +2,8 @@
 #include <fstream>
 #include <iostream>
 
+#include <SDL3/SDL_gpu.h>
+
 #include "file.hpp"
 #include "ghoulies/bnl.hpp"
 #include "graphics/graphics.hpp"
@@ -49,12 +51,12 @@ auto main(int argc, char** argv) -> int
                            tex_asset->descriptor.size(),
                            tex_asset->resource.size());
 
-  graphics::TextureParams params {
-      .width = 128, .height = 128, .data = tex_asset->resource};
+  graphics::TextureAsset asset {.format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM,
+                                .width = 128,
+                                .height = 128,
+                                .data = tex_asset->resource};
 
-  // graphics::TextureParams params {.width = 2, .height = 2, .data = bytess};
-
-  auto tex {lib.LoadTexture(params)};
+  auto tex {lib.LoadTexture(asset)};
   if (tex == nullptr) {
     std::cerr << "Failed to create texture.\n";
     return 1;

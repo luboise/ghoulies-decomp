@@ -78,4 +78,21 @@ enum class D3DTextureType : uint32_t
   kA8R8G8B8 = 0x00000012,
 };
 
+inline std::ostream& operator<<(std::ostream& os, D3DTextureType d3d_type)
+{
+  switch (d3d_type) {
+    case D3DTextureType::kDXT1:
+      os << "DXT1";
+      break;
+    case D3DTextureType::kDXT2:
+      os << "DXT2";
+      break;
+    case D3DTextureType::kA8R8G8B8:
+      os << "A8R8G8B8";
+      break;
+  }
+
+  return os;
+}
+
 }  // namespace d3d

@@ -6,11 +6,16 @@
 
 #include "model.hpp"
 
+#include <SDL3/SDL_gpu.h>
+
+#include "../graphics/graphics.hpp"
 #include "bnl.hpp"
 #include "nd.hpp"
+#include "texture.hpp"
 
 namespace ghoulies
 {
+using graphics::TextureAsset;
 using std::unexpected;
 
 std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
@@ -123,7 +128,6 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
             }
 
             auto root_node_exp {ParseNdTree(bytes, asset.resource, ptr)};
-
             if (!root_node_exp.has_value()) {
               return unexpected(root_node_exp.error());
             }
@@ -134,8 +138,69 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
           new_model.root_nodes = root_nodes;
           break;
         }
-        case kTextures:
+        case kTextures: {
+          std::array<std::uint32_t, 2> ints {};
+
+          std::memcpy(ints.data(),
+                      &descriptor_bytes[entry.subresource_ptr],
+                      sizeof(ints));
+
+          const auto [num_texture_ptrs, texture_ptrs_start] = ints;
+
+          std::vector<uint32_t> texture_ptrs(num_texture_ptrs);
+
+          std::memcpy(texture_ptrs.data(),
+                      &descriptor_bytes[texture_ptrs_start],
+                      num_texture_ptrs * sizeof(uint32_t));
+
+          std::vector<TextureAsset> tex_assets(texture_ptrs.size());
+
+          for (std::size_t i {0}; i < texture_ptrs.size(); i++) {
+            const uint32_t texture_ptr {texture_ptrs[i]};
+
+            ModelTextureDescriptor tex_desc {};
+
+            std::memcpy(&tex_desc,
+                        &descriptor_bytes[texture_ptr],
+                        sizeof(ModelTextureDescriptor));
+
+            Bytes tex_data(tex_desc.data_size);
+
+            // assert(tex_desc.data_size > 0);
+
+            std::memcpy(tex_data.data(),
+                        &asset.resource[tex_desc.texture_offset],
+                        tex_desc.data_size);
+
+            SDL_GPUTextureFormat format {SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM};
+
+            switch (tex_desc.format) {
+              case d3d::D3DTextureType::kDXT1:
+                format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM;
+                break;
+              case d3d::D3DTextureType::kDXT2:
+                format = SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM;
+                break;
+              case d3d::D3DTextureType::kA8R8G8B8:
+                format = SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
+                break;
+              default:
+                std::cerr << "Unknown D3D texture format found: "
+                          << tex_desc.format << ". Assuming A8R8G8B8.\n";
+            }
+
+            tex_assets[i] = TextureAsset {
+                .format = format,
+                .width = tex_desc.width,
+                .height = tex_desc.height,
+                // TODO: Figure out if ModelTextureDescriptor embeds tile count
+                .tile_count = 1,
+                .data = tex_data};
+          }
+
+          new_model.textures = tex_assets;
           break;
+        }
         case kUnknown0x2:
         case kUnknown0x3:
         case kMatrices:

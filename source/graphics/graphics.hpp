@@ -76,33 +76,42 @@ struct Camera
   [[nodiscard]] glm::vec3 Forwards() const;
 };
 
-struct TextureParams
+struct TextureAsset
 {
-  uint32_t width;
-  uint32_t height;
-  std::vector<std::byte> data;
+  SDL_GPUTextureFormat format;
+  std::uint16_t width;
+  std::uint16_t height;
+  std::uint32_t tile_count {1};
+
+  ghoulies::utils::Bytes data;
 };
 
 class Texture
 {
 public:
   /// Throws std::runtime_error on failure, creates a texture otherwise.
-  Texture(struct SDL_GPUDevice* device, TextureParams params);
+  Texture(struct SDL_GPUDevice* device, TextureAsset asset);
   ~Texture();
+
+  Texture(const Texture&) = delete;
+  Texture& operator=(const Texture&) = delete;
+
+  Texture(Texture&&) noexcept;
+  Texture& operator=(Texture&&) noexcept = delete;
 
   /// Returns true if the texture was successfully updated, and false otherwise
   bool Write(const ghoulies::Bytes& bytes);
 
-  [[nodiscard]] auto Width() const { return params_.width; }
+  [[nodiscard]] auto Width() const { return asset_.width; }
 
-  [[nodiscard]] auto Height() const { return params_.height; }
+  [[nodiscard]] auto Height() const { return asset_.height; }
 
-  [[nodiscard]] const auto& Params() const { return this->params_; }
+  [[nodiscard]] const auto& Params() const { return this->asset_; }
 
   [[nodiscard]] SDL_GPUTextureSamplerBinding SDLBinding() const;
 
 private:
-  TextureParams params_;
+  TextureAsset asset_;
 
   SDL_GPUDevice* device_;
   SDL_GPUTexture* texture_;
