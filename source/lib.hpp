@@ -1,9 +1,9 @@
 #pragma once
 
-#include <filesystem>
 #include <string>
 
 #include "graphics/graphics.hpp"
+#include "graphics/model.hpp"
 
 class SDL_Window;
 class SDL_GPUDevice;

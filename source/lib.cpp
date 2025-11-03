@@ -33,6 +33,8 @@
 // using ghoulies::ModelDescriptor;
 //
 using ghoulies::utils::ReadFile;
+using graphics::Buffer;
+using graphics::Index;
 using graphics::PBRVertex;
 
 constexpr auto kWindowWidth = 1280;
@@ -260,9 +262,6 @@ void GhouliesLib::UpdateEvents()
 
 void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
 {
-  SDL_GPUBuffer* vertex_buffer {nullptr};
-  SDL_GPUBuffer* index_buffer {nullptr};
-
   SDL_GPUBufferCreateInfo buffer_create_info {};
 
   /*
@@ -285,14 +284,52 @@ void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
       PBRVertex {.a_position = {1, -1, 0}, .a_texcoords = {1, 0}},
       PBRVertex {.a_position = {-1, 1, 0}, .a_texcoords = {0, 1}},
       PBRVertex {.a_position = {-1, -1, 0}, .a_texcoords = {0, 0}}};
-  const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
+  // const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
 
   std::array<Uint16, 6> indices {0, 1, 2, 1, 2, 3};
+  // const Uint32 indices_size = sizeof(Uint16) * indices.size();
 
-  const Uint32 indices_size = sizeof(Uint16) * indices.size();
+  const std::span<const PBRVertex> span {vertices};
 
-  // TODO: Check command buffer is not null
-  auto* command_buffer = SDL_AcquireGPUCommandBuffer(this->device_);
+  auto* command_buffer {SDL_AcquireGPUCommandBuffer(this->device_)};
+
+  // TODO: Replace this with proper error handling, even though this should
+  // never really happen
+  if (command_buffer == nullptr) {
+    throw std::runtime_error("Bad ptr.");
+  }
+
+  // SDL_Log("Creating buffers.");
+
+  auto vertex_buffer_result {graphics::CreateVertexBuffer(this->device_, span)};
+  if (!vertex_buffer_result.has_value()) {
+    std::cerr << "Unable to create temp vertex buffer.\n";
+    return;
+  }
+  Buffer<PBRVertex> vertex_buffer {std::move(vertex_buffer_result.value())};
+  if (auto result {vertex_buffer.Write(command_buffer, vertices)};
+      !result.has_value())
+  {
+    std::cerr << "Unable to write vertex buffer. Error: " << SDL_GetError()
+              << "\n";
+    return;
+  }
+
+  auto index_buffer_result {
+      graphics::CreateIndexBuffer(this->device_, indices)};
+  if (!index_buffer_result.has_value()) {
+    std::cerr << "Unable to create temp index buffer.\n";
+    return;
+  }
+
+  Buffer<Index> index_buffer {std::move(index_buffer_result.value())};
+  if (auto result {index_buffer.Write(command_buffer, indices)};
+      !result.has_value())
+  {
+    std::cerr << "Unable to write index buffer. Error: " << SDL_GetError()
+              << "\n";
+    return;
+  }
 
   SDL_GPUTexture* swapchain_texture {nullptr};
 
@@ -311,63 +348,6 @@ void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
     SDL_CancelGPUCommandBuffer(command_buffer);
     SDL_Log("Failed to acquire swapchain texture.");
     return;
-  }
-
-  // SDL_Log("Creating buffers.");
-  // Create buffers
-  {
-    buffer_create_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    buffer_create_info.size = vertices_size;
-    vertex_buffer = SDL_CreateGPUBuffer(this->device_, &buffer_create_info);
-
-    buffer_create_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-    buffer_create_info.size = indices_size;
-    index_buffer = SDL_CreateGPUBuffer(this->device_, &buffer_create_info);
-  }
-
-  if ((vertex_buffer == nullptr) or (index_buffer == nullptr)
-      or (command_buffer == nullptr))
-  {
-    throw std::runtime_error("Bad ptr.");
-  }
-
-  // SDL_Log("Writing buffers.");
-  {  // Transfer data
-    auto* copy_pass {SDL_BeginGPUCopyPass(command_buffer)};
-
-    if (copy_pass == nullptr) {
-      throw std::runtime_error("Bad copy pass.");
-    }
-
-    SDL_GPUBufferRegion transfer_region {
-        .buffer = vertex_buffer, .offset = 0, .size = vertices_size};
-
-    SDL_GPUTransferBufferCreateInfo tb_info {
-        .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-        .size = vertices_size + indices_size};
-    auto* transfer_buffer {
-        SDL_CreateGPUTransferBuffer(this->device_, &tb_info)};
-
-    SDL_GPUTransferBufferLocation tb_location {
-        .transfer_buffer = transfer_buffer, .offset = 0};
-
-    auto* ptr {SDL_MapGPUTransferBuffer(this->device_, transfer_buffer, false)};
-
-    std::memcpy(ptr, vertices.data(), vertices_size);
-    transfer_region.buffer = vertex_buffer;
-    transfer_region.size = vertices_size;
-    SDL_UploadToGPUBuffer(copy_pass, &tb_location, &transfer_region, false);
-
-    std::memcpy((static_cast<char*>(ptr)) + vertices_size,
-                indices.data(),
-                indices_size);
-    transfer_region.buffer = index_buffer;
-    transfer_region.size = indices_size;
-    tb_location.offset = vertices_size;
-    SDL_UploadToGPUBuffer(copy_pass, &tb_location, &transfer_region, false);
-
-    SDL_UnmapGPUTransferBuffer(this->device_, transfer_buffer);
-    SDL_ReleaseGPUTransferBuffer(this->device_, transfer_buffer);
   }
 
   // SDL_Log("Beginning render pass.");
@@ -401,11 +381,10 @@ void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
   void* buffer = nullptr;
 
   // SDL_Log("Binding vertex buffers.");
-  std::array<SDL_GPUBufferBinding, 1> vb_bindings {
-      SDL_GPUBufferBinding {.buffer = vertex_buffer, .offset = 0}};
+  std::array<SDL_GPUBufferBinding, 1> vb_bindings {vertex_buffer.GetBinding()};
   SDL_BindGPUVertexBuffers(render_pass, 0, vb_bindings.data(), 1);
 
-  SDL_GPUBufferBinding ib_binding {.buffer = index_buffer, .offset = 0};
+  auto ib_binding {index_buffer.GetBinding()};
 
   // SDL_Log("Binding index buffer.");
   SDL_BindGPUIndexBuffer(
@@ -430,9 +409,6 @@ void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
   SDL_EndGPURenderPass(render_pass);
 
   SDL_SubmitGPUCommandBuffer(command_buffer);
-
-  SDL_ReleaseGPUBuffer(device_, vertex_buffer);
-  SDL_ReleaseGPUBuffer(device_, index_buffer);
 }
 
 std::unique_ptr<graphics::Texture> GhouliesLib::LoadTexture(
@@ -467,7 +443,7 @@ std::unique_ptr<graphics::Model> GhouliesLib::LoadModel(
   }
 
   try {
-    return std::make_unique<Model>(model_asset_exp.value());
+    return std::make_unique<Model>(this->device_, model_asset_exp.value());
   } catch (std::runtime_error& e) {
     std::cerr << "Error loading model: " << e.what() << "\n";
   }

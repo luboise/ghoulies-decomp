@@ -62,12 +62,14 @@ auto main(int argc, char** argv) -> int
 
   const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_door_square_1");
 
+  /*
   std::unique_ptr<graphics::Model> model {lib.LoadModel(*model_asset)};
 
   if (model == nullptr) {
     std::cerr << "Bad model load.\n";
     return 1;
   }
+  */
 
   std::cout << "Ghoulies launcher launched." << '\n';
 

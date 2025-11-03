@@ -213,4 +213,23 @@ bool Texture::Write(const ghoulies::Bytes& bytes)
   return success;
 }
 
+std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
+    SDL_GPUDevice* device, const std::span<const Index>& data)
+{
+  const auto index_buffer_size {data.size() * sizeof(Index)};
+
+  SDL_GPUBufferCreateInfo buffer_info {};
+  buffer_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+  buffer_info.size = index_buffer_size;
+
+  auto* index_buffer {SDL_CreateGPUBuffer(device, &buffer_info)};
+
+  if (index_buffer == nullptr) {
+    return std::unexpected(
+        std::format("Unable to create buffer. Error: {}", SDL_GetError()));
+  }
+
+  return Buffer<Index> {device, BufferType::kIndex, data.size(), index_buffer};
+}
+
 }  // namespace graphics

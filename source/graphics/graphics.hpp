@@ -1,15 +1,23 @@
 #pragma once
 
+#include <cstring>
+#include <iostream>
+
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_gpu.h>
+#include <SDL3/SDL_stdinc.h>
 #include <glm/glm.hpp>
 
 #include "../ghoulies/bnl.hpp"
-#include "model.hpp"
 
 namespace graphics
 {
 
+using std::unexpected;
+
 using ghoulies::Asset;
+
+using Index = uint16_t;
 
 struct PBRVertex
 {
@@ -100,5 +108,127 @@ private:
   SDL_GPUTexture* texture_;
   SDL_GPUSampler* sampler_;
 };
+
+enum class BufferType
+{
+  kVertex,
+  kIndex,
+};
+
+template<typename T>
+struct Buffer
+{
+  SDL_GPUDevice* device;
+  BufferType buffer_type;
+  std::size_t count;
+  SDL_GPUBuffer* handle;
+
+  std::size_t Size() { return this->count * sizeof(T); }
+
+  Buffer(SDL_GPUDevice* device,
+         BufferType buffer_type,
+         std::size_t count,
+         SDL_GPUBuffer* handle)
+      : device(device)
+      , handle(handle)
+      , count(count)
+      , buffer_type(buffer_type)
+  {
+  }
+
+  Buffer(Buffer&& other) noexcept
+      : device(other.device)
+      , buffer_type(other.buffer_type)
+      , count(other.count)
+      , handle(other.handle)
+  {
+    other.device = nullptr;
+    other.handle = nullptr;
+    other.count = 0;
+  }
+
+  ~Buffer()
+  {
+    if (this->handle != nullptr) {
+      if (this->device == nullptr) {
+        std::cerr << "Buffer has a non-null handle, but no device pointer.\n";
+        return;
+      }
+
+      SDL_ReleaseGPUBuffer(this->device, this->handle);
+    }
+  }
+
+  std::expected<void, std::string> Write(SDL_GPUCommandBuffer* command_buffer,
+                                         const std::span<const T>& data,
+                                         std::size_t offset = 0)
+  {
+    if (data.size() > this->Size() || data.size() + offset > this->Size()) {
+      return unexpected("Bad buffer write.");
+    }
+
+    {  // Transfer data
+      auto* copy_pass {SDL_BeginGPUCopyPass(command_buffer)};
+
+      if (copy_pass == nullptr) {
+        return unexpected("Bad copy pass.");
+      }
+
+      Uint32 write_size(data.size() * sizeof(T));
+
+      SDL_GPUBufferRegion transfer_region {
+          .buffer = this->handle,
+          .offset = static_cast<Uint32>(offset),
+          .size = write_size};
+
+      SDL_GPUTransferBufferCreateInfo tb_info {
+          .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = write_size};
+      auto* transfer_buffer {
+          SDL_CreateGPUTransferBuffer(this->device, &tb_info)};
+
+      SDL_GPUTransferBufferLocation tb_location {
+          .transfer_buffer = transfer_buffer, .offset = 0};
+
+      auto* ptr {
+          SDL_MapGPUTransferBuffer(this->device, transfer_buffer, false)};
+
+      std::memcpy(ptr, data.data(), write_size);
+
+      SDL_UploadToGPUBuffer(copy_pass, &tb_location, &transfer_region, false);
+      SDL_UnmapGPUTransferBuffer(this->device, transfer_buffer);
+      SDL_ReleaseGPUTransferBuffer(this->device, transfer_buffer);
+    }
+
+    return {};
+  }
+
+  SDL_GPUBufferBinding GetBinding(Uint32 offset = 0)
+  {
+    return SDL_GPUBufferBinding {.buffer = this->handle, .offset = offset};
+  }
+};
+
+template<typename T>
+std::expected<Buffer<T>, std::string> CreateVertexBuffer(
+    SDL_GPUDevice* device, const std::span<const T> data)
+{
+  const auto vertex_buffer_size {data.size() * sizeof(T)};
+
+  SDL_GPUBufferCreateInfo buffer_info {};
+  buffer_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+  buffer_info.size = vertex_buffer_size;
+
+  auto* vertex_buffer {SDL_CreateGPUBuffer(device, &buffer_info)};
+
+  if (vertex_buffer == nullptr) {
+    return std::unexpected(
+        std::format("Unable to create buffer. Error: {}", SDL_GetError()));
+  }
+
+  return Buffer<T> {device, BufferType::kVertex, data.size(), vertex_buffer};
+}
+
+std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
+    SDL_GPUDevice* device, const std::span<const Index>& data);
 
 }  // namespace graphics
