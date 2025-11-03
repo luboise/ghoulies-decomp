@@ -1,7 +1,10 @@
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <numeric>
+#include <ranges>
 
 #include "model.hpp"
 
@@ -18,7 +21,7 @@ using ghoulies::NdNode;
 using ghoulies::NdVertexBuffer;
 using std::shared_ptr;
 
-struct ModelDrawCall
+struct ModelDrawData
 {
   SDL_GPUPrimitiveType primitive_type;
   std::vector<Index> indices;
@@ -27,7 +30,7 @@ struct ModelDrawCall
 namespace
 {
 void FindDrawsFromNodeRecursive(const NdNode& node,
-                                std::vector<ModelDrawCall>& draws)
+                                std::vector<ModelDrawData>& draws)
 {
   if (node.nd_type == ghoulies::NdType::kPushBuffer) {
     const auto* push_buffer {(const ghoulies::NdPushBuffer*)&node};
@@ -79,9 +82,9 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
   }
 }
 
-inline std::vector<ModelDrawCall> FindDrawsFromNode(const NdNode& node)
+inline std::vector<ModelDrawData> FindDrawsFromNode(const NdNode& node)
 {
-  std::vector<ModelDrawCall> draws;
+  std::vector<ModelDrawData> draws;
   FindDrawsFromNodeRecursive(node, draws);
 
   return draws;
@@ -100,11 +103,34 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
   std::cout << "Vertex buffer size: "
             << nd_vertex_buffer->vertex_buffer_bytes.size() << "\n";
 
-  // auto vb {std::shared_ptr<NdVertexBuffer> {next_child}};
+  std::vector<ModelDrawData> draw_data {FindDrawsFromNode(*nd_vertex_buffer)};
+  std::cout << "Found " << draw_data.size() << " sets of model draw data.\n";
 
-  std::vector<ModelDrawCall> draw_calls {FindDrawsFromNode(*nd_vertex_buffer)};
+  std::size_t total_index_count {
+      std::accumulate(draw_data.begin(),
+                      draw_data.end(),
+                      std::size_t {0},
+                      [](std::size_t acc, const ModelDrawData& draw_call)
+                      { return acc + draw_call.indices.size(); })};
 
-  std::cout << "Found " << draw_calls.size() << " draw calls.\n";
+  std::vector<Index> indices(total_index_count);
+
+  std::size_t cur {0};
+
+  std::vector<DrawCommand> draw_commands(draw_data.size());
+  for (std::size_t i {0}; i < draw_data.size(); i++) {
+    const auto& draw_call {draw_data[i]};
+    std::ranges::copy(draw_call.indices, &indices[cur]);
+
+    draw_commands[i] = {
+        .primitive_type = draw_call.primitive_type,
+        .first_index = static_cast<Uint32>(cur),
+        .num_indices = static_cast<Uint32>(draw_call.indices.size())};
+
+    cur += draw_call.indices.size();
+  }
+
+  this->draw_commands_ = std::move(draw_commands);
 
   if (nd_vertex_buffer == nullptr) {
     throw std::runtime_error("No vertex buffer available.");
@@ -156,8 +182,6 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
 
   this->vertex_buffer_ = std::move(vertex_buffer).value();
 
-  const std::vector<Index> indices {0, 1, 2};
-
   auto index_buffer {CreateIndexBuffer(device, indices)};
   if (!index_buffer.has_value()) {
     throw std::runtime_error("Unable to create index buffer for model.");
@@ -188,7 +212,11 @@ void Model::DrawBasic(SDL_GPURenderPass* render_pass)
   // SDL_DrawGPUIndexedPrimitives(
   // render_pass, this->index_buffer_.count, 1, 0, 0, 0);
 
-  SDL_DrawGPUIndexedPrimitives(render_pass, 3, 1, 0, 0, 0);
+  for (const auto& command : this->draw_commands_) {
+    // TODO: Check the pipeline matches
+    SDL_DrawGPUIndexedPrimitives(
+        render_pass, command.num_indices, 1, command.first_index, 0, 0);
+  }
 };
 
 }  // namespace graphics

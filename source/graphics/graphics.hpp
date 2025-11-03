@@ -272,4 +272,11 @@ std::expected<Buffer<T>, std::string> CreateVertexBuffer(
 std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
     SDL_GPUDevice* device, const std::span<const Index>& data);
 
+struct DrawCommand
+{
+  SDL_GPUPrimitiveType primitive_type;
+  Uint32 first_index;
+  Uint32 num_indices;
+};
+
 }  // namespace graphics

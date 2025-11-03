@@ -34,6 +34,7 @@ private:
 
   Buffer<PBRVertex> vertex_buffer_;
   Buffer<Index> index_buffer_;
+  std::vector<DrawCommand> draw_commands_;
 };
 
 }  // namespace graphics
