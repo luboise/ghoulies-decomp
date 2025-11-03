@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ostream>
 
 namespace d3d
 {
@@ -21,6 +22,53 @@ enum class D3DPrimitiveType : uint32_t
   kMax = 11,
   kInvalid = 0x7ffffff,
 };
+
+inline std::ostream& operator<<(std::ostream& os, D3DPrimitiveType d3d_type)
+{
+  switch (d3d_type) {
+    case D3DPrimitiveType::kNone:
+      os << "D3DNone";
+      break;
+    case D3DPrimitiveType::kPointList:
+      os << "D3DPointList";
+      break;
+    case D3DPrimitiveType::kLineList:
+      os << "D3DLineList";
+      break;
+    case D3DPrimitiveType::kLineLoop:
+      os << "D3DLineLoop";
+      break;
+    case D3DPrimitiveType::kLineStrip:
+      os << "D3DLineStrip";
+      break;
+    case D3DPrimitiveType::kTriangleList:
+      os << "D3DTriangleList";
+      break;
+    case D3DPrimitiveType::kTriangleStrip:
+      os << "D3DTriangleStrip";
+      break;
+    case D3DPrimitiveType::kTriangleFan:
+      os << "D3DTriangleFan";
+      break;
+    case D3DPrimitiveType::kQuadList:
+      os << "D3DQuadList";
+      break;
+    case D3DPrimitiveType::kQuadStrip:
+      os << "D3DQuadStrip";
+      break;
+    case D3DPrimitiveType::kPolygon:
+      os << "D3DPolygon";
+      break;
+    case D3DPrimitiveType::kMax:
+      os << "D3DMax";
+      break;
+    case D3DPrimitiveType::kInvalid:
+      os << "D3DInvalid";
+      break;
+  }
+
+  return os;
+}
 
 enum class D3DTextureType : uint32_t
 {

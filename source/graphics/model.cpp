@@ -35,10 +35,10 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
   if (node.nd_type == ghoulies::NdType::kPushBuffer) {
     const auto* push_buffer {(const ghoulies::NdPushBuffer*)&node};
 
-    for (const auto& draw_command : push_buffer->draw_commands) {
+    for (const auto& draw_data : push_buffer->draw_commands) {
       SDL_GPUPrimitiveType primitive_type {};
 
-      switch (draw_command.primitive_type) {
+      switch (draw_data.primitive_type) {
         case d3d::D3DPrimitiveType::kPointList:
           primitive_type = SDL_GPU_PRIMITIVETYPE_POINTLIST;
           break;
@@ -55,22 +55,43 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
           primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
           break;
 
+        case d3d::D3DPrimitiveType::kTriangleFan: {
+          std::size_t num_triangles {draw_data.indices.size() - 2};
+          std::size_t num_indices {num_triangles * 3};
+
+          ModelDrawData new_data {
+              .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+              .indices = std::vector<Index>(num_indices)};
+
+          Index root_index {draw_data.indices[0]};
+
+          for (std::size_t i {1}; i < draw_data.indices.size() - 1; i++) {
+            new_data.indices[3 * (i - 1)] = root_index;
+            new_data.indices[(3 * (i - 1)) + 1] = draw_data.indices[i];
+            new_data.indices[(3 * (i - 1)) + 2] = draw_data.indices[i + 1];
+          }
+
+          draws.push_back(std::move(new_data));
+          continue;
+        }
           // Unsupported primitive types
         case d3d::D3DPrimitiveType::kNone:
         case d3d::D3DPrimitiveType::kMax:
         case d3d::D3DPrimitiveType::kInvalid:
         case d3d::D3DPrimitiveType::kLineLoop:
-        case d3d::D3DPrimitiveType::kTriangleFan:
         case d3d::D3DPrimitiveType::kQuadList:
         case d3d::D3DPrimitiveType::kQuadStrip:
         case d3d::D3DPrimitiveType::kPolygon:
         default:
+          std::cerr << "Unsupported D3DPrimitive type found: "
+                    << draw_data.primitive_type
+                    << ". Using triangle list instead.\n";
           // TODO: Return std::unexpected
           primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
           break;
       }
 
-      draws.emplace_back(primitive_type, draw_command.indices);
+      draws.emplace_back(primitive_type, draw_data.indices);
     }
   }
 
