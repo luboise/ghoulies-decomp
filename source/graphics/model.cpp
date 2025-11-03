@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -190,6 +191,31 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
         sizeof(pos));
 
     pbr_vertices.emplace_back(glm::vec3 {pos[0], pos[1], pos[2]});
+  }
+
+  if (auto uv_buf_view {nd_vertex_buffer->GetBufferView(
+          ghoulies::NdVertexBufferViewType::kUV)};
+      uv_buf_view.has_value())
+  {
+    auto* uv_view {std::move(uv_buf_view).value()};
+    assert(uv_view->stride == sizeof(float) * 2);
+
+    const std::size_t values_per_uv {uv_view->stride / sizeof(float)};
+
+    const std::size_t num_uv_vertices {uv_view->size / uv_view->stride};
+    const std::size_t num_uv_floats {num_uv_vertices * values_per_uv};
+
+    std::vector<float> uv_values(num_uv_floats);
+
+    std::memcpy(uv_values.data(),
+                &nd_vertex_buffer->vertex_buffer_bytes[uv_view->start_ptr],
+                sizeof(float) * num_uv_floats);
+
+    for (std::size_t i {0}; i < num_uv_vertices; i++) {
+      for (int j {0}; j < values_per_uv; j++) {
+        pbr_vertices[i].a_texcoords[j] = uv_values[(i * 2) + j];
+      }
+    }
   }
 
   std::cout << "Num processed vertices: " << pbr_vertices.size() << "\n";
