@@ -171,7 +171,7 @@ static_assert(sizeof(Colour) == 4);
 
 struct TextureAssignment
 {
-  uint32_t texture_index;
+  uint32_t texture_bank_index;
   uint8_t flag1;
   uint8_t flag2;
   uint8_t flag3;
@@ -224,7 +224,9 @@ struct ShaderParamAssignment
 {
   std::string param_name;
   uint32_t some_val1;
-  uint32_t texture_slot;
+
+  /// The texture slot this is assigned to, with one-indexing
+  uint32_t natural_texture_slot;
   Colour base_colour;
 };
 
@@ -243,6 +245,17 @@ struct NdShaderParam2Payload
 
   static std::optional<NdShaderParam2Payload> FromRaw(
       const RawNdShaderParam2Payload& raw, std::span<const std::byte> bytes);
+
+  /// Searches for a ShaderParamAssignment by name, returning a pointer to one
+  /// if found and nullptr otherwise
+  [[nodiscard]] const ShaderParamAssignment* GetAssignment(
+      std::string_view key) const;
+
+  /// Gets the texture assignment of the texture in a given slot for this
+  /// NdShaderParam2Payload. The XBOX only has two texture slots, so only 0 or 1
+  /// should be passed to this function.
+  [[nodiscard]] const TextureAssignment* GetTextureAssignmentForSlot(
+      std::uint32_t slot) const;
 
   /*
   uint8_t alpha_reference;
@@ -273,6 +286,8 @@ struct NdShaderParam2 : public NdNode
 {
   NdShaderParam2Payload main_payload;
   std::optional<NdShaderParam2Payload> secondary_payload;
+
+  [[nodiscard]] std::optional<uint32_t> GetDiffuseTextureIndex() const;
 };
 
 std::expected<std::shared_ptr<NdNode>, std::string> ParseNdTree(

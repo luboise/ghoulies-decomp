@@ -20,6 +20,13 @@ public:
   /// success
   PBRMaterial(SDL_GPUDevice* device, PBRMaterialParams params);
 
+  const auto BaseColour() const { return this->base_colour_; }
+
+  const Texture* DiffuseTexture() const
+  {
+    return this->diffuse_texture_.has_value() ? &(*diffuse_texture_) : nullptr;
+  }
+
 private:
   glm::vec4 base_colour_;
   std::optional<Texture> diffuse_texture_;

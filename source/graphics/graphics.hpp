@@ -281,7 +281,6 @@ std::expected<Buffer<T>, std::string> CreateVertexBuffer(
 std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
     SDL_GPUDevice* device, const std::span<const Index>& data);
 
-// TODO: Add material index/load materials
 struct DrawCommand
 {
   SDL_GPUPrimitiveType primitive_type;

@@ -69,6 +69,16 @@ struct NdParseContext
   std::vector<std::shared_ptr<NdShaderParam2>> materials;
 
   std::size_t current_material_index {std::numeric_limits<std::size_t>::max()};
+
+  [[nodiscard]] bool HasCurrentMaterial() const
+  {
+    return current_material_index != std::numeric_limits<std::size_t>::max();
+  }
+
+  [[nodiscard]] NdShaderParam2& CurrentMaterial() const
+  {
+    return *materials.back();
+  }
 };
 
 namespace
@@ -160,9 +170,13 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
                   &bytes[index_counts_ptr],
                   sizeof(uint32_t) * num_draws);
 
-      if (ctx.current_material_index == -1U) {
+      if (!ctx.HasCurrentMaterial()) {
         return unexpected("No material available when parsing push buffer.");
       }
+
+      auto& current_material {ctx.CurrentMaterial()};
+      uint32_t diffuse_texture_index {
+          current_material.GetDiffuseTextureIndex().value_or(0)};
 
       std::vector<NdPushBufferDraw> draw_commands(num_draws);
 
@@ -186,8 +200,7 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
 
         draw_commands[i] = {.primitive_type = primitive_type,
                             .indices = std::move(indices),
-                            .material_index = static_cast<uint32_t>(
-                                ctx.current_material_index)};
+                            .material_index = diffuse_texture_index};
       }
 
       node = std::shared_ptr<NdPushBuffer> {new NdPushBuffer {header.nd_type,
@@ -422,10 +435,11 @@ std::optional<NdShaderParam2Payload> NdShaderParam2Payload::FromRaw(
     const char* str_ptr {
         reinterpret_cast<const char*>(&bytes[raw_assignment.name_ptr])};
 
-    shader_assignments[i] = {.param_name = std::string {str_ptr},
-                             .some_val1 = raw_assignment.some_val1,
-                             .texture_slot = raw_assignment.texture_slot,
-                             .base_colour = raw_assignment.base_colour};
+    shader_assignments[i] = {
+        .param_name = std::string {str_ptr},
+        .some_val1 = raw_assignment.some_val1,
+        .natural_texture_slot = raw_assignment.texture_slot,
+        .base_colour = raw_assignment.base_colour};
   }
 
   // Returning
@@ -450,7 +464,83 @@ std::optional<NdShaderParam2Payload> NdShaderParam2Payload::FromRaw(
 
       .shader_assignments = shader_assignments,
   };
-};
+}
+
+std::optional<uint32_t> NdShaderParam2::GetDiffuseTextureIndex() const
+{
+  const auto lambda =
+      [](const NdShaderParam2Payload& payload) -> std::optional<uint32_t>
+  {
+    // Check if any assignments map to colour0
+    const ShaderParamAssignment* assignment {payload.GetAssignment("colour0")};
+
+    if (assignment != nullptr) {
+      std::cout << "Found colour0.\n";
+
+      assert(assignment->natural_texture_slot != 0);  // Should be 1 or 2
+
+      // Get the texture slot of the assignment which colour0 uses
+      auto slot {assignment->natural_texture_slot};
+
+      // Get the assignment for that slot and return it
+      const auto* texture_assignment {
+          payload.GetTextureAssignmentForSlot(slot)};
+      if (texture_assignment != nullptr) {
+        return texture_assignment->texture_bank_index;
+      }
+    };
+
+    return std::nullopt;
+  };
+
+  if (std::optional<uint32_t> index {lambda(this->main_payload)};
+      index.has_value())
+  {
+    return index;
+  }
+
+  if (this->secondary_payload.has_value()) {
+    if (std::optional<uint32_t> index {lambda(this->secondary_payload.value())};
+        index.has_value())
+    {
+      return index;
+    }
+  }
+
+  return std::nullopt;
+}
+
+const ShaderParamAssignment* NdShaderParam2Payload::GetAssignment(
+    std::string_view key) const
+{
+  for (const auto& assignment : this->shader_assignments) {
+    if (assignment.param_name == key) {
+      return &assignment;
+    }
+  }
+
+  return nullptr;
+}
+
+const TextureAssignment* NdShaderParam2Payload::GetTextureAssignmentForSlot(
+    std::uint32_t slot) const
+{
+  assert(slot == 0 || slot == 1);
+
+  if (slot == 0) {
+    return this->texture_assignment_0.has_value()
+        ? &(this->texture_assignment_0.value())
+        : nullptr;
+  }
+
+  if (slot == 1) {
+    return this->texture_assignment_1.has_value()
+        ? &(this->texture_assignment_1.value())
+        : nullptr;
+  }
+
+  return nullptr;
+}
 
 }  // namespace ghoulies
 
