@@ -225,8 +225,9 @@ struct ShaderParamAssignment
   std::string param_name;
   uint32_t some_val1;
 
-  /// The texture slot this is assigned to, with one-indexing
-  uint32_t natural_texture_slot;
+  /// The index of the texture assignment used by this param. This can be
+  /// followed to retrieve the index of the texture in the texture bank
+  uint32_t texture_assignment_index;
   Colour base_colour;
 };
 
@@ -238,8 +239,7 @@ struct NdShaderParam2Payload
   std::vector<VertexShaderConstant> vertex_shader_constants;
   std::vector<Colour> pixel_shader_constants;
 
-  std::optional<TextureAssignment> texture_assignment_0;
-  std::optional<TextureAssignment> texture_assignment_1;
+  std::vector<TextureAssignment> texture_assignments;
 
   std::vector<ShaderParamAssignment> shader_assignments;
 
@@ -251,10 +251,7 @@ struct NdShaderParam2Payload
   [[nodiscard]] const ShaderParamAssignment* GetAssignment(
       std::string_view key) const;
 
-  /// Gets the texture assignment of the texture in a given slot for this
-  /// NdShaderParam2Payload. The XBOX only has two texture slots, so only 0 or 1
-  /// should be passed to this function.
-  [[nodiscard]] const TextureAssignment* GetTextureAssignmentForSlot(
+  [[nodiscard]] const TextureAssignment* GetTextureAssignment(
       std::uint32_t slot) const;
 
   /*

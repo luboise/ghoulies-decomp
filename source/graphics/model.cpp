@@ -37,43 +37,42 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
     const auto* push_buffer {(const ghoulies::NdPushBuffer*)&node};
 
     for (const auto& draw_data : push_buffer->draw_commands) {
-      SDL_GPUPrimitiveType primitive_type {};
+      ModelDrawData new_draw_data {.material_index = draw_data.material_index};
 
       switch (draw_data.primitive_type) {
         case d3d::D3DPrimitiveType::kPointList:
-          primitive_type = SDL_GPU_PRIMITIVETYPE_POINTLIST;
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_POINTLIST;
           break;
         case d3d::D3DPrimitiveType::kLineList:
-          primitive_type = SDL_GPU_PRIMITIVETYPE_LINELIST;
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_LINELIST;
           break;
         case d3d::D3DPrimitiveType::kLineStrip:
-          primitive_type = SDL_GPU_PRIMITIVETYPE_LINESTRIP;
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_LINESTRIP;
           break;
         case d3d::D3DPrimitiveType::kTriangleList:
-          primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
           break;
         case d3d::D3DPrimitiveType::kTriangleStrip:
-          primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
           break;
 
         case d3d::D3DPrimitiveType::kTriangleFan: {
           std::size_t num_triangles {draw_data.indices.size() - 2};
           std::size_t num_indices {num_triangles * 3};
 
-          ModelDrawData new_data {
-              .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-              .indices = std::vector<Index>(num_indices),
-              .material_index = draw_data.material_index};
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+          new_draw_data.indices = std::vector<Index>(num_indices);
+          new_draw_data.material_index = draw_data.material_index;
 
           Index root_index {draw_data.indices[0]};
 
           for (std::size_t i {1}; i < draw_data.indices.size() - 1; i++) {
-            new_data.indices[3 * (i - 1)] = root_index;
-            new_data.indices[(3 * (i - 1)) + 1] = draw_data.indices[i];
-            new_data.indices[(3 * (i - 1)) + 2] = draw_data.indices[i + 1];
+            new_draw_data.indices[3 * (i - 1)] = root_index;
+            new_draw_data.indices[(3 * (i - 1)) + 1] = draw_data.indices[i];
+            new_draw_data.indices[(3 * (i - 1)) + 2] = draw_data.indices[i + 1];
           }
 
-          draws.push_back(std::move(new_data));
+          draws.push_back(std::move(new_draw_data));
           continue;
         }
           // Unsupported primitive types
@@ -89,11 +88,12 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
                     << draw_data.primitive_type
                     << ". Using triangle list instead.\n";
           // TODO: Return std::unexpected
-          primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
           break;
       }
 
-      draws.emplace_back(primitive_type, draw_data.indices);
+      new_draw_data.indices = draw_data.indices;
+      draws.push_back(new_draw_data);
     }
   }
 

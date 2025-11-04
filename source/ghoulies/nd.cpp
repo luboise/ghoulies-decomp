@@ -176,7 +176,7 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
 
       auto& current_material {ctx.CurrentMaterial()};
       uint32_t diffuse_texture_index {
-          current_material.GetDiffuseTextureIndex().value_or(0)};
+          current_material.GetDiffuseTextureIndex().value_or(6)};
 
       std::vector<NdPushBufferDraw> draw_commands(num_draws);
 
@@ -438,30 +438,14 @@ std::optional<NdShaderParam2Payload> NdShaderParam2Payload::FromRaw(
     shader_assignments[i] = {
         .param_name = std::string {str_ptr},
         .some_val1 = raw_assignment.some_val1,
-        .natural_texture_slot = raw_assignment.texture_slot,
+        .texture_assignment_index = raw_assignment.texture_slot,
         .base_colour = raw_assignment.base_colour};
-  }
-
-  // Returning
-  std::optional<TextureAssignment> texture_assignment_0 {};
-  std::optional<TextureAssignment> texture_assignment_1 {};
-
-  if (texture_assignments.size() >= 1) {
-    texture_assignment_0 = texture_assignments[0];
-  }
-
-  if (texture_assignments.size() >= 2) {
-    texture_assignment_1 = texture_assignments[1];
   }
 
   return NdShaderParam2Payload {
       .vertex_shader_constants = vertex_shader_constants,
-
       .pixel_shader_constants = pixel_shader_constants,
-
-      .texture_assignment_0 = texture_assignment_0,
-      .texture_assignment_1 = texture_assignment_1,
-
+      .texture_assignments = texture_assignments,
       .shader_assignments = shader_assignments,
   };
 }
@@ -477,14 +461,13 @@ std::optional<uint32_t> NdShaderParam2::GetDiffuseTextureIndex() const
     if (assignment != nullptr) {
       std::cout << "Found colour0.\n";
 
-      assert(assignment->natural_texture_slot != 0);  // Should be 1 or 2
+      // assert(assignment->texture_group_index != 0);  // Should be 1 or 2
 
       // Get the texture slot of the assignment which colour0 uses
-      auto slot {assignment->natural_texture_slot};
+      auto tex_index {assignment->texture_assignment_index};
 
       // Get the assignment for that slot and return it
-      const auto* texture_assignment {
-          payload.GetTextureAssignmentForSlot(slot)};
+      const auto* texture_assignment {payload.GetTextureAssignment(tex_index)};
       if (texture_assignment != nullptr) {
         return texture_assignment->texture_bank_index;
       }
@@ -522,21 +505,15 @@ const ShaderParamAssignment* NdShaderParam2Payload::GetAssignment(
   return nullptr;
 }
 
-const TextureAssignment* NdShaderParam2Payload::GetTextureAssignmentForSlot(
+const TextureAssignment* NdShaderParam2Payload::GetTextureAssignment(
     std::uint32_t slot) const
 {
-  assert(slot == 0 || slot == 1);
-
-  if (slot == 0) {
-    return this->texture_assignment_0.has_value()
-        ? &(this->texture_assignment_0.value())
-        : nullptr;
+  if (this->texture_assignments.empty()) {
+    return nullptr;
   }
 
-  if (slot == 1) {
-    return this->texture_assignment_1.has_value()
-        ? &(this->texture_assignment_1.value())
-        : nullptr;
+  if (slot < this->texture_assignments.size()) {
+    return &this->texture_assignments[slot];
   }
 
   return nullptr;

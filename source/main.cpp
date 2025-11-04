@@ -1,5 +1,3 @@
-#include <cstdint>
-#include <fstream>
 #include <iostream>
 
 #include <SDL3/SDL_gpu.h>
@@ -63,6 +61,7 @@ auto main(int argc, char** argv) -> int
   }
 
   const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_door_square_1");
+  // const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_actor_spider");
 
   std::unique_ptr<graphics::Model> model {lib.LoadModel(*model_asset)};
 
