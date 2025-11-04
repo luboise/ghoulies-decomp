@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstring>
 #include <expected>
 #include <iostream>
@@ -5,6 +6,8 @@
 #include <stack>
 
 #include "nd.hpp"
+
+#include <SDL3/SDL_surface.h>
 
 #include "bnl.hpp"
 #include "d3d.hpp"
@@ -61,6 +64,10 @@ struct NdParseContext
 {
   std::shared_ptr<NdNode> root {nullptr};
   std::stack<std::shared_ptr<NdNode>> tree;
+
+  std::vector<std::shared_ptr<NdShaderParam2>> materials;
+
+  std::size_t current_material_index {-1U};
 };
 
 namespace
@@ -189,12 +196,66 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
 
       break;
     }
+    case NdType::kShaderParam2: {
+      std::array<uint32_t, 2> values {};
+
+      std::memcpy(values.data(),
+                  &bytes[node_offset + sizeof(NdHeader)],
+                  sizeof(values));
+
+      const auto [payload1_ptr, payload2_ptr] = values;
+
+      if (payload1_ptr == 0) {
+        return unexpected(
+            "Unable to parse NdShaderParam2 with null main payload in model.");
+      }
+
+      NdShaderParam2 param2 {
+          header.nd_type,
+          nullptr,
+          nullptr,
+          nullptr,
+      };
+
+      RawNdShaderParam2Payload raw_main_payload {};
+      std::memcpy(
+          &raw_main_payload, &bytes[payload1_ptr], sizeof(raw_main_payload));
+      auto main_payload {
+          NdShaderParam2Payload::FromRaw(raw_main_payload, bytes)};
+      if (!main_payload.has_value()) {
+        return unexpected("Unable to parse NdShaderParam2 main payload.");
+      }
+
+      param2.main_payload = std::move(main_payload).value();
+
+      if (payload2_ptr != 0) {
+        RawNdShaderParam2Payload raw_sub_payload {};
+        std::memcpy(
+            &raw_sub_payload, &bytes[payload2_ptr], sizeof(raw_sub_payload));
+        auto sub_payload {
+            NdShaderParam2Payload::FromRaw(raw_sub_payload, bytes)};
+        if (!sub_payload.has_value()) {
+          return unexpected("Unable to parse NdShaderParam2 sub payload.");
+        }
+
+        param2.secondary_payload = std::move(sub_payload).value();
+      }
+
+      auto new_param2 {std::make_shared<NdShaderParam2>(std::move(param2))};
+
+      node = new_param2;
+
+      ctx.materials.push_back(new_param2);
+
+      ctx.current_material_index = ctx.materials.size() - 1;
+
+      break;
+    }
     case NdType::kGroup:
     case NdType::kSkeleton:
     case NdType::kRigidSkinIdx:
     case NdType::kMtxArray:
     case NdType::kShader2:
-    case NdType::kShaderParam2:
     case NdType::kVertexShader:
     case NdType::kBGPushBuffer:
     case NdType::kBlendShape:
@@ -304,6 +365,85 @@ std::optional<NdVertexBufferView*> NdVertexBuffer::GetBufferView(
 
   return nullptr;
 }
+
+std::optional<NdShaderParam2Payload> NdShaderParam2Payload::FromRaw(
+    const RawNdShaderParam2Payload& raw, std::span<const std::byte> bytes)
+{
+  // Pixel shader constants
+  std::vector<PixelShaderConstant> pixel_shader_constants {};
+  if (raw.num_pixel_shader_constants > 0) {
+    pixel_shader_constants.resize(raw.num_pixel_shader_constants);
+    std::memcpy(pixel_shader_constants.data(),
+                &bytes[raw.pixel_shader_constants_ptr],
+                sizeof(PixelShaderConstant) * raw.num_pixel_shader_constants);
+  }
+
+  // Vertex shader constants
+  std::vector<VertexShaderConstant> vertex_shader_constants {};
+
+  if (raw.num_pixel_shader_constants > 0) {
+    vertex_shader_constants.resize(raw.num_vertex_shader_constants);
+    std::memcpy(vertex_shader_constants.data(),
+                &bytes[raw.vertex_shader_constants_ptr],
+                sizeof(VertexShaderConstant) * raw.num_vertex_shader_constants);
+  }
+
+  // Texture assignments
+  std::vector<TextureAssignment> texture_assignments {};
+
+  if (raw.num_texture_assignments > 0) {
+    texture_assignments.resize(raw.num_texture_assignments);
+
+    std::memcpy(texture_assignments.data(),
+                &bytes[raw.texture_assignments_ptr],
+                sizeof(TextureAssignment) * raw.num_texture_assignments);
+  }
+
+  // Shader assignments
+  std::vector<RawShaderParamAssignment> raw_assignments(
+      raw.num_shader_assignments);
+
+  std::memcpy(raw_assignments.data(),
+              &bytes[raw.shader_assignments_start],
+              sizeof(RawShaderParamAssignment) * raw.num_shader_assignments);
+
+  std::vector<ShaderParamAssignment> shader_assignments(raw_assignments.size());
+
+  for (std::size_t i {0}; i < raw_assignments.size(); i++) {
+    const auto& raw_assignment {raw_assignments[i]};
+
+    const char* str_ptr {
+        reinterpret_cast<const char*>(&bytes[raw_assignment.name_ptr])};
+
+    shader_assignments[i] = {.param_name = std::string {str_ptr},
+                             .some_val1 = raw_assignment.some_val1,
+                             .texture_slot = raw_assignment.texture_slot,
+                             .base_colour = raw_assignment.base_colour};
+  }
+
+  // Returning
+  std::optional<TextureAssignment> texture_assignment_0 {};
+  std::optional<TextureAssignment> texture_assignment_1 {};
+
+  if (texture_assignments.size() >= 1) {
+    texture_assignment_0 = texture_assignments[0];
+  }
+
+  if (texture_assignments.size() >= 2) {
+    texture_assignment_1 = texture_assignments[1];
+  }
+
+  return NdShaderParam2Payload {
+      .vertex_shader_constants = vertex_shader_constants,
+
+      .pixel_shader_constants = pixel_shader_constants,
+
+      .texture_assignment_0 = texture_assignment_0,
+      .texture_assignment_1 = texture_assignment_1,
+
+      .shader_assignments = shader_assignments,
+  };
+};
 
 }  // namespace ghoulies
 

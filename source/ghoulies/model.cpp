@@ -186,7 +186,7 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
                 break;
               default:
                 std::cerr << "Unknown D3D texture format found: "
-                          << tex_desc.format << ". Assuming A8R8G8B8.\n";
+                          << tex_desc.format << ". Assuming B8G8R8A8.\n";
             }
 
             tex_assets[i] = TextureAsset {

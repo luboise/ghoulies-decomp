@@ -159,6 +159,107 @@ struct NdVertexBufferView
 
 static_assert(sizeof(NdVertexBufferView) == 24);
 
+struct Colour
+{
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+  uint8_t a;
+};
+
+static_assert(sizeof(Colour) == 4);
+
+struct TextureAssignment
+{
+  uint32_t texture_index;
+  uint8_t flag1;
+  uint8_t flag2;
+  uint8_t flag3;
+  bool skip_diffuse_texture;
+  uint32_t unknown3;
+  uint32_t unknown4;
+  uint32_t unknown5;
+  uint32_t unknown6;
+  uint32_t unknown7;
+};
+
+static_assert(sizeof(TextureAssignment) == 0x1c);
+
+struct RawShaderParamAssignment
+{
+  uint32_t name_ptr;
+  uint32_t some_val1;
+  uint32_t texture_slot;
+  Colour base_colour;
+};
+
+static_assert(sizeof(RawShaderParamAssignment) == 16);
+
+struct RawNdShaderParam2Payload
+{
+  uint32_t pixel_shader_constants_ptr;
+  uint32_t vertex_shader_constants_ptr;
+  uint32_t texture_assignments_ptr;
+
+  uint32_t num_texture_assignments;
+  uint32_t num_vertex_shader_constants;
+  uint32_t num_pixel_shader_constants;
+
+  // 0x18
+  uint8_t alpha_reference;
+  uint8_t flag1;
+  uint8_t flag2;
+  uint8_t some_count;
+
+  uint32_t unknown_uint32;
+
+  // 0x20
+  uint32_t maybe_child_ptr;
+
+  uint32_t shader_assignments_start;
+  uint32_t num_shader_assignments;
+};
+
+struct ShaderParamAssignment
+{
+  std::string param_name;
+  uint32_t some_val1;
+  uint32_t texture_slot;
+  Colour base_colour;
+};
+
+using VertexShaderConstant = std::array<float, 4>;
+using PixelShaderConstant = Colour;
+
+struct NdShaderParam2Payload
+{
+  std::vector<VertexShaderConstant> vertex_shader_constants;
+  std::vector<Colour> pixel_shader_constants;
+
+  std::optional<TextureAssignment> texture_assignment_0;
+  std::optional<TextureAssignment> texture_assignment_1;
+
+  std::vector<ShaderParamAssignment> shader_assignments;
+
+  static std::optional<NdShaderParam2Payload> FromRaw(
+      const RawNdShaderParam2Payload& raw, std::span<const std::byte> bytes);
+
+  /*
+  uint8_t alpha_reference;
+  uint8_t flag1;
+  uint8_t flag2;
+  uint8_t some_count;
+
+  uint32_t unknown_uint32;
+
+
+  // 0x20
+  uint32_t maybe_child_ptr;
+  */
+};
+
+static_assert(sizeof(RawNdShaderParam2Payload) == 0x2c);
+
 struct NdVertexBuffer : public NdNode
 {
   std::vector<NdVertexBufferView> resource_views;
@@ -166,6 +267,12 @@ struct NdVertexBuffer : public NdNode
 
   std::optional<NdVertexBufferView*> GetBufferView(
       NdVertexBufferViewType view_type);
+};
+
+struct NdShaderParam2 : public NdNode
+{
+  NdShaderParam2Payload main_payload;
+  std::optional<NdShaderParam2Payload> secondary_payload;
 };
 
 std::expected<std::shared_ptr<NdNode>, std::string> ParseNdTree(
