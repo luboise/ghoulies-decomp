@@ -60,8 +60,11 @@ auto main(int argc, char** argv) -> int
     return 1;
   }
 
-  const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_door_square_1");
+  // const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_door_square_1");
   // const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_actor_spider");
+
+  const auto* model_asset = bnl.GetAsset(
+      "aid_model_ghoulies_background_westwingdown_dishwashingroom");
 
   std::unique_ptr<graphics::Model> model {lib.LoadModel(*model_asset)};
 

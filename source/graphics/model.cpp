@@ -33,7 +33,10 @@ namespace
 void FindDrawsFromNodeRecursive(const NdNode& node,
                                 std::vector<ModelDrawData>& draws)
 {
-  if (node.nd_type == ghoulies::NdType::kPushBuffer) {
+  // TODO: Separate out BG push buffer
+  if (node.nd_type == ghoulies::NdType::kPushBuffer
+      || node.nd_type == ghoulies::NdType::kBGPushBuffer)
+  {
     const auto* push_buffer {(const ghoulies::NdPushBuffer*)&node};
 
     for (const auto& draw_data : push_buffer->draw_commands) {
@@ -118,10 +121,20 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
 {
   // Transform vertices
 
-  shared_ptr<NdNode> next_child {asset.root_nodes[0]->next_child};
+  if (asset.root_nodes.empty()) {
+    throw std::runtime_error("Unable to create model from 0 root nodes.");
+  }
 
-  shared_ptr<NdVertexBuffer> nd_vertex_buffer {
-      std::static_pointer_cast<NdVertexBuffer>(std::move(next_child))};
+  auto* nd_vertex_buffer {
+      static_cast<NdVertexBuffer*>(asset.root_nodes[0]->FindBy(
+          [](const NdNode& node)
+          { return node.nd_type == ghoulies::NdType::kVertexBuffer; }))};
+
+  if (nd_vertex_buffer == nullptr) {
+    throw std::runtime_error("No vertex buffer available in model.");
+  }
+
+  shared_ptr<NdNode> next_child {asset.root_nodes[0]->next_child};
 
   std::cout << "Vertex buffer size: "
             << nd_vertex_buffer->vertex_buffer_bytes.size() << "\n";

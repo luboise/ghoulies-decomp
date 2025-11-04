@@ -128,6 +128,29 @@ struct NdNode
   std::shared_ptr<NdNode> next_child {nullptr};
   std::shared_ptr<NdNode> next_sibling {nullptr};
   std::shared_ptr<NdNode> prev_node {nullptr};
+
+  /// Find the first occurence within this node and its children by a function
+
+  NdNode* FindBy(const auto f)
+  {
+    if (f(*this)) {
+      return this;
+    }
+
+    if (this->next_child != nullptr) {
+      if (this->next_child->FindBy(f) != nullptr) {
+        return this->next_child.get();
+      };
+    }
+
+    if (this->next_sibling != nullptr) {
+      if (this->next_sibling->FindBy(f) != nullptr) {
+        return this->next_sibling.get();
+      };
+    }
+
+    return nullptr;
+  }
 };
 
 enum class NdVertexBufferViewType : uint8_t

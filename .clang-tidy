@@ -23,7 +23,8 @@ Checks: "*,\
   -readability-container-data-pointer,\
   -boost-use-*,\
   -bugprone-suspicious-stringview-data-usage,\
-  -misc-no-recursion"
+  -misc-no-recursion,\
+  -cppcoreguidelines-pro-type-static-cast-downcast"
 
 WarningsAsErrors: ""
 CheckOptions:

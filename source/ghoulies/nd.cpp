@@ -132,6 +132,9 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
                               static_cast<Bytes>(res_bytes)}};
       break;
     }
+
+      // TODO: Handle BGPushBuffer seperately
+    case NdType::kBGPushBuffer:
     case NdType::kPushBuffer: {
       std::array<uint32_t, 7> values {};
 
@@ -277,7 +280,6 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
     case NdType::kMtxArray:
     case NdType::kShader2:
     case NdType::kVertexShader:
-    case NdType::kBGPushBuffer:
     case NdType::kBlendShape:
     default:
       node = std::make_shared<NdNode>(NdNode {.nd_type = header.nd_type});
