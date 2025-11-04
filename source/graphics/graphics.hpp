@@ -287,6 +287,7 @@ struct DrawCommand
   SDL_GPUPrimitiveType primitive_type;
   Uint32 first_index;
   Uint32 num_indices;
+  uint32_t material_index;
 };
 
 }  // namespace graphics

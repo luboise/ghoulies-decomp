@@ -25,6 +25,7 @@ struct ModelDrawData
 {
   SDL_GPUPrimitiveType primitive_type;
   std::vector<Index> indices;
+  uint32_t material_index;
 };
 
 namespace
@@ -61,7 +62,8 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
 
           ModelDrawData new_data {
               .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
-              .indices = std::vector<Index>(num_indices)};
+              .indices = std::vector<Index>(num_indices),
+              .material_index = draw_data.material_index};
 
           Index root_index {draw_data.indices[0]};
 
@@ -146,7 +148,8 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
     draw_commands[i] = {
         .primitive_type = draw_call.primitive_type,
         .first_index = static_cast<Uint32>(cur),
-        .num_indices = static_cast<Uint32>(draw_call.indices.size())};
+        .num_indices = static_cast<Uint32>(draw_call.indices.size()),
+        .material_index = draw_call.material_index};
 
     cur += draw_call.indices.size();
   }

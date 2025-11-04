@@ -2,6 +2,7 @@
 #include <cstring>
 #include <expected>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stack>
 
@@ -67,7 +68,7 @@ struct NdParseContext
 
   std::vector<std::shared_ptr<NdShaderParam2>> materials;
 
-  std::size_t current_material_index {-1U};
+  std::size_t current_material_index {std::numeric_limits<std::size_t>::max()};
 };
 
 namespace
@@ -159,6 +160,10 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
                   &bytes[index_counts_ptr],
                   sizeof(uint32_t) * num_draws);
 
+      if (ctx.current_material_index == -1U) {
+        return unexpected("No material available when parsing push buffer.");
+      }
+
       std::vector<NdPushBufferDraw> draw_commands(num_draws);
 
       for (std::size_t i = 0; i < num_draws; i++) {
@@ -180,7 +185,9 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
             indices.data(), &bytes[data_ptr], index_count * sizeof(uint16_t));
 
         draw_commands[i] = {.primitive_type = primitive_type,
-                            .indices = std::move(indices)};
+                            .indices = std::move(indices),
+                            .material_index = static_cast<uint32_t>(
+                                ctx.current_material_index)};
       }
 
       node = std::shared_ptr<NdPushBuffer> {new NdPushBuffer {header.nd_type,

@@ -284,6 +284,7 @@ struct NdPushBufferDraw
 {
   d3d::D3DPrimitiveType primitive_type;
   std::vector<uint16_t> indices;
+  uint32_t material_index;
 };
 
 struct NdPushBuffer : public NdNode
