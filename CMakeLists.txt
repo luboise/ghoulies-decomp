@@ -37,9 +37,10 @@ target_sources(
   PRIVATE source/lib.cpp
           source/file.cpp
           source/graphics/model.cpp
-          source/ghoulies/nd.cpp
-          source/ghoulies/model.cpp
           source/ghoulies/bnl.cpp
+          source/ghoulies/game.cpp
+          source/ghoulies/model.cpp
+          source/ghoulies/nd.cpp
           source/ghoulies/script.cpp
           source/graphics/material.cpp
           source/graphics/model.cpp

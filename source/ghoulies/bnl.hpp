@@ -19,7 +19,7 @@ using utils::Bytes;
 
 // Taken from project_grabbed
 // https://github.com/x1nixmzeng/project-grabbed
-enum class AssetType
+enum class AssetType : uint32_t
 {
   ResTexture = 1,
   ResAnim = 2,
@@ -51,7 +51,7 @@ enum class AssetType
   ResRumble = 28,
   ResShakeCam = 29,
 
-  ResCount,  // This will automatically take the next value (30)
+  ResCount = 30,  // Number of resource values
 };
 
 // Prevent packing of these types
@@ -148,6 +148,7 @@ public:
   explicit BNLFile(std::span<Asset> assets);
 
   [[nodiscard]] const Asset* GetAsset(std::string_view asset_name) const;
+  [[nodiscard]] const Asset* GetFirstAssetByType(AssetType asset_type) const;
 
 private:
   std::vector<Asset> assets_;

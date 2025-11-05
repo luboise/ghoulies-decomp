@@ -21,7 +21,7 @@ struct GameContext : Singleton<GameContext>
   // TODO: Move this somewhere else
   SDL_GPUDevice* sdl_device;
 
-  const Asset* GetAsset(std::string_view asset_name)
+  [[nodiscard]] const Asset* GetAsset(std::string_view asset_name) const
   {
     for (const auto& [filename, bnl_file] : this->bnl_files) {
       if (const auto* ptr {bnl_file.GetAsset(asset_name)}; ptr != nullptr) {
@@ -30,7 +30,9 @@ struct GameContext : Singleton<GameContext>
     }
 
     return nullptr;
-  };
+  }
+
+  [[nodiscard]] const Asset* GetPlaycamScript() const;
 };
 
 }  // namespace ghoulies

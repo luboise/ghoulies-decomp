@@ -6,6 +6,7 @@
 #include "ghoulies/bnl.hpp"
 #include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
+#include "graphics/model.hpp"
 #include "lib.hpp"
 #include "menu/menu.hpp"
 
@@ -68,28 +69,31 @@ auto main(int argc, char** argv) -> int
 
   lib.SetDefaultTexture(std::move(tex));
 
-  const auto* script_asset {
-      game_context.GetAsset("aid_script_ghoulies_chapter1_scene3_1playcam")};
+  const auto* playcam_script {game_context.GetPlaycamScript()};
 
-  if (script_asset == nullptr) {
-    std::cerr << "Failed to get asset "
-                 "aid_script_ghoulies_chapter1_scene3_1playcam.\n";
+  if (playcam_script == nullptr) {
+    std::cerr << "Failed to get playcam script.\n";
     return 1;
   }
 
-  Script script {*script_asset};
+  Script script {*playcam_script};
 
   script.Update(game_context);
 
-  ghoulies::objects::Background::BackgroundParams params {
-      .model_aid = game_context.background_model_aid};
+  ghoulies::objects::Background::BackgroundParams params;
+  params.model_aid = game_context.background_model_aid;
 
   std::cout << "Loading background " << params.model_aid.data() << ".\n";
   ghoulies::objects::Background bg {params};
 
-  std::cout << "Ghoulies launcher launched." << '\n';
+  /*
+  std::cout << "Loading skeletonbad.\n";
+  const auto* raw_skeletonbad {
+      game_context.GetAsset("aid_model_ghoulies_actor_skeletonbad")};
+  auto skeletonbad {lib.LoadModel(*raw_skeletonbad)};
+  */
 
-  uint64_t i = 0;
+  std::cout << "Ghoulies launcher launched." << '\n';
 
   // lib.DrawTestObjects(*tex);
   while (!lib.ShouldQuit()) {
@@ -110,6 +114,7 @@ auto main(int argc, char** argv) -> int
     auto draw_ctx {lib.NewDrawContext()};
 
     bg.Draw(draw_ctx);
+    // skeletonbad->DrawBasic(draw_ctx.render_pass);
 
     lib.EndDrawContext(draw_ctx);
 

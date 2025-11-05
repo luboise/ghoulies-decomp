@@ -237,6 +237,16 @@ const Asset* BNLFile::GetAsset(std::string_view asset_name) const
       });
 
   return found == this->assets_.end() ? nullptr : found.base();
-};
+}
+
+const Asset* BNLFile::GetFirstAssetByType(AssetType asset_type) const
+{
+  auto found = std::ranges::find_if(
+      this->assets_,
+      [asset_type](const Asset& asset)
+      { return asset.description.metadata.asset_type == asset_type; });
+
+  return found == this->assets_.end() ? nullptr : found.base();
+}
 
 }  // namespace ghoulies
