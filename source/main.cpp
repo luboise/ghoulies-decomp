@@ -45,11 +45,11 @@ auto main(int argc, char** argv) -> int
   game_context.bnl_files.emplace(argv[1], std::move(bnl_exp).value());
 
   const auto* tex_raw_asset {
-      game_context.GetAsset("aid_texture_ghoulies_powerups_knockdownmania")};
+      game_context.GetAsset("aid_texture_ghoulies_weapon_interacthand")};
 
   if (tex_raw_asset == nullptr) {
-    std::cerr << "Failed to get asset "
-                 "aid_texture_ghoulies_powerups_knockdownmania.\n";
+    std::cerr
+        << "Failed to get asset " "aid_texture_ghoulies_weapon_interacthand.\n";
     return 1;
   }
 
@@ -68,7 +68,7 @@ auto main(int argc, char** argv) -> int
   lib.SetDefaultTexture(std::move(tex));
 
   const auto* script_asset {
-      game_context.GetAsset("aid_script_ghoulies_chapter2a_scene2_1playcam")};
+      game_context.GetAsset("aid_script_ghoulies_chapter1_scene1_2playcam")};
 
   if (script_asset == nullptr) {
     std::cerr << "Failed to get asset "

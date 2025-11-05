@@ -55,9 +55,29 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
         case d3d::D3DPrimitiveType::TriangleList:
           new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
           break;
-        case d3d::D3DPrimitiveType::TriangleStrip:
-          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
-          break;
+        case d3d::D3DPrimitiveType::TriangleStrip: {
+          std::size_t num_triangles {draw_data.indices.size() - 2};
+          std::size_t num_indices {num_triangles * 3};
+
+          new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+          new_draw_data.indices = std::vector<Index>(num_indices);
+          new_draw_data.material_index = draw_data.material_index;
+
+          Index root_index {draw_data.indices[0]};
+
+          for (std::size_t i {0}; i < draw_data.indices.size() - 2; i++) {
+            // Reverse winding for odd triangles
+            const std::size_t offset = (i % 2 == 1) ? 1 : 0;
+
+            new_draw_data.indices[3 * i] = draw_data.indices[i + offset];
+            new_draw_data.indices[(3 * i) + 1] =
+                draw_data.indices[i + 1 - offset];
+            new_draw_data.indices[(3 * i) + 2] = draw_data.indices[i + 2];
+          }
+
+          draws.push_back(std::move(new_draw_data));
+          continue;
+        }
 
         case d3d::D3DPrimitiveType::TriangleFan: {
           std::size_t num_triangles {draw_data.indices.size() - 2};

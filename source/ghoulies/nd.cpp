@@ -291,7 +291,7 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
     return unexpected("Unhandled NDNode (node is nullptr).");
   }
 
-  std::cout << node->nd_type << "\n";
+  // std::cout << node->nd_type << "\n";
 
   if (ctx.root == nullptr) {
     ctx.root = node;
@@ -463,8 +463,6 @@ std::optional<uint32_t> NdShaderParam2::GetDiffuseTextureIndex() const
     const ShaderParamAssignment* assignment {payload.GetAssignment("colour0")};
 
     if (assignment != nullptr) {
-      std::cout << "Found colour0.\n";
-
       // assert(assignment->texture_group_index != 0);  // Should be 1 or 2
 
       // Get the texture slot of the assignment which colour0 uses
