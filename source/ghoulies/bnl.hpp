@@ -147,7 +147,7 @@ public:
   /// Construct from list of assets
   explicit BNLFile(std::span<Asset> assets);
 
-  const Asset* GetAsset(std::string_view asset_name);
+  [[nodiscard]] const Asset* GetAsset(std::string_view asset_name) const;
 
 private:
   std::vector<Asset> assets_;

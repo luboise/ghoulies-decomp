@@ -37,13 +37,13 @@ struct MeshHeader
 
 enum ModelSubresourceType : uint32_t
 {
-  kModel = 0,
-  kUnknown0x2 = 2,
-  kUnknown0x3 = 3,
-  kMatrices = 5,
-  kColliders = 6,
-  kTextures = 7,
-  kVertexBuffer = 18,
+  Model = 0,
+  Unknown0x2 = 2,
+  Unknown0x3 = 3,
+  Matrices = 5,
+  Colliders = 6,
+  Textures = 7,
+  VertexBuffer = 18,
 };
 
 std::ostream& operator<<(std::ostream&, ModelSubresourceType);
@@ -91,19 +91,19 @@ struct ModelDescriptor
 
 enum class NdType : uint16_t
 {
-  kGroup = 0x01,
-  kSkeleton = 0x02,
+  Group = 0x01,
+  Skeleton = 0x02,
 
-  kRigidSkinIdx = 0x0b,
-  kMtxArray = 0x0c,
+  RigidSkinIdx = 0x0b,
+  MtxArray = 0x0c,
 
-  kShader2 = 0x11,
-  kShaderParam2 = 0x12,
-  kVertexBuffer = 0x13,
-  kPushBuffer = 0x14,
-  kVertexShader = 0x15,
-  kBGPushBuffer = 0x16,
-  kBlendShape = 0x17,
+  Shader2 = 0x11,
+  ShaderParam2 = 0x12,
+  VertexBuffer = 0x13,
+  PushBuffer = 0x14,
+  VertexShader = 0x15,
+  BGPushBuffer = 0x16,
+  BlendShape = 0x17,
 };
 
 std::ostream& operator<<(std::ostream&, NdType);
@@ -157,10 +157,10 @@ enum class NdVertexBufferViewType : uint8_t
 {
   kSkin = 0x0,
   kSkinWeight = 0x8,
-  kVertex = 0x9,
+  Vertex = 0x9,
   kUnknown10 = 0xa,
   kUnknown11 = 0xb,
-  kUV = 0xd,
+  UV = 0xd,
   kUnknown14 = 0xe,
   kUnknown15 = 0xf,
   kUnknown16 = 0x10,

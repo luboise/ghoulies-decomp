@@ -1,7 +1,16 @@
 #pragma once
 
+#include <memory>
+
+#include "../../graphics/model.hpp"
 #include "../../graphics/types.hpp"
+#include "../events/message.hpp"
 #include "object.hpp"
+
+namespace graphics
+{
+struct DrawContext;
+}  // namespace graphics
 
 namespace ghoulies::objects
 {
@@ -44,6 +53,12 @@ public:
     float field12_0x2b0;
     AssetAID shadow_model_aid;
   };
+
+  virtual void OnMessage(events::Message& msg);
+  virtual void Update();
+  virtual bool Draw(::graphics::DrawContext& ctx);
+
+  virtual void SetModel(std::shared_ptr<::graphics::Model> new_model);
 
 protected:
   explicit Avatar(const AvatarParams& params)
@@ -88,7 +103,8 @@ private:
   uint8_t field271_0x1fd_ {};
   uint16_t some_ushort_ {};
   float base_scale_ {};
-  struct ModelDescriptor* model_resource_ {};
+  // struct ModelDescriptor* model_resource_ {};
+  std::shared_ptr<::graphics::Model> model_;
   AssetAID model_aid_ {};
   struct OnDeathObject* child_transform_ {};
   uint32_t num_matrices_ {};

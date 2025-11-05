@@ -15,6 +15,8 @@ Script::Script(const Asset& asset)
 
   std::vector<ScriptOperation> operations;
 
+  operations.reserve(200);
+
   if (asset.descriptor.size() < 8) {
     throw std::
           runtime_error(
@@ -35,13 +37,22 @@ Script::Script(const Asset& asset)
     opcode = std::bit_cast<ScriptOpcode>(values[1]);
 
     switch (opcode) {
-      case kEndScript:
-        operations.emplace_back(EndScriptOperation {});
+      case EndScript: {
+        operations.emplace_back(std::in_place_type<EndScriptOperation>);
         break;
-      default:
+      }
+      case SetBackground: {
+        AssetAID bg_aid {};
+
+        std::memcpy(
+            bg_aid.data(), &asset.descriptor[curr + 8], sizeof(AssetAID));
+
+        operations.emplace_back(SetBackgroundOperation {bg_aid});
+      };
+      default: {
         if (operation_size <= 8) {
-          operations.emplace_back(
-              RawScriptOperation {.opcode = opcode, .operand_bytes = {}});
+          operations.emplace_back(std::in_place_type<RawScriptOperation>,
+                                  opcode);
         } else {
           Bytes operand_bytes(operation_size - 8);
           if (static_cast<std::size_t>(curr) + operation_size
@@ -54,10 +65,16 @@ Script::Script(const Asset& asset)
                       &asset.descriptor[static_cast<std::size_t>(curr) + 8],
                       operation_size - 8);
 
-          operations.emplace_back(RawScriptOperation {
-              .opcode = opcode, .operand_bytes = operand_bytes});
+          std::cout << "Pushing back value with opcode " << opcode
+                    << " and data of size " << operand_bytes.size() << ".\n";
+
+          ScriptOperation new_operation {
+              RawScriptOperation(opcode, operand_bytes)};
+
+          operations.push_back(new_operation);
         }
         break;
+      }
     }
 
     curr += operation_size;
@@ -65,7 +82,14 @@ Script::Script(const Asset& asset)
     if (curr > asset.descriptor.size()) {
       throw std::runtime_error("Script opcodes have overrun descriptor.");
     }
-  } while (opcode != kEndScript);
+  } while (opcode != EndScript);
+
+  // TODO: Make this debug only
+  for (const auto& operation : operations) {
+    if (operation.valueless_by_exception()) {
+      throw std::runtime_error("Valueless script operations in script.");
+    }
+  }
 
   this->operations_ = std::move(operations);
 }
@@ -79,7 +103,18 @@ bool Script::Update(GameContext& ctx)
 {
   ScriptUpdateStatus status {ScriptUpdateStatus::kError};
   do {
-    status = this->Advance(ctx);
+    status = HandleOperation(ctx, this->CurrentOperation());
+
+    // TODO: Make this debug only
+    if (this->current_operation_ > this->operations_.size()) {
+      return ScriptUpdateStatus::kError != 0U;
+    }
+
+    if (this->current_operation_ == this->operations_.size()) {
+      return ScriptUpdateStatus::kScriptEnded != 0U;
+    }
+
+    const ScriptOperation& current_op {this->CurrentOperation()};
   } while (status == kOpHandled);
 
   return status != ScriptUpdateStatus::kError;
@@ -91,19 +126,18 @@ struct Overload : Ts...
   using Ts::operator()...;
 };
 
-ScriptUpdateStatus Script::Advance(GameContext& ctx)
+[[nodiscard]] const ScriptOperation& Script::CurrentOperation() const
 {
-  // TODO: Make this debug only
-  if (this->current_operation_ > this->operations_.size()) {
-    return ScriptUpdateStatus::kError;
-  }
+  assert(this->operations_.size() > 0);
+  assert(this->current_operation_ < this->operations_.size());
 
-  if (this->current_operation_ == this->operations_.size()) {
-    return ScriptUpdateStatus::kScriptEnded;
-  }
+  return operations_[this->current_operation_];
+}
 
-  const ScriptOperation& current_op {this->operations_[current_operation_]};
-  const auto visitor = Overload {
+ScriptUpdateStatus Script::HandleOperation(GameContext& ctx,
+                                           const ScriptOperation& op)
+{
+  static const auto kVisitor = Overload {
       [](const EndScriptOperation&) -> ScriptUpdateStatus
       { return ScriptUpdateStatus::kScriptEnded; },
 
@@ -117,10 +151,10 @@ ScriptUpdateStatus Script::Advance(GameContext& ctx)
         return ScriptUpdateStatus::kStalled;
       },
 
-      [this](const SetBackgroundOperation& op) -> ScriptUpdateStatus
+      [this, &ctx](const SetBackgroundOperation& op) -> ScriptUpdateStatus
       {
-        std::cout << "Setting background to " << op.background_aid.data()
-                  << "\n";
+        ctx.background_model_aid = op.background_aid;
+
         current_operation_++;
         return ScriptUpdateStatus::kOpHandled;
       },
@@ -132,8 +166,8 @@ ScriptUpdateStatus Script::Advance(GameContext& ctx)
       },
   };
 
-  ScriptUpdateStatus return_status {std::visit(visitor, current_op)};
+  ScriptUpdateStatus return_status {std::visit(kVisitor, op)};
   return return_status;
-};
+}
 
 }  // namespace ghoulies

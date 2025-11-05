@@ -19,6 +19,12 @@ using ghoulies::Asset;
 
 using Index = uint16_t;
 
+struct DrawContext
+{
+  SDL_GPUCommandBuffer* command_buffer;
+  SDL_GPURenderPass* render_pass;
+};
+
 struct PBRVertex
 {
   glm::vec3 a_position {0, 0, 0};

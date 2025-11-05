@@ -1,5 +1,9 @@
+#include <iostream>
+
 #include "../../game.hpp"
 #include "background.hpp"
+
+using graphics::DrawContext;
 
 namespace ghoulies::objects
 {
@@ -33,6 +37,28 @@ ModelDescriptor* desc;
   GameContext& ctx {GameContext::Instance()};
 
   ctx.background_model_aid = params.model_aid;
+
+  if (ctx.background_model_aid[0] != '\0') {
+    const Asset* raw_model_asset {
+        ctx.GetAsset(ctx.background_model_aid.data())};
+
+    if (raw_model_asset == nullptr) {
+      throw std::runtime_error(
+          "No model available for background, which requires a valid model "
+          "AID.");
+    }
+
+    auto model_asset_exp {ModelAsset::FromAsset(*raw_model_asset)};
+    if (!model_asset_exp.has_value()) {
+      throw std::runtime_error(
+          "Failed to create background ModelAsset from Asset.");
+    }
+
+    auto new_model {std::make_shared<::graphics::Model>(
+        ctx.sdl_device, model_asset_exp.value())};
+
+    this->SetModel(new_model);
+  }
 
   ctx.backgrounds.Register(&this->registry_entry_);
 
@@ -200,6 +226,73 @@ LAB_00042e9b:
   ::actor::createOnDeathObjects(&bg->avatar, 0);
   return 1;
   */
+}
+
+void Avatar::OnMessage(events::Message& msg)
+{
+  std::cout << "Avatar::OnMessage" << "\n";
+};
+
+void Avatar::Update() {};
+
+bool Avatar::Draw(DrawContext& ctx)
+{
+  /*
+ModelFooterEntry* pMVar1;
+uint uVar2;
+int iVar3;
+ModelDescriptor* model_res;
+
+if (param_1->field_0x197 != '\0') {
+return 0;
+}
+update0x1d8s(param_1);
+model_res = param_1->modelRes;
+if (model_res == NULL) {
+return 0;
+}
+if (someFlag == 0) {
+if ((model_res->footerEntries[1].subresourceType & 0x10) == Model) {
+return 0;
+}
+} else if ((someFlag == 2)
+       && ((model_res->footerEntries[1].subresourceType & 8) == Model))
+{
+return 0;
+}
+if (param_1->hasActor? == false) {
+::actor::createOnDeathObjects(param_1, 0);
+}
+iVar3 = FUN_00101930(*(undefined4*)&param_1->field_0x19c, 0xff000000);
+if (iVar3 == 0) {
+pMVar1 = *(ModelFooterEntry**)&param_1->field_0x19c;
+uVar2 = *(uint*)&param_1->field_0x198;
+model_res[0x12].runtimeCtx = (ModelRuntimeContext*)0x1;
+model_res[0x12].field5_0x14 = uVar2;
+model_res[0x13].footerEntries = pMVar1;
+} else {
+model_res[0x12].runtimeCtx = NULL;
+}
+if (*(code**)&param_1->field_0x1a0 != NULL) {
+(**(code**)&param_1->field_0x1a0)(
+  param_1, someFlag, *(undefined4*)&param_1->field_0x1a8);
+}
+
+// Draw the model with the actors affine matrix
+  */
+
+  if (this->model_ == nullptr) {
+    return false;
+  }
+
+  this->model_->DrawBasic(ctx.render_pass);
+
+  return true;
+};
+
+void Avatar::SetModel(std::shared_ptr<::graphics::Model> new_model)
+{
+  this->model_ = std::move(new_model);
 }
 
 }  // namespace ghoulies::objects

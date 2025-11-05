@@ -27,6 +27,11 @@ auto main(int argc, char** argv) -> int
     return 1;
   }
 
+  auto& game_context {ghoulies::GameContext::Instance()};
+
+  game_context.move_on = false;
+  game_context.sdl_device = lib.GetSDLDevice();
+
   Bytes bytes {ReadFileBytes(argv[1]).value()};
   auto bnl_exp {BNLFile::FromBytes(bytes)};
 
@@ -37,19 +42,33 @@ auto main(int argc, char** argv) -> int
     return 1;
   }
 
-  BNLFile bnl {std::move(bnl_exp).value()};
+  game_context.bnl_files.emplace(argv[1], std::move(bnl_exp).value());
 
-  const auto* tex_asset {
-      bnl.GetAsset("aid_texture_ghoulies_powerups_knockdownmania")};
+  const auto* tex_raw_asset {
+      game_context.GetAsset("aid_texture_ghoulies_powerups_knockdownmania")};
 
-  if (tex_asset == nullptr) {
+  if (tex_raw_asset == nullptr) {
     std::cerr << "Failed to get asset "
                  "aid_texture_ghoulies_powerups_knockdownmania.\n";
     return 1;
   }
 
+  graphics::TextureAsset tex_asset {
+      .format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM,
+      .width = 128,
+      .height = 128,
+      .data = tex_raw_asset->resource};
+
+  auto tex {lib.LoadTexture(tex_asset)};
+  if (tex == nullptr) {
+    std::cerr << "Failed to create texture.\n";
+    return 1;
+  }
+
+  lib.SetDefaultTexture(std::move(tex));
+
   const auto* script_asset {
-      bnl.GetAsset("aid_script_ghoulies_chapter2a_scene2_1playcam")};
+      game_context.GetAsset("aid_script_ghoulies_chapter2a_scene2_1playcam")};
 
   if (script_asset == nullptr) {
     std::cerr << "Failed to get asset "
@@ -59,32 +78,13 @@ auto main(int argc, char** argv) -> int
 
   Script script {*script_asset};
 
-  ghoulies::GameContext game_context {.move_on = false};
   script.Update(game_context);
 
-  graphics::TextureAsset asset {.format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM,
-                                .width = 128,
-                                .height = 128,
-                                .data = tex_asset->resource};
+  ghoulies::objects::Background::BackgroundParams params {
+      .model_aid = game_context.background_model_aid};
 
-  auto tex {lib.LoadTexture(asset)};
-  if (tex == nullptr) {
-    std::cerr << "Failed to create texture.\n";
-    return 1;
-  }
-
-  // const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_door_square_1");
-  const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_actor_spider");
-
-  // const auto* model_asset = bnl.GetAsset(
-  // "aid_model_ghoulies_background_westwingdown_dishwashingroom");
-
-  std::unique_ptr<graphics::Model> model {lib.LoadModel(*model_asset)};
-
-  if (model == nullptr) {
-    std::cerr << "Bad model load.\n";
-    return 1;
-  }
+  std::cout << "Loading background " << params.model_aid.data() << ".\n";
+  ghoulies::objects::Background bg {params};
 
   std::cout << "Ghoulies launcher launched." << '\n';
 
@@ -92,8 +92,13 @@ auto main(int argc, char** argv) -> int
   while (!lib.ShouldQuit()) {
     lib.UpdateEvents();
 
-    lib.DrawTestModel(*model, *tex);
+    auto draw_ctx {lib.NewDrawContext()};
+
+    bg.Draw(draw_ctx);
+    lib.EndDrawContext(draw_ctx);
   }
+
+  std::cout << "Exiting ghoulies launcher." << '\n';
 
   return 0;
 }

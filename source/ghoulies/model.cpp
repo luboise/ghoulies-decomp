@@ -66,7 +66,7 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
       }
 
       switch (entry.subresource_type) {
-        case kModel: {
+        case Model: {
           if ((static_cast<std::size_t>(entry.subresource_ptr) + 4U)
               > descriptor_bytes.size())
           {
@@ -138,7 +138,7 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
           new_model.root_nodes = root_nodes;
           break;
         }
-        case kTextures: {
+        case Textures: {
           std::array<std::uint32_t, 2> ints {};
 
           std::memcpy(ints.data(),
@@ -175,13 +175,13 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
             SDL_GPUTextureFormat format {SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM};
 
             switch (tex_desc.format) {
-              case d3d::D3DTextureType::kDXT1:
+              case d3d::D3DTextureType::DXT1:
                 format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM;
                 break;
-              case d3d::D3DTextureType::kDXT2:
+              case d3d::D3DTextureType::DXT2:
                 format = SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM;
                 break;
-              case d3d::D3DTextureType::kA8R8G8B8:
+              case d3d::D3DTextureType::A8R8G8B8:
                 format = SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
                 break;
               default:
@@ -201,11 +201,11 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
           new_model.textures = tex_assets;
           break;
         }
-        case kUnknown0x2:
-        case kUnknown0x3:
-        case kMatrices:
-        case kColliders:
-        case kVertexBuffer:
+        case Unknown0x2:
+        case Unknown0x3:
+        case Matrices:
+        case Colliders:
+        case VertexBuffer:
           break;
       }
 

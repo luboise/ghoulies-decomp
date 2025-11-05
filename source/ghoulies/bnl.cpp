@@ -224,7 +224,7 @@ std::size_t LocatorList::Size() const
                     { return acc + loc.size; });
 }
 
-const Asset* BNLFile::GetAsset(std::string_view asset_name)
+const Asset* BNLFile::GetAsset(std::string_view asset_name) const
 {
   auto found = std::ranges::find_if(
       this->assets_,

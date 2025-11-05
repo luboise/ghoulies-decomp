@@ -23,9 +23,9 @@ struct GhouliesLib
 {
   GhouliesLib();
 
-  GhouliesLib(const GhouliesLib&) = default;
+  GhouliesLib(const GhouliesLib&) = delete;
   GhouliesLib(GhouliesLib&&) = delete;
-  GhouliesLib& operator=(const GhouliesLib&) = default;
+  GhouliesLib& operator=(const GhouliesLib&) = delete;
   GhouliesLib& operator=(GhouliesLib&&) = delete;
 
   ~GhouliesLib();
@@ -36,11 +36,18 @@ struct GhouliesLib
 
   void UpdateEvents();
 
+  [[nodiscard]] graphics::DrawContext NewDrawContext();
+  void EndDrawContext(graphics::DrawContext ctx);
+
   void DrawTestObjects(const graphics::Texture& texture);
   void DrawTestModel(graphics::Model& model, const graphics::Texture& texture);
 
-  std::unique_ptr<graphics::Model> LoadModel(const ghoulies::Asset&);
+  void SetDefaultTexture(std::unique_ptr<graphics::Texture>&& texture);
+
+  std::shared_ptr<graphics::Model> LoadModel(const ghoulies::Asset&);
   std::unique_ptr<graphics::Texture> LoadTexture(graphics::TextureAsset asset);
+
+  [[nodiscard]] SDL_GPUDevice* GetSDLDevice() const { return this->device_; }
 
 private:
   bool initialised_;
@@ -58,5 +65,8 @@ private:
   graphics::Camera camera_;
 
   const bool* key_states_;
+
+  std::unique_ptr<graphics::Texture> default_texture_;
+
   // SDL_CommandBuffer* command_buffer_;
 };

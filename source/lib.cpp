@@ -1,4 +1,5 @@
 #include <array>
+#include <cassert>
 #include <cstring>
 #include <filesystem>
 #include <format>
@@ -222,6 +223,9 @@ GhouliesLib::GhouliesLib()
 
 GhouliesLib::~GhouliesLib()
 {
+  // Destroy default texture before destroying the GPU device
+  this->default_texture_.reset();
+
   SDL_ReleaseGPUShader(device_, pbr_vert_shader_);
   SDL_ReleaseGPUShader(device_, pbr_frag_shader_);
 
@@ -426,7 +430,7 @@ std::unique_ptr<graphics::Texture> GhouliesLib::LoadTexture(
   return nullptr;
 }
 
-std::unique_ptr<graphics::Model> GhouliesLib::LoadModel(
+std::shared_ptr<graphics::Model> GhouliesLib::LoadModel(
     const ghoulies::Asset& asset)
 {
   using namespace graphics;
@@ -528,4 +532,97 @@ void GhouliesLib::DrawTestModel(graphics::Model& model,
   SDL_EndGPURenderPass(render_pass);
 
   SDL_SubmitGPUCommandBuffer(command_buffer);
+};
+
+graphics::DrawContext GhouliesLib::NewDrawContext()
+{
+  assert(this->default_texture_ != nullptr);
+
+  auto* command_buffer {SDL_AcquireGPUCommandBuffer(this->device_)};
+
+  // TODO: Replace this with proper error handling, even though this should
+  // never really happen
+  if (command_buffer == nullptr) {
+    throw std::runtime_error("Bad ptr.");
+  }
+
+  // SDL_Log("Creating buffers.");
+  SDL_GPUTexture* swapchain_texture {nullptr};
+
+  Uint32 swapchain_width {};
+  Uint32 swapchain_height {};
+
+  // SDL_Log("Acquiring swapchain.");
+  if (!SDL_WaitAndAcquireGPUSwapchainTexture(command_buffer,
+                                             window_,
+                                             &swapchain_texture,
+                                             &swapchain_width,
+                                             &swapchain_height)
+
+  )
+  {
+    SDL_CancelGPUCommandBuffer(command_buffer);
+    SDL_Log("Failed to acquire swapchain texture.");
+    throw std::runtime_error("Failed to acquire swapchain texture.");
+  }
+
+  // SDL_Log("Beginning render pass.");
+  SDL_GPUColorTargetInfo color_target_info {
+      .texture = swapchain_texture,
+      .clear_color = {0.2F, 0.2F, 0.2F, 1.0F},
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_STORE};
+
+  // Create render pass and do commands
+  SDL_GPURenderPass* render_pass {
+      SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr)};
+
+  if (render_pass == nullptr) {
+    throw std::runtime_error("Bad render pass.");
+  }
+
+  // SDL_Log("Binding Graphics Pipeline.");
+  SDL_BindGPUGraphicsPipeline(render_pass, this->pbr_pipeline_);
+
+  SDL_GPUViewport viewport {.x = 0,
+                            .y = 0,
+                            .w = static_cast<float>(swapchain_width),
+                            .h = static_cast<float>(swapchain_height),
+                            .min_depth = 0,
+                            .max_depth = 1};
+
+  // SDL_Log("Setting viewport.");
+  SDL_SetGPUViewport(render_pass, &viewport);
+
+  const glm::mat4 identity(1.0F);
+
+  const auto view {this->camera_.ModelMatrix()};
+  const auto projection {this->camera_.ProjectionMatrix()};
+
+  graphics::ViewUniforms uniforms {
+      .model = identity, .view = view, .projection = projection};
+  SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
+
+  std::array bindings = {this->default_texture_->SDLBinding()};
+  SDL_BindGPUFragmentSamplers(render_pass, 0, bindings.data(), bindings.size());
+
+  return graphics::DrawContext {.command_buffer = command_buffer,
+                                .render_pass = render_pass};
+};
+
+void GhouliesLib::EndDrawContext(graphics::DrawContext ctx)
+{
+  // SDL_Log("Ending render pass.");
+  SDL_EndGPURenderPass(ctx.render_pass);
+
+  // TODO: Make sure this didn't fail
+  SDL_SubmitGPUCommandBuffer(ctx.command_buffer);
+};
+
+void GhouliesLib::SetDefaultTexture(
+    std::unique_ptr<graphics::Texture>&& texture)
+{
+  // TODO: Check move semantics and remove the reset
+  this->default_texture_.reset();
+  this->default_texture_ = std::move(texture);
 };

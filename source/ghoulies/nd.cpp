@@ -35,25 +35,25 @@ return ModelDescriptor {descriptor, bytes};
 std::ostream& operator<<(std::ostream& os, ModelSubresourceType subres_type)
 {
   switch (subres_type) {
-    case kModel:
+    case Model:
       os << "Model";
       break;
-    case kUnknown0x2:
+    case Unknown0x2:
       os << "Unknown0x2";
       break;
-    case kUnknown0x3:
+    case Unknown0x3:
       os << "Unknown0x3";
       break;
-    case kMatrices:
+    case Matrices:
       os << "Matrix";
       break;
-    case kColliders:
+    case Colliders:
       os << "Colliders";
       break;
-    case kTextures:
+    case Textures:
       os << "Textures";
       break;
-    case kVertexBuffer:
+    case VertexBuffer:
       os << "VertexBuffer";
       break;
   }
@@ -104,7 +104,7 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
   // TODO: Validate NDHeader
   std::shared_ptr<NdNode> node {nullptr};
   switch (header.nd_type) {
-    case NdType::kVertexBuffer: {
+    case NdType::VertexBuffer: {
       std::array<uint32_t, 2> reads {};
 
       std::memcpy(
@@ -136,8 +136,8 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
     }
 
       // TODO: Handle BGPushBuffer seperately
-    case NdType::kBGPushBuffer:
-    case NdType::kPushBuffer: {
+    case NdType::BGPushBuffer:
+    case NdType::PushBuffer: {
       std::array<uint32_t, 7> values {};
 
       std::memcpy(values.data(),
@@ -221,7 +221,7 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
 
       break;
     }
-    case NdType::kShaderParam2: {
+    case NdType::ShaderParam2: {
       std::array<uint32_t, 2> values {};
 
       std::memcpy(values.data(),
@@ -276,13 +276,13 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
 
       break;
     }
-    case NdType::kGroup:
-    case NdType::kSkeleton:
-    case NdType::kRigidSkinIdx:
-    case NdType::kMtxArray:
-    case NdType::kShader2:
-    case NdType::kVertexShader:
-    case NdType::kBlendShape:
+    case NdType::Group:
+    case NdType::Skeleton:
+    case NdType::RigidSkinIdx:
+    case NdType::MtxArray:
+    case NdType::Shader2:
+    case NdType::VertexShader:
+    case NdType::BlendShape:
     default:
       node = std::make_shared<NdNode>(NdNode {.nd_type = header.nd_type});
   }
@@ -332,37 +332,37 @@ namespace
 std::ostream& operator<<(std::ostream& os, NdType nd_type)
 {
   switch (nd_type) {
-    case NdType::kGroup:
+    case NdType::Group:
       os << "Group";
       break;
-    case NdType::kSkeleton:
+    case NdType::Skeleton:
       os << "Skeleton";
       break;
-    case NdType::kRigidSkinIdx:
+    case NdType::RigidSkinIdx:
       os << "RigidSkinIdx";
       break;
-    case NdType::kMtxArray:
+    case NdType::MtxArray:
       os << "MtxArray";
       break;
-    case NdType::kShader2:
+    case NdType::Shader2:
       os << "Shader2";
       break;
-    case NdType::kShaderParam2:
+    case NdType::ShaderParam2:
       os << "ShaderParam2";
       break;
-    case NdType::kVertexBuffer:
+    case NdType::VertexBuffer:
       os << "VertexBuffer";
       break;
-    case NdType::kPushBuffer:
+    case NdType::PushBuffer:
       os << "PushBuffer";
       break;
-    case NdType::kVertexShader:
+    case NdType::VertexShader:
       os << "VertexShader";
       break;
-    case NdType::kBGPushBuffer:
+    case NdType::BGPushBuffer:
       os << "BGPushBuffer";
       break;
-    case NdType::kBlendShape:
+    case NdType::BlendShape:
       os << "BlendShape";
       break;
     default:

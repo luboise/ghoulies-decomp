@@ -34,8 +34,8 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
                                 std::vector<ModelDrawData>& draws)
 {
   // TODO: Separate out BG push buffer
-  if (node.nd_type == ghoulies::NdType::kPushBuffer
-      || node.nd_type == ghoulies::NdType::kBGPushBuffer)
+  if (node.nd_type == ghoulies::NdType::PushBuffer
+      || node.nd_type == ghoulies::NdType::BGPushBuffer)
   {
     const auto* push_buffer {(const ghoulies::NdPushBuffer*)&node};
 
@@ -43,23 +43,23 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
       ModelDrawData new_draw_data {.material_index = draw_data.material_index};
 
       switch (draw_data.primitive_type) {
-        case d3d::D3DPrimitiveType::kPointList:
+        case d3d::D3DPrimitiveType::PointList:
           new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_POINTLIST;
           break;
-        case d3d::D3DPrimitiveType::kLineList:
+        case d3d::D3DPrimitiveType::LineList:
           new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_LINELIST;
           break;
-        case d3d::D3DPrimitiveType::kLineStrip:
+        case d3d::D3DPrimitiveType::LineStrip:
           new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_LINESTRIP;
           break;
-        case d3d::D3DPrimitiveType::kTriangleList:
+        case d3d::D3DPrimitiveType::TriangleList:
           new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
           break;
-        case d3d::D3DPrimitiveType::kTriangleStrip:
+        case d3d::D3DPrimitiveType::TriangleStrip:
           new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP;
           break;
 
-        case d3d::D3DPrimitiveType::kTriangleFan: {
+        case d3d::D3DPrimitiveType::TriangleFan: {
           std::size_t num_triangles {draw_data.indices.size() - 2};
           std::size_t num_indices {num_triangles * 3};
 
@@ -79,13 +79,13 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
           continue;
         }
           // Unsupported primitive types
-        case d3d::D3DPrimitiveType::kNone:
-        case d3d::D3DPrimitiveType::kMax:
-        case d3d::D3DPrimitiveType::kInvalid:
-        case d3d::D3DPrimitiveType::kLineLoop:
-        case d3d::D3DPrimitiveType::kQuadList:
-        case d3d::D3DPrimitiveType::kQuadStrip:
-        case d3d::D3DPrimitiveType::kPolygon:
+        case d3d::D3DPrimitiveType::None:
+        case d3d::D3DPrimitiveType::Max:
+        case d3d::D3DPrimitiveType::Invalid:
+        case d3d::D3DPrimitiveType::LineLoop:
+        case d3d::D3DPrimitiveType::QuadList:
+        case d3d::D3DPrimitiveType::QuadStrip:
+        case d3d::D3DPrimitiveType::Polygon:
         default:
           std::cerr << "Unsupported D3DPrimitive type found: "
                     << draw_data.primitive_type
@@ -128,7 +128,7 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
   auto* nd_vertex_buffer {
       static_cast<NdVertexBuffer*>(asset.root_nodes[0]->FindBy(
           [](const NdNode& node)
-          { return node.nd_type == ghoulies::NdType::kVertexBuffer; }))};
+          { return node.nd_type == ghoulies::NdType::VertexBuffer; }))};
 
   if (nd_vertex_buffer == nullptr) {
     throw std::runtime_error("No vertex buffer available in model.");
@@ -173,13 +173,13 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
     throw std::runtime_error("No vertex buffer available.");
   }
 
-  if (nd_vertex_buffer->nd_type != ghoulies::NdType::kVertexBuffer) {
+  if (nd_vertex_buffer->nd_type != ghoulies::NdType::VertexBuffer) {
     throw std::runtime_error(
         "Nd vertex buffer node does not have vertex buffer type.");
   }
 
   auto vertices_opt {nd_vertex_buffer->GetBufferView(
-      ghoulies::NdVertexBufferViewType::kVertex)};
+      ghoulies::NdVertexBufferViewType::Vertex)};
 
   if (!vertices_opt.has_value()) {
     throw std::runtime_error("No vertices in model resource views.");
@@ -209,7 +209,7 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
   }
 
   if (auto uv_buf_view {nd_vertex_buffer->GetBufferView(
-          ghoulies::NdVertexBufferViewType::kUV)};
+          ghoulies::NdVertexBufferViewType::UV)};
       uv_buf_view.has_value())
   {
     auto* uv_view {std::move(uv_buf_view).value()};

@@ -24,9 +24,13 @@ public:
   explicit Script(std::vector<ScriptOperation> operations);
 
   bool Update(GameContext& ctx);
-  ScriptUpdateStatus Advance(GameContext& ctx);
+
+  [[nodiscard]] const ScriptOperation& CurrentOperation() const;
 
 private:
+  ScriptUpdateStatus HandleOperation(GameContext& ctx,
+                                     const ScriptOperation& op);
+
   std::vector<ScriptOperation> operations_;
   std::size_t current_operation_ {0};
 };
