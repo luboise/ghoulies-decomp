@@ -188,7 +188,7 @@ GhouliesLib::GhouliesLib()
       .vertex_input_state = input_state,
 
       // TODO: Make a pipeline for each
-      .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP,
+      .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
 
       .rasterizer_state = SDL_GPURasterizerState {},
 
@@ -197,14 +197,17 @@ GhouliesLib::GhouliesLib()
 
       .depth_stencil_state =
           SDL_GPUDepthStencilState {
-              .enable_depth_test = false,
+              .compare_op = SDL_GPU_COMPAREOP_LESS,
+              .enable_depth_test = true,
+              .enable_depth_write = true,
               .enable_stencil_test = false,
           },
 
       .target_info = SDL_GPUGraphicsPipelineTargetInfo {
           .color_target_descriptions = color_target_descriptions.data(),
           .num_color_targets = color_target_descriptions.size(),
-          .has_depth_stencil_target = false,
+          .depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+          .has_depth_stencil_target = true,
       }};
 
   pbr_pipeline_ = SDL_CreateGPUGraphicsPipeline(device_, &pipeline_create_info);
@@ -215,14 +218,35 @@ GhouliesLib::GhouliesLib()
     return;
   }
 
+  this->menu_ = std::make_unique<menu::Menu>(device_, window_);
+
+  {
+    SDL_GPUTextureCreateInfo depth_info {
+        .type = SDL_GPU_TEXTURETYPE_2D,
+        .format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
+        .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+
+        .width = 1280,
+        .height = 720,
+        .layer_count_or_depth = 1,
+        .num_levels = 1,
+        .sample_count = SDL_GPU_SAMPLECOUNT_1,
+        .props = {}};
+
+    this->depth_texture_ = SDL_CreateGPUTexture(device_, &depth_info);
+  }
+  if (this->depth_texture_ == nullptr) {
+    std::cerr << std::format("Failed to create depth texture. SDL_Error: {}",
+                             SDL_GetError());
+    return;
+  }
+
   camera_ = graphics::Camera {};
 
   camera_.position = {0, 0, -1};
 
   SDL_CaptureMouse(true);
   initialised_ = true;
-
-  this->menu_ = std::make_unique<menu::Menu>(device_, window_);
 }
 
 GhouliesLib::~GhouliesLib()
@@ -390,8 +414,6 @@ void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
   // SDL_Log("Setting viewport.");
   SDL_SetGPUViewport(render_pass, &viewport);
 
-  void* buffer = nullptr;
-
   // SDL_Log("Binding vertex buffers.");
   std::array<SDL_GPUBufferBinding, 1> vb_bindings {vertex_buffer.GetBinding()};
   SDL_BindGPUVertexBuffers(render_pass, 0, vb_bindings.data(), 1);
@@ -501,9 +523,25 @@ void GhouliesLib::DrawTestModel(graphics::Model& model,
       .load_op = SDL_GPU_LOADOP_CLEAR,
       .store_op = SDL_GPU_STOREOP_STORE};
 
+  SDL_GPUDepthStencilTargetInfo depth_target_info {
+      .texture = depth_texture_,
+      .clear_depth = 0.0F,
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_STORE,
+
+      .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
+      .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE,
+      .cycle = false,
+
+      .clear_stencil = {},
+      .padding1 = {},
+      .padding2 = {},
+      // .clear_stencil=
+  };
+
   // Create render pass and do commands
-  SDL_GPURenderPass* render_pass {
-      SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr)};
+  SDL_GPURenderPass* render_pass {SDL_BeginGPURenderPass(
+      command_buffer, &color_target_info, 1, &depth_target_info)};
 
   if (render_pass == nullptr) {
     throw std::runtime_error("Bad render pass.");
@@ -540,7 +578,7 @@ void GhouliesLib::DrawTestModel(graphics::Model& model,
   SDL_EndGPURenderPass(render_pass);
 
   SDL_SubmitGPUCommandBuffer(command_buffer);
-};
+}
 
 graphics::DrawContext GhouliesLib::NewDrawContext()
 {
@@ -581,9 +619,25 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
       .load_op = SDL_GPU_LOADOP_CLEAR,
       .store_op = SDL_GPU_STOREOP_STORE};
 
+  SDL_GPUDepthStencilTargetInfo depth_target_info {
+      .texture = depth_texture_,
+      .clear_depth = 1.0F,
+      .load_op = SDL_GPU_LOADOP_CLEAR,
+      .store_op = SDL_GPU_STOREOP_STORE,
+
+      .stencil_load_op = SDL_GPU_LOADOP_DONT_CARE,
+      .stencil_store_op = SDL_GPU_STOREOP_DONT_CARE,
+      .cycle = false,
+
+      .clear_stencil = {},
+      .padding1 = {},
+      .padding2 = {},
+      // .clear_stencil=
+  };
+
   // Create render pass and do commands
-  SDL_GPURenderPass* render_pass {
-      SDL_BeginGPURenderPass(command_buffer, &color_target_info, 1, nullptr)};
+  SDL_GPURenderPass* render_pass {SDL_BeginGPURenderPass(
+      command_buffer, &color_target_info, 1, &depth_target_info)};
 
   if (render_pass == nullptr) {
     throw std::runtime_error("Bad render pass.");

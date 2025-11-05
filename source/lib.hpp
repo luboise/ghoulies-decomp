@@ -74,6 +74,7 @@ private:
   const bool* key_states_;
 
   std::unique_ptr<graphics::Texture> default_texture_;
+  SDL_GPUTexture* depth_texture_;
 
   // SDL_CommandBuffer* command_buffer_;
 };

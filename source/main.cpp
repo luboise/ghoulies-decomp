@@ -95,13 +95,23 @@ auto main(int argc, char** argv) -> int
   while (!lib.ShouldQuit()) {
     lib.UpdateEvents();
 
+    // TODO:
+    // - Begin one command buffer
+    // - Begin new render pass
+    // - Draw scene
+    // - End render pass
+    // - Render Imgui
+    // - Begin new render pass
+    // - Render to the screen
+    // - End render pass
+    // - Submit command buffer all together
+
+    lib.Menu().NewFrame();
     auto draw_ctx {lib.NewDrawContext()};
 
     bg.Draw(draw_ctx);
 
     lib.EndDrawContext(draw_ctx);
-
-    lib.Menu().NewFrame();
 
     lib.Menu().Render();
   }
