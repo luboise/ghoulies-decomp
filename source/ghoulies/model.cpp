@@ -10,6 +10,7 @@
 
 #include "../graphics/graphics.hpp"
 #include "bnl.hpp"
+#include "d3d.hpp"
 #include "nd.hpp"
 #include "texture.hpp"
 
@@ -164,6 +165,10 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
                         &descriptor_bytes[texture_ptr],
                         sizeof(ModelTextureDescriptor));
 
+            if (tex_desc.format != d3d::D3DTextureType::DXT1) {
+              std::cout << tex_desc.format << "\n";
+            }
+
             Bytes tex_data(tex_desc.data_size);
 
             // assert(tex_desc.data_size > 0);
@@ -176,11 +181,24 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
 
             switch (tex_desc.format) {
               case d3d::D3DTextureType::DXT1:
+                for (std::size_t i {0}; i < tex_data.size(); i += 8) {
+                  std::array<std::byte, 4> bytes {};
+                  std::array<std::byte, 4> bytes2 {};
+
+                  std::memcpy(bytes.data(), &tex_data[i], sizeof(bytes));
+
+                  // bytes2 = {bytes[1], bytes[0], bytes[3], bytes[2]};
+                  // bytes2 = {bytes[1], bytes[0], bytes[2], bytes[3]};
+
+                  std::memcpy(&tex_data[i], bytes.data(), sizeof(bytes2));
+                }
+
                 format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM;
                 break;
               case d3d::D3DTextureType::DXT2:
                 format = SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM;
                 break;
+
               case d3d::D3DTextureType::A8R8G8B8:
                 format = SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM;
                 break;

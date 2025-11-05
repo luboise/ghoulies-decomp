@@ -7,6 +7,7 @@
 #include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
 #include "lib.hpp"
+#include "menu/menu.hpp"
 
 using ghoulies::BNLFile, ghoulies::Bytes;
 using ghoulies::utils::ReadFileBytes;

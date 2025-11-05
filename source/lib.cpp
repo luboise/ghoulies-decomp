@@ -22,6 +22,8 @@
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_surface.h>
 #include <SDL3/SDL_video.h>
+#include <backends/imgui_impl_sdl3.h>
+#include <backends/imgui_impl_sdlgpu3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -240,6 +242,7 @@ void GhouliesLib::UpdateEvents()
   // Hack to get window to stay up
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
+    ImGui_ImplSDL3_ProcessEvent(&e);  // Forward event to imgui
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
     } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
@@ -255,12 +258,12 @@ void GhouliesLib::UpdateEvents()
     camera_.position += left;
   } else if (key_states_[SDL_SCANCODE_D]) {
     camera_.position -= left;
-  } else if (key_states_[SDL_SCANCODE_W]) {
+  }
+
+  if (key_states_[SDL_SCANCODE_W]) {
     camera_.position += forwards;
   } else if (key_states_[SDL_SCANCODE_S]) {
     camera_.position -= forwards;
-  } else if (key_states_[SDL_SCANCODE_ESCAPE]) {
-    SDL_CaptureMouse(false);
   }
 }
 

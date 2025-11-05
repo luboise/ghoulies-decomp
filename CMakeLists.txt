@@ -15,26 +15,40 @@ include(cmake/variables.cmake)
 
 # ---- Declare library ----
 
-add_library(
-  ghoulies_launcher_lib OBJECT
-  source/lib.cpp
-  source/file.cpp
-  source/graphics/model.cpp
-  source/ghoulies/nd.cpp
-  source/ghoulies/model.cpp
-  source/ghoulies/bnl.cpp
-  source/ghoulies/script.cpp
-  source/graphics/material.cpp
-  source/graphics/model.cpp
-  source/graphics/graphics.cpp
-  source/ghoulies/objects/avatar/avatar.cpp)
+set(IMGUI_SOURCES
+    external/imgui/backends/imgui_impl_sdl3.cpp
+    external/imgui/backends/imgui_impl_sdlgpu3.cpp
+    external/imgui/imgui.cpp
+    external/imgui/imgui_draw.cpp
+    external/imgui/imgui_tables.cpp
+    external/imgui/imgui_widgets.cpp)
+
+add_library(ghoulies_launcher_lib # OBJECT
+)
+
+target_include_directories(ghoulies_launcher_lib
+                           PRIVATE "${PROJECT_SOURCE_DIR}/external/imgui")
+
+target_sources(
+  ghoulies_launcher_lib
+  PRIVATE source/lib.cpp
+          source/file.cpp
+          source/graphics/model.cpp
+          source/ghoulies/nd.cpp
+          source/ghoulies/model.cpp
+          source/ghoulies/bnl.cpp
+          source/ghoulies/script.cpp
+          source/graphics/material.cpp
+          source/graphics/model.cpp
+          source/graphics/graphics.cpp
+          source/ghoulies/objects/avatar/avatar.cpp
+          source/menu/menu.cpp
+          ${IMGUI_SOURCES})
 
 target_include_directories(
   ghoulies_launcher_lib ${warning_guard}
-  PUBLIC "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>")
-
-target_include_directories(ghoulies_launcher_lib
-                           PRIVATE ${PROJECT_SOURCE_DIR}/source)
+  PUBLIC "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
+         PRIVATE"${PROJECT_SOURCE_DIR}/source")
 
 target_compile_features(ghoulies_launcher_lib PUBLIC cxx_std_23)
 
