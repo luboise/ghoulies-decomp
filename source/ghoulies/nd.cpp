@@ -123,6 +123,8 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
       Bytes res_bytes(resource_bytes.begin(), resource_bytes.end());
 
       // TODO: Make this only grab the relevant bytes from the resource instead
+      // TODO: Fix this to use make_shared (it wouldn't compile for some reason
+      // so its done manually for now)
       node = std::shared_ptr<NdVertexBuffer> {
           new NdVertexBuffer {header.nd_type,
                               nullptr,

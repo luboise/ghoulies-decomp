@@ -23,6 +23,7 @@ add_library(
   source/ghoulies/nd.cpp
   source/ghoulies/model.cpp
   source/ghoulies/bnl.cpp
+  source/ghoulies/script.cpp
   source/graphics/material.cpp
   source/graphics/model.cpp
   source/graphics/graphics.cpp)

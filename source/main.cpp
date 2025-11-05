@@ -4,11 +4,14 @@
 
 #include "file.hpp"
 #include "ghoulies/bnl.hpp"
+#include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
 #include "lib.hpp"
 
 using ghoulies::BNLFile, ghoulies::Bytes;
 using ghoulies::utils::ReadFileBytes;
+
+using ghoulies::Script;
 
 auto main(int argc, char** argv) -> int
 {
@@ -45,9 +48,19 @@ auto main(int argc, char** argv) -> int
     return 1;
   }
 
-  std::cout << std::format("Descriptor size: {}     Resource size: {}\n",
-                           tex_asset->descriptor.size(),
-                           tex_asset->resource.size());
+  const auto* script_asset {
+      bnl.GetAsset("aid_script_ghoulies_chapter2a_scene2_1playcam")};
+
+  if (script_asset == nullptr) {
+    std::cerr << "Failed to get asset "
+                 "aid_script_ghoulies_chapter2a_scene2_1playcam.\n";
+    return 1;
+  }
+
+  Script script {*script_asset};
+
+  ghoulies::GameContext game_context {.move_on = false};
+  script.Update(game_context);
 
   graphics::TextureAsset asset {.format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM,
                                 .width = 128,
@@ -61,10 +74,10 @@ auto main(int argc, char** argv) -> int
   }
 
   // const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_door_square_1");
-  // const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_actor_spider");
+  const auto* model_asset = bnl.GetAsset("aid_model_ghoulies_actor_spider");
 
-  const auto* model_asset = bnl.GetAsset(
-      "aid_model_ghoulies_background_westwingdown_dishwashingroom");
+  // const auto* model_asset = bnl.GetAsset(
+  // "aid_model_ghoulies_background_westwingdown_dishwashingroom");
 
   std::unique_ptr<graphics::Model> model {lib.LoadModel(*model_asset)};
 

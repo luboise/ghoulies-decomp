@@ -24,7 +24,8 @@ Checks: "*,\
   -boost-use-*,\
   -bugprone-suspicious-stringview-data-usage,\
   -misc-no-recursion,\
-  -cppcoreguidelines-pro-type-static-cast-downcast"
+  -cppcoreguidelines-pro-type-static-cast-downcast,\
+  -cppcoreguidelines-avoid-do-while"
 
 WarningsAsErrors: ""
 CheckOptions:
@@ -72,8 +73,8 @@ CheckOptions:
     value: CamelCase
   - key: readability-identifier-naming.EnumConstantCase
     value: CamelCase
-  - key: readability-identifier-naming.EnumConstantPrefix
-    value: k
+  # - key: readability-identifier-naming.EnumConstantPrefix
+  # value: k
   - key: readability-identifier-naming.FunctionCase
     value: CamelCase
   - key: readability-identifier-naming.GlobalConstantCase
