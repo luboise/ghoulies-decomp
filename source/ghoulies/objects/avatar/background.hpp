@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../avatar.hpp"
 
 namespace ghoulies::objects
@@ -8,10 +10,7 @@ class Background : public Avatar
 public:
   using BackgroundParams = AvatarParams;
 
-  explicit Background(const BackgroundParams& params)
-      : Avatar(params)
-  {
-  }
+  explicit Background(const BackgroundParams& params);
 
   struct BackgroundInner
   {
@@ -19,14 +18,8 @@ public:
   };
 
 private:
-  struct BackgroundEntityNode
-  {
-    BackgroundEntityNode* prev_node;
-    Background* head;
-  };
+  Registry<Background> registry_entry_ {};
 
-  BackgroundEntityNode* prev_entity_node_ {};
-  BackgroundEntityNode* next_entity_node_ {};
   uint32_t aid_was_found_ {};  // bool
   UNKNOWN_FIELD(0x940, 0x94b);
   BackgroundInner* inners_ {};

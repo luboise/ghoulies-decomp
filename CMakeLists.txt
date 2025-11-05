@@ -26,7 +26,8 @@ add_library(
   source/ghoulies/script.cpp
   source/graphics/material.cpp
   source/graphics/model.cpp
-  source/graphics/graphics.cpp)
+  source/graphics/graphics.cpp
+  source/ghoulies/objects/avatar/avatar.cpp)
 
 target_include_directories(
   ghoulies_launcher_lib ${warning_guard}

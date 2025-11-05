@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../../graphics/types.hpp"
 #include "object.hpp"
 
@@ -112,7 +114,7 @@ private:
   UNKNOWN_FIELD(0x618, 0x917);
   int* int_or_struct_ptr_ {};
   // avatarOffsetPtr* nextAvatar; // TODO: Figure out how to map to this engine
-  EntityStatePickup* state_pick_up_ {nullptr}; 
+  EntityStatePickup* state_pick_up_ {nullptr};
   float field1577_0x924_ {};
   UNKNOWN_FIELD(0x928, 0x92b);
   uint8_t field1578_0x928_ {};

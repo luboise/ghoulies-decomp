@@ -1,3 +1,5 @@
+#pragma once
+
 #include "avatar.hpp"
 
 namespace ghoulies::assets

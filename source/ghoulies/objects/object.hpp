@@ -257,7 +257,7 @@ class Object
 {
 public:
   struct ObjectParams;
-  virtual ~Object();
+  virtual ~Object() = default;
 
   struct ObjectParams
   {

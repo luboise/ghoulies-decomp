@@ -8,13 +8,15 @@
 namespace ghoulies
 {
 
+using ::graphics::TextureAsset;
+
 struct Asset;
 struct MeshHeader;
 
 struct ModelAsset
 {
   std::vector<std::shared_ptr<NdNode>> root_nodes;
-  std::vector<graphics::TextureAsset> textures;
+  std::vector<TextureAsset> textures;
 
   static std::expected<ModelAsset, std::string> FromAsset(const Asset& asset);
 };
