@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 
 include(cmake/prelude.cmake)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 project(
   ghoulies_launcher
   VERSION 0.1.0
@@ -21,7 +23,8 @@ set(IMGUI_SOURCES
     external/imgui/imgui.cpp
     external/imgui/imgui_draw.cpp
     external/imgui/imgui_tables.cpp
-    external/imgui/imgui_widgets.cpp)
+    external/imgui/imgui_widgets.cpp
+    external/imgui/imgui_demo.cpp)
 
 add_library(ghoulies_launcher_lib # OBJECT
 )

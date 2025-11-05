@@ -12,6 +12,10 @@ public:
   ~Menu();
   void Render();
 
+  void NewFrame();
+
+  void ProcessEvent(SDL_Event* event);
+
 private:
   SDL_Window* window_;
   SDL_GPUDevice* device_;

@@ -44,6 +44,8 @@ Menu::~Menu()
 
 void Menu::Render()
 {
+  ImGui::ShowDemoWindow();
+
   // Rendering
   // (Your code clears your framebuffer, renders your other stuff etc.)
   ImGui::Render();
@@ -60,7 +62,7 @@ void Menu::Render()
   // Setup and start a render pass
   SDL_GPUColorTargetInfo target_info = {};
   target_info.texture = swapchain_texture;
-  target_info.clear_color = SDL_FColor {0, 0, 0, 0};
+  target_info.clear_color = SDL_FColor {0, 0, 0, 1};
   target_info.load_op = SDL_GPU_LOADOP_CLEAR;
   target_info.store_op = SDL_GPU_STOREOP_STORE;
   target_info.mip_level = 0;
@@ -74,4 +76,17 @@ void Menu::Render()
 
   SDL_EndGPURenderPass(render_pass);
 }
+
+void Menu::ProcessEvent(SDL_Event* event)
+{
+  ImGui_ImplSDL3_ProcessEvent(event);  // Forward event to imgui
+}
+
+void Menu::NewFrame()
+{
+  ImGui_ImplSDLGPU3_NewFrame();
+  ImGui_ImplSDL3_NewFrame();
+  ImGui::NewFrame();
+}
+
 }  // namespace menu

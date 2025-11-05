@@ -69,11 +69,11 @@ auto main(int argc, char** argv) -> int
   lib.SetDefaultTexture(std::move(tex));
 
   const auto* script_asset {
-      game_context.GetAsset("aid_script_ghoulies_chapter1_scene1_2playcam")};
+      game_context.GetAsset("aid_script_ghoulies_chapter1_scene3_1playcam")};
 
   if (script_asset == nullptr) {
     std::cerr << "Failed to get asset "
-                 "aid_script_ghoulies_chapter2a_scene2_1playcam.\n";
+                 "aid_script_ghoulies_chapter1_scene3_1playcam.\n";
     return 1;
   }
 
@@ -89,6 +89,8 @@ auto main(int argc, char** argv) -> int
 
   std::cout << "Ghoulies launcher launched." << '\n';
 
+  uint64_t i = 0;
+
   // lib.DrawTestObjects(*tex);
   while (!lib.ShouldQuit()) {
     lib.UpdateEvents();
@@ -96,7 +98,12 @@ auto main(int argc, char** argv) -> int
     auto draw_ctx {lib.NewDrawContext()};
 
     bg.Draw(draw_ctx);
+
     lib.EndDrawContext(draw_ctx);
+
+    lib.Menu().NewFrame();
+
+    lib.Menu().Render();
   }
 
   std::cout << "Exiting ghoulies launcher." << '\n';

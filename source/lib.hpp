@@ -4,6 +4,7 @@
 
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
+#include "menu/menu.hpp"
 
 class SDL_Window;
 class SDL_GPUDevice;
@@ -30,11 +31,15 @@ struct GhouliesLib
 
   ~GhouliesLib();
 
+  auto& Menu() { return *this->menu_; }
+
   [[nodiscard]] bool Initialised() const { return this->initialised_; }
 
   [[nodiscard]] bool ShouldQuit() const { return this->quit_; }
 
   void UpdateEvents();
+
+  // void UpdateMenu();
 
   [[nodiscard]] graphics::DrawContext NewDrawContext();
   void EndDrawContext(graphics::DrawContext ctx);
@@ -54,6 +59,8 @@ private:
   bool quit_;
 
   std::string name_;
+
+  std::unique_ptr<menu::Menu> menu_;
 
   SDL_Window* window_;
 

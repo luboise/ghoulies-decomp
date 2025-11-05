@@ -221,10 +221,14 @@ GhouliesLib::GhouliesLib()
 
   SDL_CaptureMouse(true);
   initialised_ = true;
+
+  this->menu_ = std::make_unique<menu::Menu>(device_, window_);
 }
 
 GhouliesLib::~GhouliesLib()
 {
+  this->menu_.reset();
+
   // Destroy default texture before destroying the GPU device
   this->default_texture_.reset();
 
@@ -242,7 +246,8 @@ void GhouliesLib::UpdateEvents()
   // Hack to get window to stay up
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
-    ImGui_ImplSDL3_ProcessEvent(&e);  // Forward event to imgui
+    menu_->ProcessEvent(&e);
+
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
     } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
@@ -611,7 +616,7 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
 
   return graphics::DrawContext {.command_buffer = command_buffer,
                                 .render_pass = render_pass};
-};
+}
 
 void GhouliesLib::EndDrawContext(graphics::DrawContext ctx)
 {
@@ -620,7 +625,7 @@ void GhouliesLib::EndDrawContext(graphics::DrawContext ctx)
 
   // TODO: Make sure this didn't fail
   SDL_SubmitGPUCommandBuffer(ctx.command_buffer);
-};
+}
 
 void GhouliesLib::SetDefaultTexture(
     std::unique_ptr<graphics::Texture>&& texture)
@@ -628,4 +633,4 @@ void GhouliesLib::SetDefaultTexture(
   // TODO: Check move semantics and remove the reset
   this->default_texture_.reset();
   this->default_texture_ = std::move(texture);
-};
+}
