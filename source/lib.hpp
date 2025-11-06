@@ -44,7 +44,6 @@ struct GhouliesLib
   [[nodiscard]] graphics::DrawContext NewDrawContext();
   void EndDrawContext(graphics::DrawContext ctx);
 
-  void DrawTestObjects(const graphics::Texture& texture);
   void DrawTestModel(graphics::Model& model, const graphics::Texture& texture);
 
   void SetDefaultTexture(std::unique_ptr<graphics::Texture>&& texture);
