@@ -19,6 +19,7 @@
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_oldnames.h>
+#include <SDL3/SDL_scancode.h>
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_surface.h>
 #include <SDL3/SDL_video.h>
@@ -267,6 +268,11 @@ GhouliesLib::~GhouliesLib()
 
 void GhouliesLib::UpdateEvents()
 {
+  static float movement_speed {1};
+
+  constexpr float kMaxMovementSpeed {100.0F};
+  constexpr float kMinMovementSpeed {0.2F};
+
   // Hack to get window to stay up
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
@@ -275,14 +281,21 @@ void GhouliesLib::UpdateEvents()
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
     } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
-      constexpr float kSensitivity {0.1F};
-      camera_.RotateSpinClockwise(e.motion.xrel * kSensitivity);
-      camera_.RotateLeanForwards(e.motion.yrel * kSensitivity);
+      constexpr float kMouseSensitivity {0.1F};
+
+      camera_.RotateSpinClockwise(e.motion.xrel * kMouseSensitivity);
+      camera_.RotateLeanForwards(e.motion.yrel * kMouseSensitivity);
     }
   }
 
-  const auto left = 0.01F * camera_.Left();
-  const auto forwards = 0.01F * camera_.Forwards();
+  bool hyperspeed {key_states_[SDL_SCANCODE_LSHIFT]};
+
+  const auto left = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * camera_.Left();
+  const auto forwards = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * camera_.Forwards();
+  const auto up = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * camera_.Up();
 
   if (key_states_[SDL_SCANCODE_A]) {
     camera_.position += left;
@@ -295,6 +308,22 @@ void GhouliesLib::UpdateEvents()
   } else if (key_states_[SDL_SCANCODE_S]) {
     camera_.position -= forwards;
   }
+
+  if (key_states_[SDL_SCANCODE_SPACE]) {
+    camera_.position += up;
+  } else if (key_states_[SDL_SCANCODE_LCTRL]) {
+    camera_.position -= up;
+  }
+
+  if (key_states_[SDL_SCANCODE_EQUALS]) {
+    movement_speed = std::min(kMaxMovementSpeed, movement_speed * 1.03F);
+  }
+
+  if (key_states_[SDL_SCANCODE_MINUS]) {
+    movement_speed = std::max(kMinMovementSpeed, movement_speed / 1.03F);
+  }
+
+  if (key_states_[SDL_SCANCODE_LSHIFT]) {}
 }
 
 void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)

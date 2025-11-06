@@ -102,6 +102,7 @@ struct Camera
 
   [[nodiscard]] glm::vec3 Left() const;
   [[nodiscard]] glm::vec3 Forwards() const;
+  [[nodiscard]] glm::vec3 Up() const;
 };
 
 struct TextureAsset

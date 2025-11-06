@@ -44,6 +44,11 @@ glm::vec3 Camera::Forwards() const
   return this->RotationMatrix() * glm::vec4 {glm::vec3 {0, 0, 1}, 0};
 }
 
+glm::vec3 Camera::Up() const
+{
+  return this->RotationMatrix() * glm::vec4 {glm::vec3 {0, 1, 0}, 0};
+}
+
 glm::mat4 Camera::ProjectionMatrix() const
 {
   const float fov_v =
