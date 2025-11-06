@@ -86,10 +86,12 @@ auto main(int argc, char** argv) -> int
   std::cout << "Loading background " << params.model_aid.data() << ".\n";
   ghoulies::objects::Background bg {params};
 
+  /*
   std::cout << "Loading skeletonbad.\n";
   const auto* raw_skeletonbad {
       game_context.GetAsset("aid_model_ghoulies_actor_skeletonbad")};
   auto skeletonbad {lib.LoadModel(*raw_skeletonbad)};
+  */
 
   std::cout << "Ghoulies launcher launched." << '\n';
 

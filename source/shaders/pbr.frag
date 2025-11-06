@@ -8,19 +8,12 @@ layout(location = 2) in vec2 _tex_coords;
 
 layout(set = 2, binding = 0) uniform sampler2D u_diffuseTexture;
 
+layout(std140, set = 3, binding = 0) uniform LightingUniforms {
+    float u_ambient_brightness;
+    vec3 u_room_lighting_colour;
+};
+
 void main() {
-    vec3 the_sun = vec3(0, 20, 0);
-    float dotProd = dot(normalize(the_sun), normalize(_normal));
-
-    float angle = acos(dotProd);
-    float intensity = max(0.0, dotProd); // Ensuring no negative values
-
-    intensity = intensity * 0.8 + 0.2;
-
-    // Disable lighting for debugging
-    intensity = 1;
-
-    // colour = _colour;
-
-    colour = texture(u_diffuseTexture, _tex_coords) * intensity;
+    colour =
+        vec4(texture(u_diffuseTexture, _tex_coords).xyz * u_ambient_brightness, 1);
 }

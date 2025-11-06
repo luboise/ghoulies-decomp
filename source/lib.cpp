@@ -127,7 +127,7 @@ GhouliesLib::GhouliesLib()
       .num_samplers = 1,
       .num_storage_textures = 0,
       .num_storage_buffers = 0,
-      .num_uniform_buffers = 0};
+      .num_uniform_buffers = 1};
 
   pbr_vert_shader_ = SDL_CreateGPUShader(device_, &vs_create_info);
   if (pbr_vert_shader_ == nullptr) {
@@ -323,7 +323,16 @@ void GhouliesLib::UpdateEvents()
     movement_speed = std::max(kMinMovementSpeed, movement_speed / 1.03F);
   }
 
-  if (key_states_[SDL_SCANCODE_LSHIFT]) {}
+  if (key_states_[SDL_SCANCODE_0]) {
+    this->lighting_uniforms_.ambient_brightness =
+        std::min(1.0F, this->lighting_uniforms_.ambient_brightness + 0.005F);
+  } else if (key_states_[SDL_SCANCODE_9]) {
+    this->lighting_uniforms_.ambient_brightness =
+        std::max(0.1F, this->lighting_uniforms_.ambient_brightness - 0.005F);
+  }
+
+  std::cout << "Ambient brightness: "
+            << this->lighting_uniforms_.ambient_brightness << "\n";
 }
 
 void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
@@ -708,6 +717,11 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
   std::array bindings = {this->default_texture_->SDLBinding()};
   SDL_BindGPUFragmentSamplers(render_pass, 0, bindings.data(), bindings.size());
 
+  SDL_PushGPUFragmentUniformData(command_buffer,
+                                 0,
+                                 &this->lighting_uniforms_,
+                                 sizeof(this->lighting_uniforms_));
+
   return graphics::DrawContext {.command_buffer = command_buffer,
                                 .render_pass = render_pass};
 }
@@ -727,4 +741,9 @@ void GhouliesLib::SetDefaultTexture(
   // TODO: Check move semantics and remove the reset
   this->default_texture_.reset();
   this->default_texture_ = std::move(texture);
+}
+
+void GhouliesLib::SetLighting(graphics::LightingUniforms&& uniforms)
+{
+  this->lighting_uniforms_ = uniforms;
 }

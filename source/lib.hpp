@@ -49,6 +49,8 @@ struct GhouliesLib
 
   void SetDefaultTexture(std::unique_ptr<graphics::Texture>&& texture);
 
+  void SetLighting(graphics::LightingUniforms&& uniforms);
+
   std::shared_ptr<graphics::Model> LoadModel(const ghoulies::Asset&);
   std::unique_ptr<graphics::Texture> LoadTexture(graphics::TextureAsset asset);
 
@@ -70,6 +72,7 @@ private:
   SDL_GPUGraphicsPipeline* pbr_pipeline_;
 
   graphics::Camera camera_;
+  graphics::LightingUniforms lighting_uniforms_;
 
   const bool* key_states_;
 

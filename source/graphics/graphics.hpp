@@ -40,6 +40,12 @@ struct ViewUniforms
   glm::mat4 projection;
 };
 
+struct LightingUniforms
+{
+  float ambient_brightness {1.0F};
+  glm::vec3 room_lighting_colour {1.0F, 1.0F, 1.0F};
+};
+
 struct Camera
 {
   glm::vec3 position;
