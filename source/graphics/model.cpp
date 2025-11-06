@@ -305,8 +305,6 @@ void Model::DrawBasic(SDL_GPURenderPass* render_pass)
   // render_pass, this->index_buffer_.count, 1, 0, 0, 0);
 
   for (const auto& command : this->draw_commands_) {
-    // TODO: Check the pipeline matches
-
     const auto& material {materials_[command.material_index]};
 
     const auto* diffuse {material.DiffuseTexture()};
@@ -320,6 +318,6 @@ void Model::DrawBasic(SDL_GPURenderPass* render_pass)
     SDL_DrawGPUIndexedPrimitives(
         render_pass, command.num_indices, 1, command.first_index, 0, 0);
   }
-};
+}
 
 }  // namespace graphics

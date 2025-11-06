@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
+add_compile_definitions(GLM_FORCE_LEFT_HANDED)
+
 include(cmake/prelude.cmake)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

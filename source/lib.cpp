@@ -275,8 +275,9 @@ void GhouliesLib::UpdateEvents()
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
     } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
-      camera_.rotation.y += e.motion.xrel * 0.001;
-      camera_.rotation.x += e.motion.yrel * 0.001;
+      constexpr float kSensitivity {0.1F};
+      camera_.RotateSpinClockwise(e.motion.xrel * kSensitivity);
+      camera_.RotateLeanForwards(e.motion.yrel * kSensitivity);
     }
   }
 
@@ -658,7 +659,7 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
 
   const glm::mat4 identity(1.0F);
 
-  const auto view {this->camera_.ModelMatrix()};
+  const auto view {this->camera_.ViewMatrix()};
   const auto projection {this->camera_.ProjectionMatrix()};
 
   graphics::ViewUniforms uniforms {

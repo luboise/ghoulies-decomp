@@ -1,3 +1,7 @@
+#ifndef GLM_FORCE_LEFT_HANDED
+#  error RIGHT HANDED SYSTEM is active. All matrix math will not align with world views.
+#endif
+
 #include "graphics.hpp"
 
 #include <SDL3/SDL.h>
@@ -18,11 +22,9 @@ glm::mat4 Camera::ModelMatrix() const
 {
   glm::mat4 matrix(1.0F);
 
-  matrix = glm::scale(matrix, this->scale);
-
-  matrix = this->RotationMatrix() * matrix;
-
   matrix = glm::translate(matrix, this->position);
+  matrix = matrix * this->RotationMatrix();
+  matrix = glm::scale(matrix, this->scale);
 
   return matrix;
 }
@@ -34,14 +36,12 @@ glm::mat4 Camera::ViewMatrix() const
 
 glm::vec3 Camera::Left() const
 {
-  return this->RotationMatrix() * glm::vec4 {glm::vec3 {-1, 0, 0}, 1};
-  // return glm::vec4 {0, 0, 1, 1};
+  return this->RotationMatrix() * glm::vec4 {glm::vec3 {-1, 0, 0}, 0};
 }
 
 glm::vec3 Camera::Forwards() const
 {
-  return this->ViewMatrix() * glm::vec4 {glm::vec3 {0, 0, 1}, 1};
-  // return glm::vec4 {0, 0, 1, 1};
+  return this->RotationMatrix() * glm::vec4 {glm::vec3 {0, 0, 1}, 0};
 }
 
 glm::mat4 Camera::ProjectionMatrix() const
@@ -66,12 +66,33 @@ glm::mat4 Camera::RotationMatrix() const
 {
   glm::mat4 matrix(1.0F);
 
-  matrix = glm::rotate(matrix, this->rotation[0], {1, 0, 0});
   matrix = glm::rotate(matrix, this->rotation[1], {0, 1, 0});
+  matrix = glm::rotate(matrix, this->rotation[0], {1, 0, 0});
   matrix = glm::rotate(matrix, this->rotation[2], {0, 0, 1});
 
   return matrix;
-};
+}
+
+Camera& Camera::RotateX(float degrees)
+{
+  this->rotation.x += glm::pi<float>() * degrees / 180.0F;
+  return *this;
+}
+
+Camera& Camera::RotateY(float degrees)
+{
+  // Inverted for left handed SDL coordinates
+  this->rotation.y += glm::pi<float>() * degrees / 180.0F;
+  ;
+  return *this;
+}
+
+Camera& Camera::RotateZ(float degrees)
+{
+  this->rotation.z += glm::pi<float>() * degrees / 180.0F;
+
+  return *this;
+}
 
 Texture::Texture(SDL_GPUDevice* device, TextureAsset asset)
     : device_(nullptr)

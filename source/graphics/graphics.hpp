@@ -71,11 +71,33 @@ struct Camera
       , rotation(rotation)
       , scale(scale)
       , fov_h(90)
-      , near(1.0F)
+      , near(5.0F)
       , far(1000.0F)
       , viewport_width(1280)
       , viewport_height(720)
   {
+  }
+
+  Camera& RotateX(float degrees);
+  Camera& RotateY(float degrees);
+  Camera& RotateZ(float degrees);
+
+  Camera& RotateLeanForwards(float degrees)
+  {
+    RotateX(degrees);
+    return *this;
+  }
+
+  Camera& RotateSpinClockwise(float degrees)
+  {
+    RotateY(degrees);
+    return *this;
+  }
+
+  Camera& RollClockwise(float degrees)
+  {
+    RotateZ(-degrees);
+    return *this;
   }
 
   [[nodiscard]] glm::vec3 Left() const;
