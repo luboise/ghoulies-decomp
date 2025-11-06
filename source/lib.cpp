@@ -345,11 +345,21 @@ void GhouliesLib::DrawTestObjects(const graphics::Texture& texture)
   const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
   */
 
-  std::array vertices {
-      PBRVertex {.a_position = {1, 1, 0}, .a_texcoords = {1, 1}},
-      PBRVertex {.a_position = {1, -1, 0}, .a_texcoords = {1, 0}},
-      PBRVertex {.a_position = {-1, 1, 0}, .a_texcoords = {0, 1}},
-      PBRVertex {.a_position = {-1, -1, 0}, .a_texcoords = {0, 0}}};
+  std::array vertices {PBRVertex {
+                           .a_position = {1, 1, 0},
+                           .a_normal = {0, 1, 0},
+                           .a_texcoords = {1, 1},
+                       },
+                       PBRVertex {.a_position = {1, -1, 0},
+                                  .a_normal = {0, 1, 0},
+                                  .a_texcoords = {1, 0}},
+                       PBRVertex {.a_position = {-1, 1, 0},
+                                  .a_normal = {0, 1, 0},
+                                  .a_texcoords = {0, 1}},
+                       PBRVertex {.a_position = {-1, -1, 0},
+                                  .a_normal = {0, 1, 0},
+                                  .a_texcoords = {0, 0}}};
+
   // const Uint32 vertices_size = sizeof(PBRVertex) * vertices.size();
 
   std::array<Uint16, 6> indices {0, 1, 2, 1, 2, 3};

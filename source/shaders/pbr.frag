@@ -9,7 +9,7 @@ layout(location = 2) in vec2 _tex_coords;
 layout(set = 2, binding = 0) uniform sampler2D u_diffuseTexture;
 
 void main() {
-    vec3 the_sun = vec3(-20, 20, 0);
+    vec3 the_sun = vec3(0, 20, 0);
     float dotProd = dot(normalize(the_sun), normalize(_normal));
 
     float angle = acos(dotProd);
@@ -18,7 +18,7 @@ void main() {
     intensity = intensity * 0.8 + 0.2;
 
     // Disable lighting for debugging
-    // intensity = 1;
+    intensity = 1;
 
     // colour = _colour;
 
