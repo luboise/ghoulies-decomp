@@ -459,21 +459,23 @@ std::optional<uint32_t> NdShaderParam2::GetDiffuseTextureIndex() const
   const auto lambda =
       [](const NdShaderParam2Payload& payload) -> std::optional<uint32_t>
   {
-    // Check if any assignments map to colour0
-    const ShaderParamAssignment* assignment {payload.GetAssignment("colour0")};
+    for (const auto& val : {"colour1", "colour0"}) {
+      // Check if any assignments map to colour0
+      const ShaderParamAssignment* assignment {payload.GetAssignment(val)};
+      if (assignment != nullptr) {
+        // assert(assignment->texture_group_index != 0);  // Should be 1 or 2
 
-    if (assignment != nullptr) {
-      // assert(assignment->texture_group_index != 0);  // Should be 1 or 2
+        // Get the texture slot of the assignment which colour0 uses
+        auto tex_index {assignment->texture_assignment_index};
 
-      // Get the texture slot of the assignment which colour0 uses
-      auto tex_index {assignment->texture_assignment_index};
-
-      // Get the assignment for that slot and return it
-      const auto* texture_assignment {payload.GetTextureAssignment(tex_index)};
-      if (texture_assignment != nullptr) {
-        return texture_assignment->texture_bank_index;
-      }
-    };
+        // Get the assignment for that slot and return it
+        const auto* texture_assignment {
+            payload.GetTextureAssignment(tex_index)};
+        if (texture_assignment != nullptr) {
+          return texture_assignment->texture_bank_index;
+        }
+      };
+    }
 
     return std::nullopt;
   };
