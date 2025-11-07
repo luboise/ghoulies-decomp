@@ -118,7 +118,7 @@ GhouliesLib::GhouliesLib()
       .num_samplers = 0,
       .num_storage_textures = 0,
       .num_storage_buffers = 0,
-      .num_uniform_buffers = 1};
+      .num_uniform_buffers = 2};
 
   const SDL_GPUShaderCreateInfo fs_create_info {
       .code_size = fs_bytes.size(),
@@ -268,7 +268,7 @@ GhouliesLib::~GhouliesLib()
   SDL_DestroyWindow(window_);
 }
 
-void GhouliesLib::UpdateEvents()
+void GhouliesLib::UpdateEvents(ghoulies::GameContext& ctx)
 {
   static float movement_speed {1};
 
@@ -298,6 +298,10 @@ void GhouliesLib::UpdateEvents()
       * movement_speed * camera_.Forwards();
   const auto up = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
       * movement_speed * camera_.Up();
+
+  if (key_states_[SDL_SCANCODE_B]) {
+    ctx.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
+  }
 
   if (key_states_[SDL_SCANCODE_A]) {
     camera_.transform.position += left;
@@ -454,9 +458,12 @@ void GhouliesLib::DrawTestModel(graphics::Model& model,
   const auto view {this->camera_.ViewMatrix()};
   const auto projection {this->camera_.ProjectionMatrix()};
 
-  graphics::ViewUniforms uniforms {
-      .model = identity, .view = view, .projection = projection};
+  graphics::ViewUniforms uniforms {.view = view, .projection = projection};
   SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
+
+  graphics::ModelUniforms model_uniforms {.model = identity};
+  SDL_PushGPUVertexUniformData(
+      command_buffer, 1, &model_uniforms, sizeof(model_uniforms));
 
   std::array bindings = {texture.SDLBinding()};
   SDL_BindGPUFragmentSamplers(render_pass, 0, bindings.data(), bindings.size());
@@ -550,9 +557,12 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
   const auto view {this->camera_.ViewMatrix()};
   const auto projection {this->camera_.ProjectionMatrix()};
 
-  graphics::ViewUniforms uniforms {
-      .model = identity, .view = view, .projection = projection};
+  graphics::ViewUniforms uniforms {.view = view, .projection = projection};
   SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
+
+  graphics::ModelUniforms model_uniforms {.model = identity};
+  SDL_PushGPUVertexUniformData(
+      command_buffer, 1, &model_uniforms, sizeof(model_uniforms));
 
   std::array bindings = {this->default_texture_->SDLBinding()};
   SDL_BindGPUFragmentSamplers(render_pass, 0, bindings.data(), bindings.size());

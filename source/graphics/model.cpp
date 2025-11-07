@@ -323,4 +323,38 @@ void Model::DrawBasic(SDL_GPURenderPass* render_pass)
   }
 }
 
+void Model::DrawWithTransform(DrawContext& ctx, const Transform& transform)
+{
+  std::array<SDL_GPUBufferBinding, 1> vb_bindings {vertex_buffer_.GetBinding()};
+
+  SDL_BindGPUVertexBuffers(ctx.render_pass, 0, vb_bindings.data(), 1);
+
+  auto ib_binding {index_buffer_.GetBinding()};
+
+  // SDL_Log("Binding index buffer.");
+  SDL_BindGPUIndexBuffer(
+      ctx.render_pass, &ib_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+
+  // SDL_DrawGPUIndexedPrimitives(
+  // render_pass, this->index_buffer_.count, 1, 0, 0, 0);
+
+  ModelUniforms uniforms {.model = transform.ModelMatrix()};
+  ctx.SetModelUniforms(uniforms);
+
+  for (const auto& command : this->draw_commands_) {
+    const auto& material {materials_[command.material_index]};
+
+    const auto* diffuse {material.DiffuseTexture()};
+
+    if (diffuse != nullptr) {
+      std::array bindings {diffuse->SDLBinding()};
+      SDL_BindGPUFragmentSamplers(
+          ctx.render_pass, 0, bindings.data(), bindings.size());
+    }
+
+    SDL_DrawGPUIndexedPrimitives(
+        ctx.render_pass, command.num_indices, 1, command.first_index, 0, 0);
+  }
+}
+
 }  // namespace graphics

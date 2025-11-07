@@ -50,6 +50,10 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
           objects::Weapon::WeaponParams params {};
           params.model_aid = model_name;
 
+          params.pos = weapon_marker.header.pos;
+          params.rot_euler = weapon_marker.header.rot_euler;
+          params.scale = weapon_marker.header.scale;
+
           this->weapons.push_back(std::make_shared<objects::Weapon>(params));
         } catch (std::runtime_error& e) {
           std::cerr << "Failed to create weapon from AID " << model_name
@@ -64,6 +68,12 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
   }
 
   return {};
+}
+
+void GameContext::Clear()
+{
+  this->bnl_files.clear();
+  this->weapons.clear();
 }
 
 }  // namespace ghoulies

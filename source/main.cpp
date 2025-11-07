@@ -110,7 +110,7 @@ auto main(int argc, char** argv) -> int
 
   // lib.DrawTestObjects(*tex);
   while (!lib.ShouldQuit()) {
-    lib.UpdateEvents();
+    lib.UpdateEvents(game_context);
 
     // TODO:
     // - Begin one command buffer
@@ -126,8 +126,9 @@ auto main(int argc, char** argv) -> int
     lib.Menu().NewFrame();
     auto draw_ctx {lib.NewDrawContext()};
 
-    // bg.Draw(draw_ctx);
-    // skeletonbad->DrawBasic(draw_ctx.render_pass);
+    if (game_context.draw_backgrounds) {
+      bg.Draw(draw_ctx);
+    }
 
     lib.DrawScene(draw_ctx);
 
@@ -137,6 +138,8 @@ auto main(int argc, char** argv) -> int
   }
 
   std::cout << "Exiting ghoulies launcher." << '\n';
+
+  game_context.Clear();
 
   return 0;
 }

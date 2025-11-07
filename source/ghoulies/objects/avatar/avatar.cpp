@@ -268,10 +268,14 @@ if (*(code**)&param_1->field_0x1a0 != NULL) {
     return false;
   }
 
-  this->model_->DrawBasic(ctx.render_pass);
+  // this->model_->DrawBasic(ctx.render_pass);
+  this->model_->DrawWithTransform(
+      ctx,
+      ::graphics::Transform {
+          .position = pos_, .rotation = rot_euler_, .scale = scale_});
 
   return true;
-};
+}
 
 void Avatar::SetModel(std::string_view model_aid)
 {

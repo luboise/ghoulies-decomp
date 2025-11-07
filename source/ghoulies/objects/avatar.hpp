@@ -39,9 +39,9 @@ public:
 
   struct AvatarParams : Object::ObjectParams
   {
-    glm::vec3 pos;
-    glm::vec3 rot_euler;
-    float scale;
+    glm::vec3 pos {0, 0, 0};
+    glm::vec3 rot_euler {0, 0, 0};
+    float scale {1};
     float unknown_float;
     std::string model_aid;
     AssetAID stand_animation_aid;

@@ -16,8 +16,8 @@ struct GameContext : Singleton<GameContext>
 {
   bool move_on {false};
 
+  bool draw_backgrounds {true};
   std::string background_model_aid;
-
   Registry<objects::Background> backgrounds {};
 
   std::list<std::shared_ptr<objects::Weapon>> weapons;
@@ -51,9 +51,11 @@ struct GameContext : Singleton<GameContext>
     }
 
     return nullptr;
-  };
+  }
 
   std::expected<void, std::string> InitialiseFromMarker(const Marker& marker);
+
+  void Clear();
 };
 
 }  // namespace ghoulies

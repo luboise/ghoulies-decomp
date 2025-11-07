@@ -327,4 +327,9 @@ glm::mat4 Transform::RotationMatrix() const
   return matrix;
 }
 
+void DrawContext::SetModelUniforms(const ModelUniforms& uniforms)
+{
+  SDL_PushGPUVertexUniformData(command_buffer, 1, &uniforms, sizeof(uniforms));
+}
+
 }  // namespace graphics

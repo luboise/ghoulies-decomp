@@ -19,12 +19,6 @@ using ghoulies::Asset;
 
 using Index = uint16_t;
 
-struct DrawContext
-{
-  SDL_GPUCommandBuffer* command_buffer;
-  SDL_GPURenderPass* render_pass;
-};
-
 struct PBRVertex
 {
   glm::vec3 a_position {0, 0, 0};
@@ -35,9 +29,13 @@ struct PBRVertex
 
 struct ViewUniforms
 {
-  glm::mat4 model;
   glm::mat4 view;
   glm::mat4 projection;
+};
+
+struct ModelUniforms
+{
+  glm::mat4 model;
 };
 
 struct LightingUniforms
@@ -174,6 +172,22 @@ private:
   SDL_GPUDevice* device_;
   SDL_GPUTexture* texture_;
   SDL_GPUSampler* sampler_;
+};
+
+struct DrawCommand
+{
+  SDL_GPUPrimitiveType primitive_type;
+  Uint32 first_index;
+  Uint32 num_indices;
+  uint32_t material_index;
+};
+
+struct DrawContext
+{
+  SDL_GPUCommandBuffer* command_buffer;
+  SDL_GPURenderPass* render_pass;
+
+  void SetModelUniforms(const ModelUniforms& uniforms);
 };
 
 enum class BufferType
@@ -338,13 +352,5 @@ std::expected<Buffer<T>, std::string> CreateVertexBuffer(
 
 std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
     SDL_GPUDevice* device, const std::span<const Index>& data);
-
-struct DrawCommand
-{
-  SDL_GPUPrimitiveType primitive_type;
-  Uint32 first_index;
-  Uint32 num_indices;
-  uint32_t material_index;
-};
 
 }  // namespace graphics

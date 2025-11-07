@@ -10,9 +10,12 @@ layout(location = 1) out vec3 normal;
 layout(location = 2) out vec2 tex_coords;
 
 layout(std140, set = 1, binding = 0) uniform ViewUniforms {
-    mat4 model;
     mat4 view;
     mat4 projection;
+};
+
+layout(std140, set = 1, binding = 1) uniform ModelUniforms {
+    mat4 model;
 };
 
 void main() {

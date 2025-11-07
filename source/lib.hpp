@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "ghoulies/game.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
 #include "menu/menu.hpp"
@@ -37,7 +38,7 @@ struct GhouliesLib
 
   [[nodiscard]] bool ShouldQuit() const { return this->quit_; }
 
-  void UpdateEvents();
+  void UpdateEvents(ghoulies::GameContext& ctx);
 
   // void UpdateMenu();
 
