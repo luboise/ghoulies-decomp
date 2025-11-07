@@ -27,6 +27,8 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
 
   ModelAsset new_model {};
 
+  new_model.model_aid = std::string(asset.description.metadata.name.data());
+
   std::memcpy(&descriptor, &asset.descriptor[0], sizeof(descriptor));
 
   if (descriptor.num_footer_entries > 0) {

@@ -44,11 +44,14 @@ struct GhouliesLib
   [[nodiscard]] graphics::DrawContext NewDrawContext();
   void EndDrawContext(graphics::DrawContext ctx);
 
+  void DrawScene(graphics::DrawContext& ctx);
   void DrawTestModel(graphics::Model& model, const graphics::Texture& texture);
 
   void SetDefaultTexture(std::unique_ptr<graphics::Texture>&& texture);
 
   void SetLighting(graphics::LightingUniforms&& uniforms);
+
+  void ExecuteLevelFromBNL(std::string_view script_aid);
 
   std::shared_ptr<graphics::Model> LoadModel(const ghoulies::Asset&);
   std::unique_ptr<graphics::Texture> LoadTexture(graphics::TextureAsset asset);

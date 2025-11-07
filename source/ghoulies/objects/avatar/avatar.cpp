@@ -2,6 +2,7 @@
 
 #include "../../game.hpp"
 #include "background.hpp"
+#include "graphics/model.hpp"
 
 using graphics::DrawContext;
 
@@ -11,56 +12,38 @@ namespace ghoulies::objects
 Background::Background(const BackgroundParams& params)
     : Avatar(params)
 {
-  /*
-char cVar1;
-byte* pbVar2;
-float fVar3;
-ModelFooterEntry* pMVar4;
-ColliderSetDescriptor* desc_00;
-backgroundParams* pbVar5;
-char* pcVar6;
-BackgroundEntityNode* pBVar7;
-Background* extraout_EAX;
-uint uVar8;
-int* piVar9;
-backgroundInner* new_inners;
-void* pvVar10;
-BOOL BVar11;
-int inner_i;
-int* piVar12;
-int i;
-uint numInners;
-int iVar13;
-ModelDescriptor* desc;
-*/
-
   GameContext& ctx {GameContext::Instance()};
 
   ctx.background_model_aid = params.model_aid;
 
-  if (ctx.background_model_aid[0] != '\0') {
-    const Asset* raw_model_asset {
-        ctx.GetAsset(ctx.background_model_aid.data())};
-
-    if (raw_model_asset == nullptr) {
-      throw std::runtime_error(
-          "No model available for background, which requires a valid model "
-          "AID.");
-    }
-
-    auto model_asset_exp {ModelAsset::FromAsset(*raw_model_asset)};
-    if (!model_asset_exp.has_value()) {
-      throw std::runtime_error(
-          "Failed to create background ModelAsset from Asset.");
-    }
-
-    auto new_model {std::make_shared<::graphics::Model>(
-        ctx.sdl_device, model_asset_exp.value())};
-
-    this->SetModel(new_model);
+  if (params.model_aid.empty()) {
+    throw std::runtime_error("No model available for background.");
   }
 
   ctx.backgrounds.Register(&this->registry_entry_);
+
+  /*
+ char cVar1;
+ byte* pbVar2;
+ float fVar3;
+ ModelFooterEntry* pMVar4;
+ ColliderSetDescriptor* desc_00;
+ backgroundParams* pbVar5;
+ char* pcVar6;
+ BackgroundEntityNode* pBVar7;
+ Background* extraout_EAX;
+ uint uVar8;
+ int* piVar9;
+ backgroundInner* new_inners;
+ void* pvVar10;
+ BOOL BVar11;
+ int inner_i;
+ int* piVar12;
+ int i;
+ uint numInners;
+ int iVar13;
+ ModelDescriptor* desc;
+ */
 
   /*
   // Sets current bg
@@ -290,9 +273,39 @@ if (*(code**)&param_1->field_0x1a0 != NULL) {
   return true;
 };
 
-void Avatar::SetModel(std::shared_ptr<::graphics::Model> new_model)
+void Avatar::SetModel(std::string_view model_aid)
 {
-  this->model_ = std::move(new_model);
+  auto& game_context {GameContext::Instance()};
+
+  try {
+    const auto* raw_asset {game_context.GetAsset(model_aid)};
+
+    auto model_asset_exp {ModelAsset::FromAsset(*raw_asset)};
+
+    if (!model_asset_exp.has_value()) {
+      throw std::runtime_error(std::format(
+          "Failed to create Avatar: No model exists with asset ID {}.",
+          model_aid));
+    }
+
+    this->model_ = std::make_shared<::graphics::Model>(
+        game_context.sdl_device, std::move(model_asset_exp).value());
+  } catch (std::runtime_error& e) {
+    throw std::runtime_error(
+        std::format("Failed to create Avatar: {}", e.what()));
+  }
+}
+
+Avatar::Avatar(const AvatarParams& params)
+    : Object(params)
+    , pos_(params.pos)
+    , rot_euler_(params.rot_euler)
+{
+  this->scale_ = params.scale * glm::vec3 {1, 1, 1};
+
+  if (!params.model_aid.empty()) {
+    this->SetModel(params.model_aid);
+  }
 }
 
 }  // namespace ghoulies::objects

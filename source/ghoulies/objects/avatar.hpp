@@ -43,7 +43,7 @@ public:
     glm::vec3 rot_euler;
     float scale;
     float unknown_float;
-    AssetAID model_aid;
+    std::string model_aid;
     AssetAID stand_animation_aid;
     AssetAID animtable_aid;
     AssetAID callout_aid;
@@ -58,13 +58,10 @@ public:
   virtual void Update();
   virtual bool Draw(::graphics::DrawContext& ctx);
 
-  virtual void SetModel(std::shared_ptr<::graphics::Model> new_model);
+  virtual void SetModel(std::string_view model_aid);
 
 protected:
-  explicit Avatar(const AvatarParams& params)
-      : Object(params)
-  {
-  }
+  explicit Avatar(const AvatarParams& params);
 
 private:
   glm::vec3 pos_ {};

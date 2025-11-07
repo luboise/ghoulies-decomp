@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstring>
 #include <vector>
 
@@ -10,10 +12,10 @@ namespace ghoulies
 
 enum ScriptUpdateStatus
 {
-  kOpHandled,
-  kStalled,
-  kError,
-  kScriptEnded
+  OpHandled,
+  Stalled,
+  Error,
+  ScriptEnded
 };
 
 class Script

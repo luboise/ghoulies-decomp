@@ -1,7 +1,11 @@
 #pragma once
 
+#include <list>
 #include <map>
 
+#include "ghoulies/assets/marker.hpp"
+#include "ghoulies/bnl.hpp"
+#include "ghoulies/objects/weapon/weapon.hpp"
 #include "objects/avatar/background.hpp"
 #include "types.hpp"
 
@@ -12,9 +16,11 @@ struct GameContext : Singleton<GameContext>
 {
   bool move_on {false};
 
-  AssetAID background_model_aid {};
+  std::string background_model_aid;
 
   Registry<objects::Background> backgrounds {};
+
+  std::list<std::shared_ptr<objects::Weapon>> weapons;
 
   std::map<std::string, BNLFile> bnl_files;
 
@@ -33,6 +39,21 @@ struct GameContext : Singleton<GameContext>
   }
 
   [[nodiscard]] const Asset* GetPlaycamScript() const;
+
+  [[nodiscard]] const Asset* GetFirstAssetByType(AssetType asset_type) const
+  {
+    for (const auto& [filename, bnl_file] : this->bnl_files) {
+      if (const auto* ptr {bnl_file.GetFirstAssetByType(asset_type)};
+          ptr != nullptr)
+      {
+        return ptr;
+      }
+    }
+
+    return nullptr;
+  };
+
+  std::expected<void, std::string> InitialiseFromMarker(const Marker& marker);
 };
 
 }  // namespace ghoulies

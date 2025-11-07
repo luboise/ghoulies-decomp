@@ -47,7 +47,9 @@ target_sources(
           source/graphics/material.cpp
           source/graphics/model.cpp
           source/graphics/graphics.cpp
+          source/ghoulies/assets/marker.cpp
           source/ghoulies/objects/avatar/avatar.cpp
+          source/ghoulies/objects/weapon/weapon.cpp
           source/menu/menu.cpp
           ${IMGUI_SOURCES})
 

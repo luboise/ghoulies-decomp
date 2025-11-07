@@ -18,6 +18,8 @@ struct ModelAsset
   std::vector<std::shared_ptr<NdNode>> root_nodes;
   std::vector<TextureAsset> textures;
 
+  std::string model_aid;
+
   static std::expected<ModelAsset, std::string> FromAsset(const Asset& asset);
 };
 

@@ -29,6 +29,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "file.hpp"
+#include "ghoulies/bnl.hpp"
+#include "ghoulies/game.hpp"
 #include "ghoulies/nd.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
@@ -227,8 +229,8 @@ GhouliesLib::GhouliesLib()
         .format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
         .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
 
-        .width = 1280,
-        .height = 720,
+        .width = 3840,
+        .height = 2160,
         .layer_count_or_depth = 1,
         .num_levels = 1,
         .sample_count = SDL_GPU_SAMPLECOUNT_1,
@@ -584,4 +586,13 @@ void GhouliesLib::SetDefaultTexture(
 void GhouliesLib::SetLighting(graphics::LightingUniforms&& uniforms)
 {
   this->lighting_uniforms_ = uniforms;
+}
+
+void GhouliesLib::DrawScene(graphics::DrawContext& ctx)
+{
+  auto& game_context {ghoulies::GameContext::Instance()};
+
+  for (auto& weapon : game_context.weapons) {
+    weapon->Draw(ctx);
+  }
 }

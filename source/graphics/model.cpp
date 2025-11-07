@@ -135,11 +135,14 @@ inline std::vector<ModelDrawData> FindDrawsFromNode(const NdNode& node)
 
   return draws;
 }
+
 }  // namespace
 
 Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
 {
   // Transform vertices
+
+  std::cout << "Loading model \"" << asset.model_aid << "\".\n";
 
   if (asset.root_nodes.empty()) {
     throw std::runtime_error("Unable to create model from 0 root nodes.");

@@ -291,10 +291,16 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
     return unexpected("Unhandled NDNode (node is nullptr).");
   }
 
-  // std::cout << node->nd_type << "\n";
+  // Print out nd tree of model
+  // std::cout << std::string(ctx.tree.size() * 2, ' ') << node->nd_type <<
+  // "\n";
 
   if (ctx.root == nullptr) {
     ctx.root = node;
+  }
+
+  if (!ctx.tree.empty()) {
+    node->prev_node = ctx.tree.top();
   }
 
   if (header.next_child_ptr != 0) {

@@ -15,12 +15,10 @@ Script::Script(const Asset& asset)
 
   std::vector<ScriptOperation> operations;
 
-  operations.reserve(200);
-
   if (asset.descriptor.size() < 8) {
     throw std::
           runtime_error(
-              "Unable to create script from descriptor with a sise smaller "
+              "Unable to create script from descriptor with a size smaller "
               "than 8 " "bytes.");
   }
 
@@ -65,8 +63,10 @@ Script::Script(const Asset& asset)
                       &asset.descriptor[static_cast<std::size_t>(curr) + 8],
                       operation_size - 8);
 
-          std::cout << "Pushing back value with opcode " << opcode
-                    << " and data of size " << operand_bytes.size() << ".\n";
+          /*
+  std::cout << "Pushing back value with opcode " << opcode
+            << " and data of size " << operand_bytes.size() << ".\n";
+                                */
 
           ScriptOperation new_operation {
               RawScriptOperation(opcode, operand_bytes)};
@@ -101,30 +101,24 @@ Script::Script(std::vector<ScriptOperation> operations)
 
 bool Script::Update(GameContext& ctx)
 {
-  ScriptUpdateStatus status {ScriptUpdateStatus::kError};
+  ScriptUpdateStatus status {ScriptUpdateStatus::Error};
   do {
     status = HandleOperation(ctx, this->CurrentOperation());
 
     // TODO: Make this debug only
     if (this->current_operation_ > this->operations_.size()) {
-      return ScriptUpdateStatus::kError != 0U;
+      return ScriptUpdateStatus::Error != 0U;
     }
 
     if (this->current_operation_ == this->operations_.size()) {
-      return ScriptUpdateStatus::kScriptEnded != 0U;
+      return ScriptUpdateStatus::ScriptEnded != 0U;
     }
 
     const ScriptOperation& current_op {this->CurrentOperation()};
-  } while (status == kOpHandled);
+  } while (status == OpHandled);
 
-  return status != ScriptUpdateStatus::kError;
+  return status != ScriptUpdateStatus::Error;
 }
-
-template<typename... Ts>
-struct Overload : Ts...
-{
-  using Ts::operator()...;
-};
 
 [[nodiscard]] const ScriptOperation& Script::CurrentOperation() const
 {
@@ -139,30 +133,30 @@ ScriptUpdateStatus Script::HandleOperation(GameContext& ctx,
 {
   static const auto kVisitor = Overload {
       [](const EndScriptOperation&) -> ScriptUpdateStatus
-      { return ScriptUpdateStatus::kScriptEnded; },
+      { return ScriptUpdateStatus::ScriptEnded; },
 
       [&ctx, this](const WaitForMoveOnOperation&) -> ScriptUpdateStatus
       {
         if (ctx.move_on) {
           current_operation_++;
-          return ScriptUpdateStatus::kOpHandled;
+          return ScriptUpdateStatus::OpHandled;
         }
 
-        return ScriptUpdateStatus::kStalled;
+        return ScriptUpdateStatus::Stalled;
       },
 
       [this, &ctx](const SetBackgroundOperation& op) -> ScriptUpdateStatus
       {
-        ctx.background_model_aid = op.background_aid;
+        ctx.background_model_aid = std::string(op.background_aid.data());
 
         current_operation_++;
-        return ScriptUpdateStatus::kOpHandled;
+        return ScriptUpdateStatus::OpHandled;
       },
 
       [this](const auto& /*other*/) -> ScriptUpdateStatus
       {
         current_operation_++;
-        return ScriptUpdateStatus::kOpHandled;
+        return ScriptUpdateStatus::OpHandled;
       },
   };
 

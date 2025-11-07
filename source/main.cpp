@@ -1,8 +1,10 @@
 #include <iostream>
+#include <memory>
 
 #include <SDL3/SDL_gpu.h>
 
 #include "file.hpp"
+#include "ghoulies/assets/marker.hpp"
 #include "ghoulies/bnl.hpp"
 #include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
@@ -13,7 +15,7 @@
 using ghoulies::BNLFile, ghoulies::Bytes;
 using ghoulies::utils::ReadFileBytes;
 
-using ghoulies::Script;
+using ghoulies::Script, ghoulies::Marker;
 
 auto main(int argc, char** argv) -> int
 {
@@ -77,11 +79,10 @@ auto main(int argc, char** argv) -> int
   }
 
   Script script {*playcam_script};
-
   script.Update(game_context);
 
   ghoulies::objects::Background::BackgroundParams params;
-  params.model_aid = game_context.background_model_aid;
+  params.model_aid = std::string(game_context.background_model_aid);
 
   std::cout << "Loading background " << params.model_aid.data() << ".\n";
   ghoulies::objects::Background bg {params};
@@ -92,6 +93,18 @@ auto main(int argc, char** argv) -> int
       game_context.GetAsset("aid_model_ghoulies_actor_skeletonbad")};
   auto skeletonbad {lib.LoadModel(*raw_skeletonbad)};
   */
+
+  Marker marker {
+      *game_context.GetFirstAssetByType(ghoulies::AssetType::ResMarker)};
+
+  std::cout << "Num marker entries: " << marker.Size() << ".\n";
+
+  if (auto result {game_context.InitialiseFromMarker(marker)};
+      !result.has_value())
+  {
+    std::cerr << "Failed to initialise game state from marker.\n";
+    return 1;
+  }
 
   std::cout << "Ghoulies launcher launched." << '\n';
 
@@ -113,8 +126,10 @@ auto main(int argc, char** argv) -> int
     lib.Menu().NewFrame();
     auto draw_ctx {lib.NewDrawContext()};
 
-    bg.Draw(draw_ctx);
+    // bg.Draw(draw_ctx);
     // skeletonbad->DrawBasic(draw_ctx.render_pass);
+
+    lib.DrawScene(draw_ctx);
 
     lib.EndDrawContext(draw_ctx);
 

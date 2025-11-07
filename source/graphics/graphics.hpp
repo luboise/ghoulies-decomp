@@ -77,7 +77,7 @@ struct Camera
       , rotation(rotation)
       , scale(scale)
       , fov_h(90)
-      , near(5.0F)
+      , near(0.1F)
       , far(1000.0F)
       , viewport_width(1280)
       , viewport_height(720)

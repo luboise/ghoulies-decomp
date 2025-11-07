@@ -49,4 +49,10 @@ struct Registry
   }
 };
 
+template<typename... Ts>
+struct Overload : Ts...
+{
+  using Ts::operator()...;
+};
+
 }  // namespace ghoulies
