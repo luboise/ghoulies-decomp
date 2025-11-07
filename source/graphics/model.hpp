@@ -27,6 +27,8 @@ public:
 
   void DrawBasic(SDL_GPURenderPass* render_pass);
 
+  void DrawWithTransform(SDL_GPURenderPass* render_pass, Transform);
+
 private:
   SDL_GPUDevice* device_;
 

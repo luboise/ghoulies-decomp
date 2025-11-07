@@ -46,11 +46,23 @@ struct LightingUniforms
   glm::vec3 room_lighting_colour {1.0F, 1.0F, 1.0F};
 };
 
-struct Camera
+struct Transform
 {
   glm::vec3 position;
   glm::vec3 rotation;
   glm::vec3 scale;
+
+  Transform& RotateX(float degrees);
+  Transform& RotateY(float degrees);
+  Transform& RotateZ(float degrees);
+
+  [[nodiscard]] glm::mat4 ModelMatrix() const;
+  [[nodiscard]] glm::mat4 RotationMatrix() const;
+};
+
+struct Camera
+{
+  Transform transform;
 
   glm::float32_t fov_h;
   glm::float32_t near;
@@ -59,11 +71,9 @@ struct Camera
   glm::uint32_t viewport_width;
   glm::uint32_t viewport_height;
 
-  [[nodiscard]] glm::mat4 ModelMatrix() const;
   [[nodiscard]] glm::mat4 ViewMatrix() const;
-  [[nodiscard]] glm::mat4 ProjectionMatrix() const;
 
-  [[nodiscard]] glm::mat4 RotationMatrix() const;
+  [[nodiscard]] glm::mat4 ProjectionMatrix() const;
 
   [[nodiscard]] glm::float32_t AspectRatio() const;
 
@@ -73,9 +83,8 @@ struct Camera
   }
 
   Camera(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale)
-      : position(position)
-      , rotation(rotation)
-      , scale(scale)
+      : transform(Transform {
+            .position = position, .rotation = rotation, .scale = scale})
       , fov_h(90)
       , near(0.1F)
       , far(1000.0F)
@@ -84,9 +93,23 @@ struct Camera
   {
   }
 
-  Camera& RotateX(float degrees);
-  Camera& RotateY(float degrees);
-  Camera& RotateZ(float degrees);
+  Camera& RotateX(float degrees)
+  {
+    this->transform.RotateX(degrees);
+    return *this;
+  }
+
+  Camera& RotateY(float degrees)
+  {
+    this->transform.RotateY(degrees);
+    return *this;
+  }
+
+  Camera& RotateZ(float degrees)
+  {
+    this->transform.RotateZ(degrees);
+    return *this;
+  }
 
   Camera& RotateLeanForwards(float degrees)
   {

@@ -18,35 +18,24 @@
 namespace graphics
 {
 
-glm::mat4 Camera::ModelMatrix() const
-{
-  glm::mat4 matrix(1.0F);
-
-  matrix = glm::translate(matrix, this->position);
-  matrix = matrix * this->RotationMatrix();
-  matrix = glm::scale(matrix, this->scale);
-
-  return matrix;
-}
-
 glm::mat4 Camera::ViewMatrix() const
 {
-  return glm::inverse(this->ModelMatrix());
+  return glm::inverse(this->transform.ModelMatrix());
 }
 
 glm::vec3 Camera::Left() const
 {
-  return this->RotationMatrix() * glm::vec4 {glm::vec3 {-1, 0, 0}, 0};
+  return this->transform.RotationMatrix() * glm::vec4 {glm::vec3 {-1, 0, 0}, 0};
 }
 
 glm::vec3 Camera::Forwards() const
 {
-  return this->RotationMatrix() * glm::vec4 {glm::vec3 {0, 0, 1}, 0};
+  return this->transform.RotationMatrix() * glm::vec4 {glm::vec3 {0, 0, 1}, 0};
 }
 
 glm::vec3 Camera::Up() const
 {
-  return this->RotationMatrix() * glm::vec4 {glm::vec3 {0, 1, 0}, 0};
+  return this->transform.RotationMatrix() * glm::vec4 {glm::vec3 {0, 1, 0}, 0};
 }
 
 glm::mat4 Camera::ProjectionMatrix() const
@@ -67,24 +56,13 @@ glm::float32_t Camera::AspectRatio() const
       / static_cast<glm::float32_t>(this->viewport_height);
 }
 
-glm::mat4 Camera::RotationMatrix() const
-{
-  glm::mat4 matrix(1.0F);
-
-  matrix = glm::rotate(matrix, this->rotation[1], {0, 1, 0});
-  matrix = glm::rotate(matrix, this->rotation[0], {1, 0, 0});
-  matrix = glm::rotate(matrix, this->rotation[2], {0, 0, 1});
-
-  return matrix;
-}
-
-Camera& Camera::RotateX(float degrees)
+Transform& Transform::RotateX(float degrees)
 {
   this->rotation.x += glm::pi<float>() * degrees / 180.0F;
   return *this;
 }
 
-Camera& Camera::RotateY(float degrees)
+Transform& Transform::RotateY(float degrees)
 {
   // Inverted for left handed SDL coordinates
   this->rotation.y += glm::pi<float>() * degrees / 180.0F;
@@ -92,7 +70,7 @@ Camera& Camera::RotateY(float degrees)
   return *this;
 }
 
-Camera& Camera::RotateZ(float degrees)
+Transform& Transform::RotateZ(float degrees)
 {
   this->rotation.z += glm::pi<float>() * degrees / 180.0F;
 
@@ -325,6 +303,28 @@ Texture::Texture(Texture&& other) noexcept
 
   this->asset_ = std::move(other.asset_);
   this->device_ = other.device_;
+}
+
+glm::mat4 Transform::ModelMatrix() const
+{
+  glm::mat4 matrix(1.0F);
+
+  matrix = glm::translate(matrix, this->position);
+  matrix = matrix * this->RotationMatrix();
+  matrix = glm::scale(matrix, this->scale);
+
+  return matrix;
+}
+
+glm::mat4 Transform::RotationMatrix() const
+{
+  glm::mat4 matrix(1.0F);
+
+  matrix = glm::rotate(matrix, this->rotation[1], {0, 1, 0});
+  matrix = glm::rotate(matrix, this->rotation[0], {1, 0, 0});
+  matrix = glm::rotate(matrix, this->rotation[2], {0, 0, 1});
+
+  return matrix;
 }
 
 }  // namespace graphics

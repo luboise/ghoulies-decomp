@@ -246,7 +246,7 @@ GhouliesLib::GhouliesLib()
 
   camera_ = graphics::Camera {};
 
-  camera_.position = {0, 0, -1};
+  camera_.transform.position = {0, 0, -1};
 
   SDL_CaptureMouse(true);
   initialised_ = true;
@@ -300,21 +300,21 @@ void GhouliesLib::UpdateEvents()
       * movement_speed * camera_.Up();
 
   if (key_states_[SDL_SCANCODE_A]) {
-    camera_.position += left;
+    camera_.transform.position += left;
   } else if (key_states_[SDL_SCANCODE_D]) {
-    camera_.position -= left;
+    camera_.transform.position -= left;
   }
 
   if (key_states_[SDL_SCANCODE_W]) {
-    camera_.position += forwards;
+    camera_.transform.position += forwards;
   } else if (key_states_[SDL_SCANCODE_S]) {
-    camera_.position -= forwards;
+    camera_.transform.position -= forwards;
   }
 
   if (key_states_[SDL_SCANCODE_SPACE]) {
-    camera_.position += up;
+    camera_.transform.position += up;
   } else if (key_states_[SDL_SCANCODE_LCTRL]) {
-    camera_.position -= up;
+    camera_.transform.position -= up;
   }
 
   if (key_states_[SDL_SCANCODE_EQUALS]) {
@@ -451,7 +451,7 @@ void GhouliesLib::DrawTestModel(graphics::Model& model,
 
   const glm::mat4 identity(1.0F);
 
-  const auto view {this->camera_.ModelMatrix()};
+  const auto view {this->camera_.ViewMatrix()};
   const auto projection {this->camera_.ProjectionMatrix()};
 
   graphics::ViewUniforms uniforms {
