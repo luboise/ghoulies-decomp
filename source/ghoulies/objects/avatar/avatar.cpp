@@ -215,7 +215,7 @@ void Avatar::OnMessage(events::Message& msg)
   std::cout << "Avatar::OnMessage" << "\n";
 };
 
-void Avatar::Update() {};
+void Avatar::Update() {}
 
 bool Avatar::Draw(DrawContext& ctx)
 {

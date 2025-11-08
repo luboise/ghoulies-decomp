@@ -1,22 +1,11 @@
 #include <iostream>
-#include <memory>
 
 #include <SDL3/SDL_gpu.h>
 
-#include "file.hpp"
-#include "ghoulies/assets/marker.hpp"
-#include "ghoulies/bnl.hpp"
-#include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
-#include "graphics/model.hpp"
 #include "lib.hpp"
-#include "menu/menu.hpp"
-
-using ghoulies::BNLFile, ghoulies::Bytes;
-using ghoulies::utils::ReadFileBytes;
 
 using ghoulies::GhouliesLibParams;
-using ghoulies::Script, ghoulies::Marker, ghoulies::GhouliesLib;
 
 auto main(int argc, char** argv) -> int
 {
@@ -29,7 +18,7 @@ auto main(int argc, char** argv) -> int
   // Initialise the application
   GhouliesLibParams params {};
 
-  if (auto result {GhouliesLib::Initialise(std::move(params))};
+  if (auto result {ghoulies::GhouliesLib::Initialise(std::move(params))};
       !result.has_value())
   {
     std::cerr << "Unable to initialise GhouliesLib. Error: " << result.error()
@@ -37,7 +26,7 @@ auto main(int argc, char** argv) -> int
     return 1;
   }
 
-  auto& lib {GhouliesLib::Instance()};
+  auto& lib {ghoulies::GhouliesLib::Instance()};
 
   // Set the play script
 
@@ -46,13 +35,6 @@ auto main(int argc, char** argv) -> int
               << ". Error: " << result.error() << "\n";
     return 1;
   }
-
-  /*
-  std::cout << "Loading skeletonbad.\n";
-  const auto* raw_skeletonbad {
-      game_context.GetAsset("aid_model_ghoulies_actor_skeletonbad")};
-  auto skeletonbad {lib.LoadModel(*raw_skeletonbad)};
-  */
 
   std::cout << "Ghoulies launcher launched." << '\n';
 
@@ -79,6 +61,10 @@ auto main(int argc, char** argv) -> int
     lib.EndDrawContext(draw_ctx);
 
     // lib.Menu().Render();
+  }
+
+  if (auto result {ghoulies::GhouliesLib::Destroy()}; !result.has_value()) {
+    std::cout << "Failed to destroy GhouliesLib. Error: " << result.error();
   }
 
   std::cout << "Exiting ghoulies launcher." << '\n';

@@ -1,16 +1,16 @@
 #pragma once
 
 #include <list>
-#include <map>
 
 #include "ghoulies/assets/marker.hpp"
-#include "ghoulies/bnl.hpp"
 #include "ghoulies/objects/weapon/weapon.hpp"
+#include "objects/actor.hpp"
 #include "objects/avatar/background.hpp"
-#include "types.hpp"
 
 namespace ghoulies
 {
+
+using objects::Actor;
 
 struct GameContext
 {
@@ -19,11 +19,12 @@ struct GameContext
   bool draw_backgrounds {true};
   std::string background_model_aid;
 
+  std::shared_ptr<objects::Actor> player;
+
   std::list<std::shared_ptr<objects::Weapon>> weapons;
   std::list<std::shared_ptr<objects::Background>> backgrounds;
 
   std::expected<void, std::string> InitialiseFromMarker(const Marker& marker);
-
   void Clear();
 };
 

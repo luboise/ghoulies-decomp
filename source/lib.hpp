@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <map>
 #include <string>
 
 #include "ghoulies/game.hpp"
@@ -35,6 +36,7 @@ struct GhouliesLibParams
 struct GhouliesLib
 {
   static std::expected<void, std::string> Initialise(GhouliesLibParams params);
+  static std::expected<void, std::string> Destroy();
 
   [[nodiscard]] static bool Initialised() { return instance != nullptr; }
 
@@ -46,29 +48,8 @@ struct GhouliesLib
 
   void UpdateEvents();
 
-  [[nodiscard]] const Asset* GetAsset(std::string_view asset_name) const
-  {
-    for (const auto& [filename, bnl_file] : this->bnl_files_) {
-      if (const auto* ptr {bnl_file.GetAsset(asset_name)}; ptr != nullptr) {
-        return ptr;
-      }
-    }
-
-    return nullptr;
-  }
-
-  [[nodiscard]] const Asset* GetFirstAssetByType(AssetType asset_type) const
-  {
-    for (const auto& [filename, bnl_file] : this->bnl_files_) {
-      if (const auto* ptr {bnl_file.GetFirstAssetByType(asset_type)};
-          ptr != nullptr)
-      {
-        return ptr;
-      }
-    }
-
-    return nullptr;
-  }
+  [[nodiscard]] const Asset* GetAsset(std::string_view asset_name) const;
+  [[nodiscard]] const Asset* GetFirstAssetByType(AssetType asset_type) const;
 
   // void UpdateMenu();
 

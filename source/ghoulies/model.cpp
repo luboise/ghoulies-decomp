@@ -167,10 +167,6 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
                         &descriptor_bytes[texture_ptr],
                         sizeof(ModelTextureDescriptor));
 
-            if (tex_desc.format != d3d::D3DTextureType::DXT1) {
-              std::cout << tex_desc.format << "\n";
-            }
-
             Bytes tex_data(tex_desc.data_size);
 
             // assert(tex_desc.data_size > 0);

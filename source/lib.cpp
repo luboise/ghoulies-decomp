@@ -62,7 +62,11 @@ constexpr auto kWindowHeight = 720;
 std::expected<void, std::string> GhouliesLib::Initialise(
     GhouliesLibParams params)
 {
-  if (GhouliesLib::Initialised()) {}
+  if (GhouliesLib::Initialised()) {
+    return unexpected(
+        "Unable to initialise GhouliesLib once it has already been "
+        "initialised.");
+  }
 
   try {
     // Can't use std::make_unique because the constructor is private
@@ -81,6 +85,9 @@ std::expected<void, std::string> GhouliesLib::Initialise(
 GhouliesLib::~GhouliesLib()
 {
   this->game_context_.Clear();
+
+  // Force flush the game context to ensure it is empty
+  this->game_context_ = {};
 
   this->menu_.reset();
 
@@ -667,6 +674,10 @@ void GhouliesLib::DrawScene(graphics::DrawContext& ctx)
   for (auto& weapon : game_context_.weapons) {
     weapon->Draw(ctx);
   }
+
+  if (game_context_.player) {
+    game_context_.player->Draw(ctx);
+  }
 }
 
 std::expected<void, std::string> GhouliesLib::SetPlaycamScript(
@@ -712,6 +723,22 @@ std::expected<void, std::string> GhouliesLib::SetPlaycamScript(
   } catch (std::runtime_error& e) {
     return unexpected(
         std::format("Failed to load new background. Error: {}", e.what()));
+  }
+
+  if (auto result {this->LoadBNLFile(
+          FindGameFile("ghoulies_actor_player_boy.bnl").value_or({}))};
+      !result.has_value())
+  {
+    return unexpected("Failed to load BNL file required to load the player.");
+  }
+
+  try {
+    objects::Actor::ActorParams player_params {};
+    player_params.model_aid = "aid_model_ghoulies_actor_boy";
+    game_context_.player = std::make_shared<Actor>(player_params);
+  } catch (std::runtime_error& e) {
+    return unexpected(
+        std::format("Failed to create Actor for player. Error: {}", e.what()));
   }
 
   game_context_.move_on = false;
@@ -788,4 +815,41 @@ std::expected<void, std::string> GhouliesLib::LoadBNLFile(
   return {};
 }
 
+std::expected<void, std::string> GhouliesLib::Destroy()
+{
+  if (GhouliesLib::instance == nullptr) {
+    return unexpected(
+        "Unable to destroy GhouliesLib if it hasn't been initialised yet.");
+  }
+
+  GhouliesLib::instance.reset();
+
+  return {};
+}
+
+[[nodiscard]] const Asset* GhouliesLib::GetAsset(
+    std::string_view asset_name) const
+{
+  for (const auto& [filename, bnl_file] : this->bnl_files_) {
+    if (const auto* ptr {bnl_file.GetAsset(asset_name)}; ptr != nullptr) {
+      return ptr;
+    }
+  }
+
+  return nullptr;
+}
+
+[[nodiscard]] const Asset* GhouliesLib::GetFirstAssetByType(
+    AssetType asset_type) const
+{
+  for (const auto& [filename, bnl_file] : this->bnl_files_) {
+    if (const auto* ptr {bnl_file.GetFirstAssetByType(asset_type)};
+        ptr != nullptr)
+    {
+      return ptr;
+    }
+  }
+
+  return nullptr;
+}
 }  // namespace ghoulies
