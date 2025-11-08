@@ -2,21 +2,10 @@
 
 #include "game.hpp"
 
+#include "../lib.hpp"
+
 namespace ghoulies
 {
-
-[[nodiscard]] const Asset* GameContext::GetPlaycamScript() const
-{
-  const auto& playcam {std::ranges::find_if(
-      this->bnl_files,
-      [](const auto& pair) { return pair.first.contains("playcam"); })};
-
-  if (playcam == this->bnl_files.end()) {
-    return nullptr;
-  }
-
-  return playcam->second.GetFirstAssetByType(AssetType::ResScript);
-}
 
 std::expected<void, std::string> GameContext::InitialiseFromMarker(
     const Marker& marker)
@@ -38,7 +27,7 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
 
         model_name.replace(objparams_index, 9, "model");
 
-        const auto* model_asset {this->GetAsset(model_name)};
+        const auto* model_asset {GhouliesLib::Instance().GetAsset(model_name)};
 
         if (model_asset == nullptr) {
           std::cerr << "Failed to get model from objparams \""
@@ -72,7 +61,6 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
 
 void GameContext::Clear()
 {
-  this->bnl_files.clear();
   this->weapons.clear();
 }
 

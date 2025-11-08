@@ -1,6 +1,6 @@
 #include <array>
 #include <cassert>
-#include <cstring>
+#include <expected>
 #include <filesystem>
 #include <format>
 #include <iostream>
@@ -31,30 +31,92 @@
 #include "file.hpp"
 #include "ghoulies/bnl.hpp"
 #include "ghoulies/game.hpp"
-#include "ghoulies/nd.hpp"
+#include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
+#include "utils/images.hpp"
 
 // using std::filesystem::path;
 // using ghoulies::ModelDescriptor;
 //
+using ghoulies::Bytes;
 using ghoulies::utils::ReadFile;
-using graphics::Buffer;
+using ghoulies::utils::ReadFileBytes;
+
+using graphics::Texture;
+
 using graphics::Index;
 using graphics::PBRVertex;
+using std::unexpected;
+using std::filesystem::path;
+using std::filesystem::recursive_directory_iterator;
+
+namespace ghoulies
+{
+
+std::unique_ptr<GhouliesLib> GhouliesLib::instance {nullptr};
 
 constexpr auto kWindowWidth = 1280;
 constexpr auto kWindowHeight = 720;
 
-GhouliesLib::GhouliesLib()
-    : window_ {nullptr}
+std::expected<void, std::string> GhouliesLib::Initialise(
+    GhouliesLibParams params)
+{
+  if (GhouliesLib::Initialised()) {}
+
+  try {
+    // Can't use std::make_unique because the constructor is private
+    std::unique_ptr<GhouliesLib> lib {new GhouliesLib(params)};
+    GhouliesLib::instance = std::move(lib);
+
+    return {};
+  } catch (std::runtime_error& e) {
+    return unexpected(
+        std::format("Failed to create GhouliesLib instance: {}", e.what()));
+  }
+
+  return unexpected("Failed to create GhouliesLib instance.");
+}
+
+GhouliesLib::~GhouliesLib()
+{
+  this->game_context_.Clear();
+
+  this->menu_.reset();
+
+  // Destroy default texture before destroying the GPU device
+  this->default_texture_.reset();
+
+  SDL_ReleaseGPUShader(device_, pbr_vert_shader_);
+  SDL_ReleaseGPUShader(device_, pbr_frag_shader_);
+
+  SDL_ReleaseGPUGraphicsPipeline(device_, pbr_pipeline_);
+
+  SDL_DestroyGPUDevice(device_);
+  SDL_DestroyWindow(window_);
+}
+
+GhouliesLib::GhouliesLib(const GhouliesLibParams& params)
+    : quit_ {false}
+    , window_ {nullptr}
     , device_ {nullptr}
     , pbr_vert_shader_ {nullptr}
     , pbr_frag_shader_ {nullptr}
-    , initialised_ {false}
-    , quit_ {false}
     , pbr_pipeline_ {nullptr}
 {
+  path game_directory {params.game_directory.empty()
+                           ? std::filesystem::current_path() / "gbtg"
+                           : params.game_directory};
+
+  if (!std::filesystem::is_directory(game_directory)) {
+    throw std::runtime_error(
+        std::format(
+            "No directory {} exists. Make sure to " "extract " "the game " "fil" "es " "and" " pl" "ace" " th" "em " "here.",
+            game_directory.string()));
+  }
+
+  this->game_directory_ = std::move(game_directory);
+
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     std::cerr << std::format("SDL could not initialize! SDL_Error: {}\n",
                              SDL_GetError());
@@ -106,8 +168,8 @@ GhouliesLib::GhouliesLib()
   SDL_UpdateWindowSurface(window_);
   */
 
-  auto vs_bytes = ReadFile("source/shaders/pbr_vert.spv").value();
-  auto fs_bytes = ReadFile("source/shaders/pbr_frag.spv").value();
+  auto vs_bytes = ReadFile("resources/shaders/pbr_vert.spv").value();
+  auto fs_bytes = ReadFile("resources/shaders/pbr_frag.spv").value();
 
   const SDL_GPUShaderCreateInfo vs_create_info {
       .code_size = vs_bytes.size(),
@@ -118,7 +180,8 @@ GhouliesLib::GhouliesLib()
       .num_samplers = 0,
       .num_storage_textures = 0,
       .num_storage_buffers = 0,
-      .num_uniform_buffers = 2};
+      .num_uniform_buffers = 2,
+      .props = 0};
 
   const SDL_GPUShaderCreateInfo fs_create_info {
       .code_size = fs_bytes.size(),
@@ -129,7 +192,8 @@ GhouliesLib::GhouliesLib()
       .num_samplers = 1,
       .num_storage_textures = 0,
       .num_storage_buffers = 0,
-      .num_uniform_buffers = 1};
+      .num_uniform_buffers = 1,
+      .props = 0};
 
   pbr_vert_shader_ = SDL_CreateGPUShader(device_, &vs_create_info);
   if (pbr_vert_shader_ == nullptr) {
@@ -171,7 +235,8 @@ GhouliesLib::GhouliesLib()
   std::array vb_descriptions = {SDL_GPUVertexBufferDescription {
       .slot = 0,
       .pitch = sizeof(PBRVertex),
-      .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX}};
+      .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
+      .instance_step_rate = {}}};
 
   SDL_GPUVertexInputState input_state {
       .vertex_buffer_descriptions = vb_descriptions.data(),
@@ -211,6 +276,9 @@ GhouliesLib::GhouliesLib()
           .num_color_targets = color_target_descriptions.size(),
           .depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
           .has_depth_stencil_target = true,
+          .padding1 = {},
+          .padding2 = {},
+          .padding3 = {},
       }};
 
   pbr_pipeline_ = SDL_CreateGPUGraphicsPipeline(device_, &pipeline_create_info);
@@ -248,27 +316,18 @@ GhouliesLib::GhouliesLib()
 
   camera_.transform.position = {0, 0, -1};
 
-  SDL_CaptureMouse(true);
-  initialised_ = true;
+  auto default_texture_opt {
+      ghoulies::utils::LoadTexture("resources/textures/default_texture.png")};
+
+  auto tex {this->LoadTexture(default_texture_opt.value())};
+  if (tex == nullptr) {
+    throw std::runtime_error("Failed to create default texture.\n");
+  }
+
+  this->SetDefaultTexture(std::move(tex));
 }
 
-GhouliesLib::~GhouliesLib()
-{
-  this->menu_.reset();
-
-  // Destroy default texture before destroying the GPU device
-  this->default_texture_.reset();
-
-  SDL_ReleaseGPUShader(device_, pbr_vert_shader_);
-  SDL_ReleaseGPUShader(device_, pbr_frag_shader_);
-
-  SDL_ReleaseGPUGraphicsPipeline(device_, pbr_pipeline_);
-
-  SDL_DestroyGPUDevice(device_);
-  SDL_DestroyWindow(window_);
-}
-
-void GhouliesLib::UpdateEvents(ghoulies::GameContext& ctx)
+void GhouliesLib::UpdateEvents()
 {
   static float movement_speed {1};
 
@@ -300,7 +359,7 @@ void GhouliesLib::UpdateEvents(ghoulies::GameContext& ctx)
       * movement_speed * camera_.Up();
 
   if (key_states_[SDL_SCANCODE_B]) {
-    ctx.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
+    game_context_.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
   }
 
   if (key_states_[SDL_SCANCODE_A]) {
@@ -338,8 +397,8 @@ void GhouliesLib::UpdateEvents(ghoulies::GameContext& ctx)
   }
 }
 
-std::unique_ptr<graphics::Texture> GhouliesLib::LoadTexture(
-    graphics::TextureAsset asset)
+std::unique_ptr<::graphics::Texture> GhouliesLib::LoadTexture(
+    ::graphics::TextureAsset asset)
 {
   try {
     auto tex {
@@ -356,8 +415,6 @@ std::unique_ptr<graphics::Texture> GhouliesLib::LoadTexture(
 std::shared_ptr<graphics::Model> GhouliesLib::LoadModel(
     const ghoulies::Asset& asset)
 {
-  using namespace graphics;
-
   // std::span<uint8_t> span {static_cast<uint8_t*>(bytes), file_size};
 
   auto model_asset_exp {ghoulies::ModelAsset::FromAsset(asset)};
@@ -370,7 +427,8 @@ std::shared_ptr<graphics::Model> GhouliesLib::LoadModel(
   }
 
   try {
-    return std::make_unique<Model>(this->device_, model_asset_exp.value());
+    return std::make_unique<graphics::Model>(this->device_,
+                                             model_asset_exp.value());
   } catch (std::runtime_error& e) {
     std::cerr << "Error loading model: " << e.what() << "\n";
   }
@@ -595,14 +653,139 @@ void GhouliesLib::SetDefaultTexture(
 
 void GhouliesLib::SetLighting(graphics::LightingUniforms&& uniforms)
 {
-  this->lighting_uniforms_ = uniforms;
+  this->lighting_uniforms_ = std::move(uniforms);
 }
 
 void GhouliesLib::DrawScene(graphics::DrawContext& ctx)
 {
-  auto& game_context {ghoulies::GameContext::Instance()};
+  if (game_context_.draw_backgrounds) {
+    for (auto& bg : game_context_.backgrounds) {
+      bg->Draw(ctx);
+    }
+  }
 
-  for (auto& weapon : game_context.weapons) {
+  for (auto& weapon : game_context_.weapons) {
     weapon->Draw(ctx);
   }
 }
+
+std::expected<void, std::string> GhouliesLib::SetPlaycamScript(
+    std::string_view playcam_aid)
+{
+  // TODO: Clear current background/context
+
+  // Load BNL file for new playcam
+  auto bnl_path {FindGameFile(std::string {playcam_aid} + ".bnl")};
+  if (!bnl_path.has_value()) {
+    return unexpected("No BNL file exists for asset ID "
+                      + std::string(playcam_aid));
+  }
+
+  if (auto result {this->LoadBNLFile(bnl_path.value())}; !result.has_value()) {
+    return unexpected(
+        std::format("Failed to load BNL file. Error: {}", result.error()));
+  }
+
+  // Load new playcam script
+  const auto* playcam_script {this->FindPlaycamScript()};
+
+  if (playcam_script == nullptr) {
+    return unexpected(std::format(
+        "Failed to get playcam script. Error: {}\n",
+        "Unable to find the playcam script in the open BNL files."));
+  }
+  ghoulies::Script script {*playcam_script};
+
+  script.Update(game_context_);
+
+  // Run initial script commands
+  //
+  ghoulies::objects::Background::BackgroundParams bg_params;
+  bg_params.model_aid = std::string(game_context_.background_model_aid);
+
+  std::cout << "Loading background " << bg_params.model_aid.data() << ".\n";
+
+  try {
+    auto bg {std::make_shared<objects::Background>(bg_params)};
+    game_context_.backgrounds.push_back(bg);
+
+  } catch (std::runtime_error& e) {
+    return unexpected(
+        std::format("Failed to load new background. Error: {}", e.what()));
+  }
+
+  game_context_.move_on = false;
+
+  const auto* marker_asset {
+      this->GetFirstAssetByType(ghoulies::AssetType::ResMarker)};
+
+  if (marker_asset != nullptr) {
+    Marker marker {*marker_asset};
+
+    std::cout << "Num marker entries: " << marker.Size() << ".\n";
+
+    if (auto result {game_context_.InitialiseFromMarker(marker)};
+        !result.has_value())
+    {
+      return unexpected(
+          std::format("Failed to initialise game state from marker. Error: {}",
+                      result.error()));
+    }
+  }
+
+  return {};
+}
+
+std::optional<std::filesystem::path> GhouliesLib::FindGameFile(
+    std::string_view filename)
+{
+  for (const auto& entry : recursive_directory_iterator(game_directory_)) {
+    if (entry.is_regular_file() && entry.path().filename() == filename) {
+      return entry.path();
+    }
+  }
+
+  return std::nullopt;
+}
+
+[[nodiscard]] const Asset* GhouliesLib::FindPlaycamScript() const
+{
+  const auto& playcam {std::ranges::find_if(
+      this->bnl_files_,
+      [](const auto& pair) { return pair.first.contains("playcam"); })};
+
+  if (playcam == this->bnl_files_.end()) {
+    return nullptr;
+  }
+
+  return playcam->second.GetFirstAssetByType(AssetType::ResScript);
+}
+
+std::expected<void, std::string> GhouliesLib::LoadBNLFile(
+    std::filesystem::path bnl_path)
+{
+  if (this->bnl_files_.contains(bnl_path)) {
+    std::cout << "BNL file " << bnl_path
+              << " has already been loaded. Skipping reload request.\n";
+    return {};
+  }
+
+  std::optional<Bytes> bytes_opt {ReadFileBytes(bnl_path)};
+
+  if (!bytes_opt.has_value()) {
+    return unexpected(std::string("Failed to read bytes of ")
+                      + bnl_path.string());
+  }
+
+  auto bnl_exp {ghoulies::BNLFile::FromBytes(bytes_opt.value())};
+  if (!bnl_exp.has_value()) {
+    return unexpected {
+        std::format("Unable to load BNL file. Error: {}\n", bnl_exp.error())};
+  }
+
+  bnl_files_.emplace(bnl_path, std::move(bnl_exp).value());
+
+  return {};
+}
+
+}  // namespace ghoulies

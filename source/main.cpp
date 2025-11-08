@@ -15,77 +15,37 @@
 using ghoulies::BNLFile, ghoulies::Bytes;
 using ghoulies::utils::ReadFileBytes;
 
-using ghoulies::Script, ghoulies::Marker;
+using ghoulies::GhouliesLibParams;
+using ghoulies::Script, ghoulies::Marker, ghoulies::GhouliesLib;
 
 auto main(int argc, char** argv) -> int
 {
-  auto lib = GhouliesLib {};
-
-  if (!lib.Initialised()) {
-    std::cerr << "Unable to initialise core library. Exiting now." << '\n';
+  if (argc != 2) {
+    std::cerr << "Expected playcam script in CLI args. eg. ghoulies_launcher "
+                 "aid_model_script_chapter2a_scene2_1playcam.bnl";
     return 1;
   }
 
-  if (argc == 0) {
-    std::cerr << "No model available.\n";
+  // Initialise the application
+  GhouliesLibParams params {};
+
+  if (auto result {GhouliesLib::Initialise(std::move(params))};
+      !result.has_value())
+  {
+    std::cerr << "Unable to initialise GhouliesLib. Error: " << result.error()
+              << "\n";
     return 1;
   }
 
-  auto& game_context {ghoulies::GameContext::Instance()};
+  auto& lib {GhouliesLib::Instance()};
 
-  game_context.move_on = false;
-  game_context.sdl_device = lib.GetSDLDevice();
+  // Set the play script
 
-  Bytes bytes {ReadFileBytes(argv[1]).value()};
-  auto bnl_exp {BNLFile::FromBytes(bytes)};
-
-  if (!bnl_exp.has_value()) {
-    std::cerr << std::format("Unable to load BNL file. Error: {}\n",
-                             bnl_exp.error());
-
+  if (auto result {lib.SetPlaycamScript(argv[1])}; !result.has_value()) {
+    std::cerr << "Failed to execute level from BNL file " << argv[1]
+              << ". Error: " << result.error() << "\n";
     return 1;
   }
-
-  game_context.bnl_files.emplace(argv[1], std::move(bnl_exp).value());
-
-  const auto* tex_raw_asset {
-      game_context.GetAsset("aid_texture_ghoulies_weapon_interacthand")};
-
-  if (tex_raw_asset == nullptr) {
-    std::cerr
-        << "Failed to get asset " "aid_texture_ghoulies_weapon_interacthand.\n";
-    return 1;
-  }
-
-  graphics::TextureAsset tex_asset {
-      .format = SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM,
-      .width = 128,
-      .height = 128,
-      .data = tex_raw_asset->resource};
-
-  auto tex {lib.LoadTexture(tex_asset)};
-  if (tex == nullptr) {
-    std::cerr << "Failed to create texture.\n";
-    return 1;
-  }
-
-  lib.SetDefaultTexture(std::move(tex));
-
-  const auto* playcam_script {game_context.GetPlaycamScript()};
-
-  if (playcam_script == nullptr) {
-    std::cerr << "Failed to get playcam script.\n";
-    return 1;
-  }
-
-  Script script {*playcam_script};
-  script.Update(game_context);
-
-  ghoulies::objects::Background::BackgroundParams params;
-  params.model_aid = std::string(game_context.background_model_aid);
-
-  std::cout << "Loading background " << params.model_aid.data() << ".\n";
-  ghoulies::objects::Background bg {params};
 
   /*
   std::cout << "Loading skeletonbad.\n";
@@ -94,23 +54,11 @@ auto main(int argc, char** argv) -> int
   auto skeletonbad {lib.LoadModel(*raw_skeletonbad)};
   */
 
-  Marker marker {
-      *game_context.GetFirstAssetByType(ghoulies::AssetType::ResMarker)};
-
-  std::cout << "Num marker entries: " << marker.Size() << ".\n";
-
-  if (auto result {game_context.InitialiseFromMarker(marker)};
-      !result.has_value())
-  {
-    std::cerr << "Failed to initialise game state from marker.\n";
-    return 1;
-  }
-
   std::cout << "Ghoulies launcher launched." << '\n';
 
   // lib.DrawTestObjects(*tex);
   while (!lib.ShouldQuit()) {
-    lib.UpdateEvents(game_context);
+    lib.UpdateEvents();
 
     // TODO:
     // - Begin one command buffer
@@ -123,23 +71,17 @@ auto main(int argc, char** argv) -> int
     // - End render pass
     // - Submit command buffer all together
 
-    lib.Menu().NewFrame();
+    // lib.Menu().NewFrame();
+
+    // Draw everything
     auto draw_ctx {lib.NewDrawContext()};
-
-    if (game_context.draw_backgrounds) {
-      bg.Draw(draw_ctx);
-    }
-
     lib.DrawScene(draw_ctx);
-
     lib.EndDrawContext(draw_ctx);
 
-    lib.Menu().Render();
+    // lib.Menu().Render();
   }
 
   std::cout << "Exiting ghoulies launcher." << '\n';
-
-  game_context.Clear();
 
   return 0;
 }

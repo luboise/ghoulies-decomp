@@ -13,10 +13,12 @@ using Bytes = std::vector<std::byte>;
 std::optional<std::vector<uint8_t>> ReadFile(
     const std::filesystem::path& file_path);
 
-std::optional<Bytes> ReadFileBytes(const std::filesystem::path& file_path);
+[[nodiscard]] std::optional<Bytes> ReadFileBytes(
+    const std::filesystem::path& file_path);
 
-std::optional<Bytes> ZLibDecompress(const Bytes& bytes,
-                                    /// The minimum decompressed size
-                                    uint32_t decompressed_size = 0);
+[[nodiscard]] std::optional<Bytes> ZLibDecompress(
+    const Bytes& bytes,
+    /// The minimum decompressed size
+    uint32_t decompressed_size = 0);
 
 }  // namespace ghoulies::utils

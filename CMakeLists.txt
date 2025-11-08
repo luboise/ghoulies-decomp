@@ -38,18 +38,20 @@ target_sources(
   ghoulies_launcher_lib
   PRIVATE source/lib.cpp
           source/file.cpp
+          source/graphics/material.cpp
+          source/graphics/model.cpp
+          source/graphics/graphics.cpp
           source/graphics/model.cpp
           source/ghoulies/bnl.cpp
           source/ghoulies/game.cpp
           source/ghoulies/model.cpp
           source/ghoulies/nd.cpp
           source/ghoulies/script.cpp
-          source/graphics/material.cpp
-          source/graphics/model.cpp
-          source/graphics/graphics.cpp
           source/ghoulies/assets/marker.cpp
           source/ghoulies/objects/avatar/avatar.cpp
           source/ghoulies/objects/weapon/weapon.cpp
+          # utils
+          source/utils/images.cpp
           source/menu/menu.cpp
           ${IMGUI_SOURCES})
 

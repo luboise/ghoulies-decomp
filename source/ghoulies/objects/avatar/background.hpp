@@ -10,6 +10,7 @@ class Background : public Avatar
 public:
   using BackgroundParams = AvatarParams;
 
+  /// Throws std::runtime_error if fails to be created.
   explicit Background(const BackgroundParams& params);
 
   struct BackgroundInner

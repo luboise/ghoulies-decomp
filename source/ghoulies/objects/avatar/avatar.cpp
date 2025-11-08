@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "../../../lib.hpp"
 #include "../../game.hpp"
 #include "background.hpp"
 #include "graphics/model.hpp"
@@ -12,15 +13,13 @@ namespace ghoulies::objects
 Background::Background(const BackgroundParams& params)
     : Avatar(params)
 {
-  GameContext& ctx {GameContext::Instance()};
+  auto& ctx {GhouliesLib::Instance().GameContext()};
 
   ctx.background_model_aid = params.model_aid;
 
   if (params.model_aid.empty()) {
     throw std::runtime_error("No model available for background.");
   }
-
-  ctx.backgrounds.Register(&this->registry_entry_);
 
   /*
  char cVar1;
@@ -279,10 +278,10 @@ if (*(code**)&param_1->field_0x1a0 != NULL) {
 
 void Avatar::SetModel(std::string_view model_aid)
 {
-  auto& game_context {GameContext::Instance()};
+  auto& lib {GhouliesLib::Instance()};
 
   try {
-    const auto* raw_asset {game_context.GetAsset(model_aid)};
+    const auto* raw_asset {lib.GetAsset(model_aid)};
 
     auto model_asset_exp {ModelAsset::FromAsset(*raw_asset)};
 
@@ -293,7 +292,7 @@ void Avatar::SetModel(std::string_view model_aid)
     }
 
     this->model_ = std::make_shared<::graphics::Model>(
-        game_context.sdl_device, std::move(model_asset_exp).value());
+        lib.SDLDevice(), std::move(model_asset_exp).value());
   } catch (std::runtime_error& e) {
     throw std::runtime_error(
         std::format("Failed to create Avatar: {}", e.what()));

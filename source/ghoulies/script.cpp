@@ -113,8 +113,6 @@ bool Script::Update(GameContext& ctx)
     if (this->current_operation_ == this->operations_.size()) {
       return ScriptUpdateStatus::ScriptEnded != 0U;
     }
-
-    const ScriptOperation& current_op {this->CurrentOperation()};
   } while (status == OpHandled);
 
   return status != ScriptUpdateStatus::Error;
