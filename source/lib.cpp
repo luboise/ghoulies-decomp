@@ -319,10 +319,6 @@ GhouliesLib::GhouliesLib(const GhouliesLibParams& params)
     return;
   }
 
-  camera_ = graphics::Camera {};
-
-  camera_.transform.position = {0, 0, -1};
-
   auto default_texture_opt {
       ghoulies::utils::LoadTexture("resources/textures/default_texture.png")};
 
@@ -349,42 +345,9 @@ void GhouliesLib::UpdateEvents()
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
     } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
-      constexpr float kMouseSensitivity {0.1F};
-
-      camera_.RotateSpinClockwise(e.motion.xrel * kMouseSensitivity);
-      camera_.RotateLeanForwards(e.motion.yrel * kMouseSensitivity);
+      // camera_.RotateSpinClockwise(e.motion.xrel * kMouseSensitivity);
+      // camera_.RotateLeanForwards(e.motion.yrel * kMouseSensitivity);
     }
-  }
-
-  bool hyperspeed {key_states_[SDL_SCANCODE_LSHIFT]};
-
-  const auto left = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
-      * movement_speed * camera_.Left();
-  const auto forwards = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
-      * movement_speed * camera_.Forwards();
-  const auto up = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
-      * movement_speed * camera_.Up();
-
-  if (key_states_[SDL_SCANCODE_B]) {
-    game_context_.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
-  }
-
-  if (key_states_[SDL_SCANCODE_A]) {
-    camera_.transform.position += left;
-  } else if (key_states_[SDL_SCANCODE_D]) {
-    camera_.transform.position -= left;
-  }
-
-  if (key_states_[SDL_SCANCODE_W]) {
-    camera_.transform.position += forwards;
-  } else if (key_states_[SDL_SCANCODE_S]) {
-    camera_.transform.position -= forwards;
-  }
-
-  if (key_states_[SDL_SCANCODE_SPACE]) {
-    camera_.transform.position += up;
-  } else if (key_states_[SDL_SCANCODE_LCTRL]) {
-    camera_.transform.position -= up;
   }
 
   if (key_states_[SDL_SCANCODE_EQUALS]) {
@@ -520,8 +483,8 @@ void GhouliesLib::DrawTestModel(graphics::Model& model,
 
   const glm::mat4 identity(1.0F);
 
-  const auto view {this->camera_.ViewMatrix()};
-  const auto projection {this->camera_.ProjectionMatrix()};
+  const auto view {game_context_.active_camera.ViewMatrix()};
+  const auto projection {game_context_.active_camera.ProjectionMatrix()};
 
   graphics::ViewUniforms uniforms {.view = view, .projection = projection};
   SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
@@ -619,8 +582,8 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
 
   const glm::mat4 identity(1.0F);
 
-  const auto view {this->camera_.ViewMatrix()};
-  const auto projection {this->camera_.ProjectionMatrix()};
+  const auto view {this->game_context_.active_camera.ViewMatrix()};
+  const auto projection {this->game_context_.active_camera.ProjectionMatrix()};
 
   graphics::ViewUniforms uniforms {.view = view, .projection = projection};
   SDL_PushGPUVertexUniformData(command_buffer, 0, &uniforms, sizeof(uniforms));
@@ -852,4 +815,87 @@ std::expected<void, std::string> GhouliesLib::Destroy()
 
   return nullptr;
 }
+
+void GhouliesLib::UpdateScene()
+{
+  static float movement_speed {1};
+
+  constexpr float kMaxMovementSpeed {100.0F};
+  constexpr float kMinMovementSpeed {0.2F};
+
+  // Hack to get window to stay up
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    menu_->ProcessEvent(&e);
+
+    if (e.type == SDL_EVENT_QUIT) {
+      this->quit_ = true;
+    } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
+      constexpr float kMouseSensitivity {0.1F};
+
+      // camera_.RotateSpinClockwise(e.motion.xrel * kMouseSensitivity);
+      // camera_.RotateLeanForwards(e.motion.yrel * kMouseSensitivity);
+    }
+  }
+
+  bool hyperspeed {key_states_[SDL_SCANCODE_LSHIFT]};
+
+  auto& player_transform {game_context_.player->GetTransform()};
+
+  /*
+  const auto left = 0.01F * movement_speed * glm::vec3 {-1, 0, 0};
+
+  const auto forwards = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * player_transform.Forwards();
+  const auto up = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * player_transform.Up();
+          */
+
+  const auto left = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * glm::vec3 {-1, 0, 0};
+  const auto forwards = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * glm::vec3 {0, 0, 1};
+  const auto up = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
+      * movement_speed * glm::vec3 {0, 1, 0};
+
+  if (key_states_[SDL_SCANCODE_A]) {
+    player_transform.position += left;
+  } else if (key_states_[SDL_SCANCODE_D]) {
+    player_transform.position -= left;
+  }
+
+  if (key_states_[SDL_SCANCODE_W]) {
+    player_transform.position += forwards;
+  } else if (key_states_[SDL_SCANCODE_S]) {
+    player_transform.position -= forwards;
+  }
+
+  if (key_states_[SDL_SCANCODE_SPACE]) {
+    player_transform.position += up;
+  } else if (key_states_[SDL_SCANCODE_LCTRL]) {
+    player_transform.position -= up;
+  }
+
+  if (key_states_[SDL_SCANCODE_EQUALS]) {
+    movement_speed = std::min(kMaxMovementSpeed, movement_speed * 1.03F);
+  }
+
+  if (key_states_[SDL_SCANCODE_MINUS]) {
+    movement_speed = std::max(kMinMovementSpeed, movement_speed / 1.03F);
+  }
+
+  if (key_states_[SDL_SCANCODE_0]) {
+    this->lighting_uniforms_.ambient_brightness =
+        std::min(1.0F, this->lighting_uniforms_.ambient_brightness + 0.005F);
+  } else if (key_states_[SDL_SCANCODE_9]) {
+    this->lighting_uniforms_.ambient_brightness =
+        std::max(0.1F, this->lighting_uniforms_.ambient_brightness - 0.005F);
+  }
+
+  game_context_.active_camera.transform.position = player_transform.position
+      + glm::vec3 {0, 11, 0} - glm::vec3 {0, 0, 20.0F};
+
+  game_context_.active_camera.transform.rotation = player_transform.rotation;
+}
+
 }  // namespace ghoulies

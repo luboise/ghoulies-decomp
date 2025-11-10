@@ -268,10 +268,7 @@ if (*(code**)&param_1->field_0x1a0 != NULL) {
   }
 
   // this->model_->DrawBasic(ctx.render_pass);
-  this->model_->DrawWithTransform(
-      ctx,
-      ::graphics::Transform {
-          .position = pos_, .rotation = rot_euler_, .scale = scale_});
+  this->model_->DrawWithTransform(ctx, this->transform_);
 
   return true;
 }
@@ -301,10 +298,11 @@ void Avatar::SetModel(std::string_view model_aid)
 
 Avatar::Avatar(const AvatarParams& params)
     : Object(params)
-    , pos_(params.pos)
-    , rot_euler_(params.rot_euler)
 {
-  this->scale_ = params.scale * glm::vec3 {1, 1, 1};
+  this->transform_ =
+      graphics::Transform {.position = params.pos,
+                           .rotation = params.rot_euler,
+                           .scale = params.scale * glm::vec3 {1, 1, 1}};
 
   if (!params.model_aid.empty()) {
     this->SetModel(params.model_aid);

@@ -55,6 +55,8 @@ auto main(int argc, char** argv) -> int
 
     // lib.Menu().NewFrame();
 
+    lib.UpdateScene();
+
     // Draw everything
     auto draw_ctx {lib.NewDrawContext()};
     lib.DrawScene(draw_ctx);

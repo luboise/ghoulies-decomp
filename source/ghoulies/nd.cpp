@@ -292,8 +292,7 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
   }
 
   // Print out nd tree of model
-  // std::cout << std::string(ctx.tree.size() * 2, ' ') << node->nd_type <<
-  // "\n";
+  std::cout << std::string(ctx.tree.size() * 2, ' ') << node->nd_type << "\n";
 
   if (ctx.root == nullptr) {
     ctx.root = node;
@@ -303,6 +302,8 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
     node->prev_node = ctx.tree.top();
   }
 
+  // TODO: Move this somewhere else or refactor the node child loops here
+  // if (node->nd_type != NdType::BlendShape) {
   if (header.next_child_ptr != 0) {
     ctx.tree.push(node);
 
@@ -324,6 +325,7 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
     }
     node->next_sibling = result.value();
   }
+  // }
 
   return node;
 }
@@ -379,8 +381,8 @@ std::ostream& operator<<(std::ostream& os, NdType nd_type)
   return os;
 }
 
-std::optional<NdVertexBufferView*> NdVertexBuffer::GetBufferView(
-    NdVertexBufferViewType view_type)
+std::optional<const NdVertexBufferView*> NdVertexBuffer::GetBufferView(
+    NdVertexBufferViewType view_type) const
 {
   if (auto found {
           std::ranges::find_if(this->resource_views,
@@ -465,7 +467,7 @@ std::optional<uint32_t> NdShaderParam2::GetDiffuseTextureIndex() const
   const auto lambda =
       [](const NdShaderParam2Payload& payload) -> std::optional<uint32_t>
   {
-    for (const auto& val : {"colour1", "colour0"}) {
+    for (const auto& val : {"colour3", "colour2", "colour1", "colour0"}) {
       // Check if any assignments map to colour0
       const ShaderParamAssignment* assignment {payload.GetAssignment(val)};
       if (assignment != nullptr) {

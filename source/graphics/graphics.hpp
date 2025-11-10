@@ -56,6 +56,10 @@ struct Transform
 
   [[nodiscard]] glm::mat4 ModelMatrix() const;
   [[nodiscard]] glm::mat4 RotationMatrix() const;
+
+  [[nodiscard]] glm::vec3 Left() const;
+  [[nodiscard]] glm::vec3 Forwards() const;
+  [[nodiscard]] glm::vec3 Up() const;
 };
 
 struct Camera
@@ -127,9 +131,14 @@ struct Camera
     return *this;
   }
 
-  [[nodiscard]] glm::vec3 Left() const;
-  [[nodiscard]] glm::vec3 Forwards() const;
-  [[nodiscard]] glm::vec3 Up() const;
+  [[nodiscard]] glm::vec3 Left() const { return this->transform.Left(); }
+
+  [[nodiscard]] glm::vec3 Forwards() const
+  {
+    return this->transform.Forwards();
+  }
+
+  [[nodiscard]] glm::vec3 Up() const { return this->transform.Up(); }
 };
 
 struct TextureAsset
@@ -177,6 +186,7 @@ private:
 struct DrawCommand
 {
   SDL_GPUPrimitiveType primitive_type;
+  Uint32 first_vertex;
   Uint32 first_index;
   Uint32 num_indices;
   uint32_t material_index;

@@ -9,7 +9,10 @@
 
 namespace graphics
 {
+
 struct DrawContext;
+struct Transform;
+
 }  // namespace graphics
 
 namespace ghoulies::objects
@@ -60,14 +63,21 @@ public:
 
   virtual void SetModel(std::string_view model_aid);
 
+  [[nodiscard]] graphics::Transform& GetTransform() { return this->transform_; }
+
 protected:
   explicit Avatar(const AvatarParams& params);
 
 private:
+  /*
   glm::vec3 pos_ {};
   glm::vec3 rot_euler_ {};
   glm::quat rot_quaterion_ {};
   glm::vec3 scale_ {};
+  */
+
+  graphics::Transform transform_ {};
+
   float field5_0x3c_ {};
   float t_ {};
   float field7_0x44_ {};

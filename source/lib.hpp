@@ -55,6 +55,7 @@ struct GhouliesLib
 
   [[nodiscard]] ::graphics::DrawContext NewDrawContext();
   void EndDrawContext(::graphics::DrawContext ctx);
+  void UpdateScene();
 
   void DrawScene(::graphics::DrawContext& ctx);
   void DrawTestModel(::graphics::Model& model,
@@ -116,7 +117,6 @@ private:
   SDL_GPUShader* pbr_frag_shader_;
   SDL_GPUGraphicsPipeline* pbr_pipeline_;
 
-  ::graphics::Camera camera_;
   ::graphics::LightingUniforms lighting_uniforms_;
 
   const bool* key_states_;

@@ -298,8 +298,8 @@ struct NdVertexBuffer : public NdNode
   std::vector<NdVertexBufferView> resource_views;
   Bytes vertex_buffer_bytes;
 
-  std::optional<NdVertexBufferView*> GetBufferView(
-      NdVertexBufferViewType view_type);
+  std::optional<const NdVertexBufferView*> GetBufferView(
+      NdVertexBufferViewType view_type) const;
 };
 
 struct NdShaderParam2 : public NdNode

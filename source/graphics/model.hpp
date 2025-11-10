@@ -26,7 +26,6 @@ public:
   Model& operator=(Model&&) = delete;
 
   void DrawBasic(SDL_GPURenderPass* render_pass);
-
   void DrawWithTransform(DrawContext& ctx, const Transform& transform);
 
 private:

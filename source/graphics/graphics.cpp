@@ -23,19 +23,19 @@ glm::mat4 Camera::ViewMatrix() const
   return glm::inverse(this->transform.ModelMatrix());
 }
 
-glm::vec3 Camera::Left() const
+glm::vec3 Transform::Left() const
 {
-  return this->transform.RotationMatrix() * glm::vec4 {glm::vec3 {-1, 0, 0}, 0};
+  return this->RotationMatrix() * glm::vec4 {glm::vec3 {-1, 0, 0}, 0};
 }
 
-glm::vec3 Camera::Forwards() const
+glm::vec3 Transform::Forwards() const
 {
-  return this->transform.RotationMatrix() * glm::vec4 {glm::vec3 {0, 0, 1}, 0};
+  return this->RotationMatrix() * glm::vec4 {glm::vec3 {0, 0, 1}, 0};
 }
 
-glm::vec3 Camera::Up() const
+glm::vec3 Transform::Up() const
 {
-  return this->transform.RotationMatrix() * glm::vec4 {glm::vec3 {0, 1, 0}, 0};
+  return this->RotationMatrix() * glm::vec4 {glm::vec3 {0, 1, 0}, 0};
 }
 
 glm::mat4 Camera::ProjectionMatrix() const

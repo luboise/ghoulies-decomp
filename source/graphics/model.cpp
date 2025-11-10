@@ -2,7 +2,9 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <expected>
 #include <iostream>
+#include <list>
 #include <memory>
 #include <numeric>
 
@@ -16,6 +18,7 @@
 
 namespace graphics
 {
+using ghoulies::Bytes;
 using ghoulies::ModelAsset;
 using ghoulies::NdNode;
 using ghoulies::NdVertexBuffer;
@@ -26,12 +29,28 @@ struct ModelDrawData
   SDL_GPUPrimitiveType primitive_type;
   std::vector<Index> indices;
   uint32_t material_index;
+
+  std::size_t vertices_index {0};
+  std::size_t indices_index {0};
 };
 
 namespace
 {
+
+struct NewModelParams
+{
+  std::vector<PBRVertex> pbr_vertices;
+  std::size_t current_vertex_count {0};
+
+  std::vector<Index> pbr_indices;
+  std::size_t current_index_count;
+
+  std::vector<DrawCommand> draw_commands;
+};
+
 void FindDrawsFromNodeRecursive(const NdNode& node,
-                                std::vector<ModelDrawData>& draws)
+                                std::vector<ModelDrawData>& draws,
+                                const NewModelParams& params)
 {
   // TODO: Separate out BG push buffer
   if (node.nd_type == ghoulies::NdType::PushBuffer
@@ -40,7 +59,10 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
     const auto* push_buffer {(const ghoulies::NdPushBuffer*)&node};
 
     for (const auto& draw_data : push_buffer->draw_commands) {
-      ModelDrawData new_draw_data {.material_index = draw_data.material_index};
+      ModelDrawData new_draw_data {
+          .material_index = draw_data.material_index,
+          .vertices_index = params.current_vertex_count,
+          .indices_index = params.current_index_count};
 
       switch (draw_data.primitive_type) {
         case d3d::D3DPrimitiveType::PointList:
@@ -62,8 +84,6 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
           new_draw_data.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
           new_draw_data.indices = std::vector<Index>(num_indices);
           new_draw_data.material_index = draw_data.material_index;
-
-          Index root_index {draw_data.indices[0]};
 
           for (std::size_t i {0}; i < draw_data.indices.size() - 2; i++) {
             // Reverse winding for odd triangles
@@ -121,22 +141,148 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
   }
 
   if (node.next_child != nullptr) {
-    FindDrawsFromNodeRecursive(*node.next_child, draws);
+    FindDrawsFromNodeRecursive(*node.next_child, draws, params);
   }
   if (node.next_sibling != nullptr) {
-    FindDrawsFromNodeRecursive(*node.next_sibling, draws);
+    FindDrawsFromNodeRecursive(*node.next_sibling, draws, params);
   }
 }
 
-inline std::vector<ModelDrawData> FindDrawsFromNode(const NdNode& node)
+inline std::vector<ModelDrawData> FindDrawsFromNode(
+    const NdNode& node, const NewModelParams& params)
 {
   std::vector<ModelDrawData> draws;
-  FindDrawsFromNodeRecursive(node, draws);
+  FindDrawsFromNodeRecursive(node, draws, params);
 
   return draws;
 }
 
 }  // namespace
+
+void NdNodeToModelParams(std::shared_ptr<NdNode> root_node,
+                         NewModelParams& params)
+{
+  if (root_node->nd_type == ghoulies::NdType::VertexBuffer) {
+    std::cout << "Found new vertex buffer.\n";
+
+    auto nd_vertex_buffer {
+        std::static_pointer_cast<const NdVertexBuffer>(root_node)};
+    if (nd_vertex_buffer == nullptr) {
+      throw std::runtime_error("No vertex buffer available.");
+    }
+
+    auto vertices_opt {nd_vertex_buffer->GetBufferView(
+        ghoulies::NdVertexBufferViewType::Vertex)};
+    if (!vertices_opt.has_value()) {
+      throw std::runtime_error("No vertices in model resource views.");
+    }
+
+    const ghoulies::NdVertexBufferView* vertices_view =
+        std::move(vertices_opt).value();
+
+    // 12 = sizeof packed vec3
+    if (vertices_view->stride != 12) {
+      throw std::runtime_error(
+          "Vertices exist, but don't have a stride of 12.");
+    }
+
+    auto num_vertices {vertices_view->size / vertices_view->stride};
+
+    // Create vertices
+    std::vector<PBRVertex> pbr_vertices {};
+
+    for (std::size_t i {0}; i < num_vertices; i++) {
+      std::array<float, 3> pos {};
+
+      std::memcpy(
+          pos.data(),
+          &nd_vertex_buffer->vertex_buffer_bytes[vertices_view->start_ptr
+                                                 + (i * 3 * sizeof(float))],
+          sizeof(pos));
+
+      pbr_vertices.emplace_back(glm::vec3 {pos[0], pos[1], pos[2]});
+    }
+
+    if (auto uv_buf_view {nd_vertex_buffer->GetBufferView(
+            ghoulies::NdVertexBufferViewType::UV)};
+        uv_buf_view.has_value())
+    {
+      const auto* uv_view {std::move(uv_buf_view).value()};
+      assert(uv_view->stride == sizeof(float) * 2);
+
+      const std::size_t values_per_uv {uv_view->stride / sizeof(float)};
+
+      const std::size_t num_uv_vertices {uv_view->size / uv_view->stride};
+      const std::size_t num_uv_floats {num_uv_vertices * values_per_uv};
+
+      std::vector<float> uv_values(num_uv_floats);
+
+      std::memcpy(uv_values.data(),
+                  &nd_vertex_buffer->vertex_buffer_bytes[uv_view->start_ptr],
+                  sizeof(float) * num_uv_floats);
+
+      for (std::size_t i {0}; i < num_uv_vertices; i++) {
+        for (int j {0}; j < values_per_uv; j++) {
+          pbr_vertices[i].a_texcoords[j] = uv_values[(i * 2) + j];
+        }
+      }
+
+      std::cout << "Vertex buffer size: "
+                << nd_vertex_buffer->vertex_buffer_bytes.size() << "\n";
+
+      std::vector<ModelDrawData> draw_data {
+          FindDrawsFromNode(*nd_vertex_buffer, params)};
+      std::cout << "Found " << draw_data.size()
+                << " sets of model draw data.\n";
+
+      std::size_t total_index_count {
+          std::accumulate(draw_data.begin(),
+                          draw_data.end(),
+                          std::size_t {0},
+                          [](std::size_t acc, const ModelDrawData& draw_call)
+                          { return acc + draw_call.indices.size(); })};
+
+      std::vector<Index> indices(total_index_count);
+
+      // Create the draw commands
+      {
+        auto first_vertex {static_cast<Uint32>(params.current_vertex_count)};
+        std::size_t cur {params.current_index_count};
+
+        for (std::size_t i {0}; i < draw_data.size(); i++) {
+          const auto& draw_call {draw_data[i]};
+          std::ranges::copy(draw_call.indices, &indices[cur]);
+
+          params.draw_commands.emplace_back(DrawCommand {
+              .primitive_type = draw_call.primitive_type,
+              .first_vertex = first_vertex,
+              .first_index = static_cast<Uint32>(cur),
+              .num_indices = static_cast<Uint32>(draw_call.indices.size()),
+              .material_index = draw_call.material_index});
+
+          cur += draw_call.indices.size();
+        }
+      }
+
+      params.pbr_vertices.insert(
+          params.pbr_vertices.end(), pbr_vertices.begin(), pbr_vertices.end());
+      params.current_vertex_count += pbr_vertices.size();
+
+      params.current_index_count += indices.size();
+      params.pbr_indices.insert(
+          params.pbr_indices.end(), indices.begin(), indices.end());
+    }
+  } else {
+    if (root_node->next_child != nullptr) {
+      NdNodeToModelParams(root_node->next_child, params);
+      // std::cout << "Parsing child.\n";
+    }
+  }
+  if (root_node->next_sibling != nullptr) {
+    // std::cout << "Parsing sibling.\n";
+    NdNodeToModelParams(root_node->next_sibling, params);
+  }
+}
 
 Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
 {
@@ -148,133 +294,31 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
     throw std::runtime_error("Unable to create model from 0 root nodes.");
   }
 
-  auto* nd_vertex_buffer {
-      static_cast<NdVertexBuffer*>(asset.root_nodes[0]->FindBy(
-          [](const NdNode& node)
-          { return node.nd_type == ghoulies::NdType::VertexBuffer; }))};
+  NewModelParams new_model_params {};
 
-  if (nd_vertex_buffer == nullptr) {
-    throw std::runtime_error("No vertex buffer available in model.");
+  for (auto root_node : asset.root_nodes) {
+    NdNodeToModelParams(std::move(root_node), new_model_params);
   }
 
-  shared_ptr<NdNode> next_child {asset.root_nodes[0]->next_child};
+  this->draw_commands_ = std::move(new_model_params.draw_commands);
 
-  std::cout << "Vertex buffer size: "
-            << nd_vertex_buffer->vertex_buffer_bytes.size() << "\n";
+  // std::cout << "Num processed vertices: " << pbr_vertices.size() << "\n";
 
-  std::vector<ModelDrawData> draw_data {FindDrawsFromNode(*nd_vertex_buffer)};
-  std::cout << "Found " << draw_data.size() << " sets of model draw data.\n";
+  // Create all of the resources here
 
-  std::size_t total_index_count {
-      std::accumulate(draw_data.begin(),
-                      draw_data.end(),
-                      std::size_t {0},
-                      [](std::size_t acc, const ModelDrawData& draw_call)
-                      { return acc + draw_call.indices.size(); })};
+  std::span<const PBRVertex> vert_span {new_model_params.pbr_vertices};
 
-  std::vector<Index> indices(total_index_count);
-
-  std::size_t cur {0};
-
-  std::vector<DrawCommand> draw_commands(draw_data.size());
-  for (std::size_t i {0}; i < draw_data.size(); i++) {
-    const auto& draw_call {draw_data[i]};
-    std::ranges::copy(draw_call.indices, &indices[cur]);
-
-    draw_commands[i] = {
-        .primitive_type = draw_call.primitive_type,
-        .first_index = static_cast<Uint32>(cur),
-        .num_indices = static_cast<Uint32>(draw_call.indices.size()),
-        .material_index = draw_call.material_index};
-
-    cur += draw_call.indices.size();
-  }
-
-  this->draw_commands_ = std::move(draw_commands);
-
-  if (nd_vertex_buffer == nullptr) {
-    throw std::runtime_error("No vertex buffer available.");
-  }
-
-  if (nd_vertex_buffer->nd_type != ghoulies::NdType::VertexBuffer) {
-    throw std::runtime_error(
-        "Nd vertex buffer node does not have vertex buffer type.");
-  }
-
-  auto vertices_opt {nd_vertex_buffer->GetBufferView(
-      ghoulies::NdVertexBufferViewType::Vertex)};
-
-  if (!vertices_opt.has_value()) {
-    throw std::runtime_error("No vertices in model resource views.");
-  }
-
-  ghoulies::NdVertexBufferView* vertices_view = std::move(vertices_opt).value();
-
-  // 12 = sizeof packed vec3
-  if (vertices_view->stride != 12) {
-    throw std::runtime_error("Vertices exist, but don't have a stride of 12.");
-  }
-
-  auto num_vertices {vertices_view->size / vertices_view->stride};
-
-  std::vector<PBRVertex> pbr_vertices {};
-
-  for (std::size_t i {0}; i < num_vertices; i++) {
-    std::array<float, 3> pos {};
-
-    std::memcpy(
-        pos.data(),
-        &nd_vertex_buffer->vertex_buffer_bytes[vertices_view->start_ptr
-                                               + (i * 3 * sizeof(float))],
-        sizeof(pos));
-
-    pbr_vertices.emplace_back(glm::vec3 {pos[0], pos[1], pos[2]});
-  }
-
-  if (auto uv_buf_view {nd_vertex_buffer->GetBufferView(
-          ghoulies::NdVertexBufferViewType::UV)};
-      uv_buf_view.has_value())
-  {
-    auto* uv_view {std::move(uv_buf_view).value()};
-    assert(uv_view->stride == sizeof(float) * 2);
-
-    const std::size_t values_per_uv {uv_view->stride / sizeof(float)};
-
-    const std::size_t num_uv_vertices {uv_view->size / uv_view->stride};
-    const std::size_t num_uv_floats {num_uv_vertices * values_per_uv};
-
-    std::vector<float> uv_values(num_uv_floats);
-
-    std::memcpy(uv_values.data(),
-                &nd_vertex_buffer->vertex_buffer_bytes[uv_view->start_ptr],
-                sizeof(float) * num_uv_floats);
-
-    for (std::size_t i {0}; i < num_uv_vertices; i++) {
-      for (int j {0}; j < values_per_uv; j++) {
-        pbr_vertices[i].a_texcoords[j] = uv_values[(i * 2) + j];
-      }
-    }
-  }
-
-  std::cout << "Num processed vertices: " << pbr_vertices.size() << "\n";
-
-  std::span<const PBRVertex> pbr_span {pbr_vertices};
-
-  auto vertex_buffer {CreateVertexBuffer(device, pbr_span)};
+  auto vertex_buffer {CreateVertexBuffer(device, vert_span)};
   if (!vertex_buffer.has_value()) {
     throw std::runtime_error("Unable to create vertex buffer for model.");
   }
-
   this->vertex_buffer_ = std::move(vertex_buffer).value();
 
-  auto index_buffer {CreateIndexBuffer(device, indices)};
+  auto index_buffer {CreateIndexBuffer(device, new_model_params.pbr_indices)};
   if (!index_buffer.has_value()) {
     throw std::runtime_error("Unable to create index buffer for model.");
   }
   this->index_buffer_ = std::move(index_buffer).value();
-
-  // Allocate one big index buffer
-  // Cache the draw call
 
   for (const TextureAsset& texture : asset.textures) {
     try {
@@ -318,8 +362,12 @@ void Model::DrawBasic(SDL_GPURenderPass* render_pass)
           render_pass, 0, bindings.data(), bindings.size());
     }
 
-    SDL_DrawGPUIndexedPrimitives(
-        render_pass, command.num_indices, 1, command.first_index, 0, 0);
+    SDL_DrawGPUIndexedPrimitives(render_pass,
+                                 command.num_indices,
+                                 command.first_vertex,
+                                 command.first_index,
+                                 0,
+                                 0);
   }
 }
 

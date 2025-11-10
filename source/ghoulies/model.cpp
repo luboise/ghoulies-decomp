@@ -138,7 +138,7 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
             root_nodes.emplace_back(std::move(root_node_exp).value());
           }
 
-          new_model.root_nodes = root_nodes;
+          new_model.root_nodes = std::move(root_nodes);
           break;
         }
         case Textures: {
