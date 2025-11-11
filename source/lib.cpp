@@ -25,6 +25,7 @@
 #include <SDL3/SDL_video.h>
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_sdlgpu3.h>
+#include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -342,11 +343,16 @@ void GhouliesLib::UpdateEvents()
   while (SDL_PollEvent(&e)) {
     menu_->ProcessEvent(&e);
 
+    // TODO: Move this into an event loop somewhere else
+    auto& player_transform {game_context_.player->GetTransform()};
+
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
     } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
-      // camera_.RotateSpinClockwise(e.motion.xrel * kMouseSensitivity);
-      // camera_.RotateLeanForwards(e.motion.yrel * kMouseSensitivity);
+      constexpr float kMouseSensitivity {0.1F};
+
+      player_transform.RotateX(e.motion.yrel * kMouseSensitivity);
+      player_transform.RotateY(-e.motion.xrel * kMouseSensitivity);
     }
   }
 
@@ -823,24 +829,11 @@ void GhouliesLib::UpdateScene()
   constexpr float kMaxMovementSpeed {100.0F};
   constexpr float kMinMovementSpeed {0.2F};
 
+  auto& player_transform {game_context_.player->GetTransform()};
+
   // Hack to get window to stay up
-  SDL_Event e;
-  while (SDL_PollEvent(&e)) {
-    menu_->ProcessEvent(&e);
-
-    if (e.type == SDL_EVENT_QUIT) {
-      this->quit_ = true;
-    } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
-      constexpr float kMouseSensitivity {0.1F};
-
-      // camera_.RotateSpinClockwise(e.motion.xrel * kMouseSensitivity);
-      // camera_.RotateLeanForwards(e.motion.yrel * kMouseSensitivity);
-    }
-  }
 
   bool hyperspeed {key_states_[SDL_SCANCODE_LSHIFT]};
-
-  auto& player_transform {game_context_.player->GetTransform()};
 
   /*
   const auto left = 0.01F * movement_speed * glm::vec3 {-1, 0, 0};
@@ -851,10 +844,21 @@ void GhouliesLib::UpdateScene()
       * movement_speed * player_transform.Up();
           */
 
-  const auto left = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
-      * movement_speed * glm::vec3 {-1, 0, 0};
-  const auto forwards = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
-      * movement_speed * glm::vec3 {0, 0, 1};
+  // Remove height component, then normalize it out
+  glm::vec3 left {player_transform.Left()};
+
+  // Negate left to switch handedness of coordinates
+  left *= -1;
+
+  left.y = 0;
+  left = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F * movement_speed
+      * glm::normalize(left);
+
+  glm::vec3 forwards {player_transform.Forwards()};
+  forwards.y = 0;
+  forwards = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F * movement_speed
+      * glm::normalize(forwards);
+
   const auto up = (static_cast<float>(hyperspeed ? 2 : 1)) * 0.01F
       * movement_speed * glm::vec3 {0, 1, 0};
 
@@ -893,7 +897,7 @@ void GhouliesLib::UpdateScene()
   }
 
   game_context_.active_camera.transform.position = player_transform.position
-      + glm::vec3 {0, 11, 0} - glm::vec3 {0, 0, 20.0F};
+      + glm::vec3 {0, 11, 0} - 20.0F * player_transform.Forwards();
 
   game_context_.active_camera.transform.rotation = player_transform.rotation;
 }

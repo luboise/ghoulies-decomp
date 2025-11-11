@@ -332,7 +332,7 @@ struct NdPushBuffer : public NdNode
 
   // DO NOT SERIALISE
 
-  std::vector<NdPushBufferDraw> draw_commands;
+  std::vector<NdPushBufferDraw> draws;
 };
 
 }  // namespace ghoulies

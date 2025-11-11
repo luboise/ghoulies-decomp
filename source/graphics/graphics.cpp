@@ -43,11 +43,16 @@ glm::mat4 Camera::ProjectionMatrix() const
   const float fov_v =
       2 * std::atan(1 / this->AspectRatio() * std::tan(this->fov_h / 2));
 
+  glm::mat4 flip {1.0F};
+
+  flip[0][0] = -1;
+
   return glm::perspectiveFov(fov_v,
                              static_cast<float>(this->viewport_width),
                              static_cast<float>(this->viewport_height),
                              this->near,
-                             this->far);
+                             this->far)
+      * flip;
 }
 
 glm::float32_t Camera::AspectRatio() const
@@ -225,6 +230,10 @@ bool Texture::Write(const ghoulies::Bytes& bytes)
 std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
     SDL_GPUDevice* device, const std::span<const Index>& data)
 {
+  if (data.size() == 0) {
+    return unexpected("Unable to create index buffer of size 0.");
+  }
+
   const auto index_buffer_size {data.size() * sizeof(Index)};
 
   SDL_GPUBufferCreateInfo buffer_info {};

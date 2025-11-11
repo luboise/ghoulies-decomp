@@ -323,6 +323,10 @@ template<typename T>
 std::expected<Buffer<T>, std::string> CreateVertexBuffer(
     SDL_GPUDevice* device, const std::span<const T> data)
 {
+  if (data.size() == 0) {
+    return unexpected("Unable to create vertex buffer of size 0.");
+  }
+
   const auto vertex_buffer_size {data.size() * sizeof(T)};
 
   SDL_GPUBufferCreateInfo buffer_info {};

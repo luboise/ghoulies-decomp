@@ -180,44 +180,59 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
       }
 
       auto& current_material {ctx.CurrentMaterial()};
-      uint32_t diffuse_texture_index {
-          current_material.GetDiffuseTextureIndex().value_or(6)};
 
-      std::vector<NdPushBufferDraw> draw_commands(num_draws);
+      uint32_t diffuse_texture_index {std::numeric_limits<uint32_t>::max()};
 
-      for (std::size_t i = 0; i < num_draws; i++) {
-        const auto data_ptr {data_ptrs[i]};
-        const auto index_count {index_counts[i]};
-        const auto primitive_type {primitive_types[i]};
-
-        std::vector<uint16_t> indices(index_count);
-
-        if (index_count > 67108864) {
-          return unexpected(
-              std::format(
-                  "Too many indices to allocate " "(attempted " "{} " "bytes." " " "Ma" "x " "al" "lo" "we" "d " "is {}, or " "64MB)",
-                  index_count,
-                  67108864));
-        }
-
-        std::memcpy(
-            indices.data(), &bytes[data_ptr], index_count * sizeof(uint16_t));
-
-        draw_commands[i] = {.primitive_type = primitive_type,
-                            .indices = std::move(indices),
-                            .material_index = diffuse_texture_index};
+      if (auto diffuse {current_material.GetDiffuseTextureIndex()};
+          diffuse.has_value())
+      {
+        diffuse_texture_index = diffuse.value();
+      } else {
+        std::cout << "No diffuse texture available in Nd model. Skipping all "
+                     "draws for this section of the model.\n";
       }
 
-      node = std::shared_ptr<NdPushBuffer> {new NdPushBuffer {header.nd_type,
-                                                              nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              num_draws,
-                                                              idk1,
-                                                              idk2,
-                                                              idk3,
-                                                              skip_culling,
-                                                              draw_commands}};
+      std::vector<NdPushBufferDraw> draw_commands;
+
+      // If no diffuse texture, ignore the draws
+      if (diffuse_texture_index != std::numeric_limits<uint32_t>::max()) {
+        draw_commands.resize(num_draws);
+
+        for (std::size_t i = 0; i < num_draws; i++) {
+          const auto data_ptr {data_ptrs[i]};
+          const auto index_count {index_counts[i]};
+          const auto primitive_type {primitive_types[i]};
+
+          std::vector<uint16_t> indices(index_count);
+
+          if (index_count > 67108864) {
+            return unexpected(
+                std::format(
+                    "Too many indices to allocate " "(attempted " "{} " "bytes." " " "Ma" "x " "al" "lo" "we" "d " "is {}, or " "64MB)",
+                    index_count,
+                    67108864));
+          }
+
+          std::memcpy(
+              indices.data(), &bytes[data_ptr], index_count * sizeof(uint16_t));
+
+          draw_commands[i] = {.primitive_type = primitive_type,
+                              .indices = std::move(indices),
+                              .material_index = diffuse_texture_index};
+        }
+      }
+
+      node = std::shared_ptr<NdPushBuffer> {
+          new NdPushBuffer {{.nd_type = header.nd_type,
+                             .next_child = nullptr,
+                             .next_sibling = nullptr,
+                             .prev_node = nullptr},
+                            static_cast<uint32_t>(draw_commands.size()),
+                            idk1,
+                            idk2,
+                            idk3,
+                            skip_culling,
+                            draw_commands}};
 
       break;
     }
@@ -303,29 +318,29 @@ std::expected<std::shared_ptr<NdNode>, std::string> ParseNdNode(
   }
 
   // TODO: Move this somewhere else or refactor the node child loops here
-  // if (node->nd_type != NdType::BlendShape) {
-  if (header.next_child_ptr != 0) {
-    ctx.tree.push(node);
+  if (node->nd_type != NdType::BlendShape) {
+    if (header.next_child_ptr != 0) {
+      ctx.tree.push(node);
 
-    auto result {
-        ParseNdNode(bytes, resource_bytes, header.next_child_ptr, ctx)};
-    if (!result.has_value()) {
-      return unexpected(result.error());
+      auto result {
+          ParseNdNode(bytes, resource_bytes, header.next_child_ptr, ctx)};
+      if (!result.has_value()) {
+        return unexpected(result.error());
+      }
+      node->next_child = result.value();
+
+      ctx.tree.pop();
     }
-    node->next_child = result.value();
 
-    ctx.tree.pop();
-  }
-
-  if (header.next_sibling_ptr != 0) {
-    auto result {
-        ParseNdNode(bytes, resource_bytes, header.next_sibling_ptr, ctx)};
-    if (!result.has_value()) {
-      return unexpected(result.error());
+    if (header.next_sibling_ptr != 0) {
+      auto result {
+          ParseNdNode(bytes, resource_bytes, header.next_sibling_ptr, ctx)};
+      if (!result.has_value()) {
+        return unexpected(result.error());
+      }
+      node->next_sibling = result.value();
     }
-    node->next_sibling = result.value();
   }
-  // }
 
   return node;
 }

@@ -13,3 +13,5 @@ CMakeUserPresets.json
 compile_commands.json
 conan_cache_*.tgz
 gbtg/
+profile.txt
+gmon.out
