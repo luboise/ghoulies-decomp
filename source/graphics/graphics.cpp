@@ -1,8 +1,7 @@
+#include "lib.hpp"
 #ifndef GLM_FORCE_LEFT_HANDED
 #  error RIGHT HANDED SYSTEM is active. All matrix math will not align with world views.
 #endif
-
-#include "graphics.hpp"
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_error.h>
@@ -14,6 +13,7 @@
 #include <glm/matrix.hpp>
 
 #include "bits/stdc++.h"
+#include "graphics.hpp"
 
 namespace graphics
 {
@@ -247,7 +247,8 @@ std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
         std::format("Unable to create buffer. Error: {}", SDL_GetError()));
   }
 
-  Buffer<Index> buffer {device, BufferType::kIndex, data.size(), index_buffer};
+  Buffer<Index> buffer {
+      device, BufferType::VertexBuffer, data.size(), index_buffer};
 
   auto* command_buffer {SDL_AcquireGPUCommandBuffer(device)};
 
@@ -336,9 +337,28 @@ glm::mat4 Transform::RotationMatrix() const
   return matrix;
 }
 
+Transform& Transform::Scale(float amount)
+{
+  this->scale *= amount;
+  return *this;
+}
+
+Transform& Transform::Translate(glm::vec3 translation)
+{
+  this->position += translation;
+  return *this;
+}
+
 void DrawContext::SetModelUniforms(const ModelUniforms& uniforms)
 {
   SDL_PushGPUVertexUniformData(command_buffer, 1, &uniforms, sizeof(uniforms));
 }
 
 }  // namespace graphics
+
+void graphics::DrawSphere(DrawContext& ctx, glm::vec3 pos, float radius)
+{
+  const Model& model {ghoulies::GhouliesLib::Instance().GetSphereModel()};
+
+  model.DrawWithTransform(ctx, Transform {}.Translate(pos).Scale(radius));
+}

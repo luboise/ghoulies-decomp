@@ -46,9 +46,12 @@ struct LightingUniforms
 
 struct Transform
 {
-  glm::vec3 position;
-  glm::vec3 rotation;
-  glm::vec3 scale;
+  glm::vec3 position {0, 0, 0};
+  glm::vec3 rotation {0, 0, 0};
+  glm::vec3 scale {1, 1, 1};
+
+  Transform& Translate(glm::vec3 translation);
+  Transform& Scale(float amount);
 
   Transform& RotateX(float degrees);
   Transform& RotateY(float degrees);
@@ -194,8 +197,8 @@ struct DrawCommand
 
 struct DrawContext
 {
-  SDL_GPUCommandBuffer* command_buffer;
-  SDL_GPURenderPass* render_pass;
+  SDL_GPUCommandBuffer* command_buffer {nullptr};
+  SDL_GPURenderPass* render_pass {nullptr};
   bool draw_colliders {false};
 
   void SetModelUniforms(const ModelUniforms& uniforms);
@@ -203,8 +206,8 @@ struct DrawContext
 
 enum class BufferType
 {
-  kVertex,
-  kIndex,
+  VertexBuffer,
+  IndexBuffer,
 };
 
 template<typename T>
@@ -219,7 +222,7 @@ struct Buffer
 
   Buffer()
       : device(nullptr)
-      , buffer_type(BufferType::kVertex)
+      , buffer_type(BufferType::VertexBuffer)
       , count(0)
       , handle(nullptr)
   {
@@ -314,7 +317,7 @@ struct Buffer
     return {};
   }
 
-  SDL_GPUBufferBinding GetBinding(Uint32 offset = 0)
+  [[nodiscard]] SDL_GPUBufferBinding GetBinding(Uint32 offset = 0) const
   {
     return SDL_GPUBufferBinding {.buffer = this->handle, .offset = offset};
   }
@@ -341,7 +344,8 @@ std::expected<Buffer<T>, std::string> CreateVertexBuffer(
         std::format("Unable to create buffer. Error: {}", SDL_GetError()));
   }
 
-  Buffer<T> buffer {device, BufferType::kVertex, data.size(), vertex_buffer};
+  Buffer<T> buffer {
+      device, BufferType::VertexBuffer, data.size(), vertex_buffer};
 
   auto* command_buffer {SDL_AcquireGPUCommandBuffer(device)};
   if (command_buffer == nullptr) {
@@ -367,5 +371,7 @@ std::expected<Buffer<T>, std::string> CreateVertexBuffer(
 
 std::expected<Buffer<Index>, std::string> CreateIndexBuffer(
     SDL_GPUDevice* device, const std::span<const Index>& data);
+
+void DrawSphere(DrawContext& ctx, glm::vec3 pos, float radius);
 
 }  // namespace graphics

@@ -90,10 +90,11 @@ GhouliesLib::~GhouliesLib()
   // Force flush the game context to ensure it is empty
   this->game_context_ = {};
 
-  this->menu_.reset();
-
   // Destroy default texture before destroying the GPU device
   this->default_texture_.reset();
+  this->default_material_.reset();
+
+  this->menu_.reset();
 
   SDL_ReleaseGPUShader(device_, pbr_vert_shader_);
   SDL_ReleaseGPUShader(device_, pbr_frag_shader_);
@@ -329,6 +330,85 @@ GhouliesLib::GhouliesLib(const GhouliesLibParams& params)
   }
 
   this->SetDefaultTexture(std::move(tex));
+
+  auto default_material {std::make_shared<graphics::PBRMaterial>(
+      this->device_, this->default_texture_)};
+  this->SetDefaultMaterial(std::move(default_material));
+
+  graphics::ModelParams model_params {
+      .pbr_vertices =
+          {
+              PBRVertex {.a_position = {-0.5F, -0.5F, -0.5F}},  // 0
+              PBRVertex {.a_position = {0.5F, -0.5F, -0.5F}},  // 1
+              PBRVertex {.a_position = {0.5F, 0.5F, -0.5F}},  // 2
+              PBRVertex {.a_position = {-0.5F, 0.5F, -0.5F}},  // 3
+              PBRVertex {.a_position = {-0.5F, -0.5F, 0.5F}},  // 4
+              PBRVertex {.a_position = {0.5F, -0.5F, 0.5F}},  // 5
+              PBRVertex {.a_position = {0.5F, 0.5F, 0.5F}},  // 6
+              PBRVertex {.a_position = {-0.5F, 0.5F, 0.5F}},  // 7 },
+          },
+      .pbr_indices =
+          {
+              // Front (+Z)
+              4,
+              5,
+              6,
+              4,
+              6,
+              7,
+
+              // Back (-Z)
+              0,
+              2,
+              1,
+              0,
+              3,
+              2,
+
+              // Left (-X)
+              0,
+              4,
+              7,
+              0,
+              7,
+              3,
+
+              // Right (+X)
+              1,
+              2,
+              6,
+              1,
+              6,
+              5,
+
+              // Top (+Y)
+              3,
+              7,
+              6,
+              3,
+              6,
+              2,
+
+              // Bottom (-Y)
+              0,
+              1,
+              5,
+              0,
+              5,
+              4,
+          },
+      .draw_commands = {graphics::DrawCommand {
+          .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+          .first_vertex = 0,
+          .first_index = 0,
+          .num_indices = 6 * 4,
+          .material_index = 0,
+      }}};
+
+  std::array model_materials {this->default_material_};
+
+  this->sphere_model_ =
+      std::make_unique<graphics::Model>(device_, model_params, model_materials);
 }
 
 void GhouliesLib::UpdateEvents()
@@ -371,14 +451,21 @@ void GhouliesLib::UpdateEvents()
     this->lighting_uniforms_.ambient_brightness =
         std::max(0.1F, this->lighting_uniforms_.ambient_brightness - 0.005F);
   }
+
+  if (key_states_[SDL_SCANCODE_B]) {
+    this->game_context_.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
+  }
+  if (key_states_[SDL_SCANCODE_C]) {
+    this->game_context_.draw_colliders = !key_states_[SDL_SCANCODE_LSHIFT];
+  }
 }
 
-std::unique_ptr<::graphics::Texture> GhouliesLib::LoadTexture(
+std::shared_ptr<::graphics::Texture> GhouliesLib::LoadTexture(
     ::graphics::TextureAsset asset)
 {
   try {
     auto tex {
-        std::make_unique<graphics::Texture>(this->device_, std::move(asset))};
+        std::make_shared<graphics::Texture>(this->device_, std::move(asset))};
 
     return tex;
   } catch (std::runtime_error& e) {
@@ -403,7 +490,7 @@ std::shared_ptr<graphics::Model> GhouliesLib::LoadModel(
   }
 
   try {
-    return std::make_unique<graphics::Model>(this->device_,
+    return std::make_shared<graphics::Model>(this->device_,
                                              model_asset_exp.value());
   } catch (std::runtime_error& e) {
     std::cerr << "Error loading model: " << e.what() << "\n";
@@ -598,8 +685,7 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
   SDL_PushGPUVertexUniformData(
       command_buffer, 1, &model_uniforms, sizeof(model_uniforms));
 
-  std::array bindings = {this->default_texture_->SDLBinding()};
-  SDL_BindGPUFragmentSamplers(render_pass, 0, bindings.data(), bindings.size());
+  this->default_material_->Bind(render_pass);
 
   SDL_PushGPUFragmentUniformData(command_buffer,
                                  0,
@@ -607,7 +693,8 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
                                  sizeof(this->lighting_uniforms_));
 
   return graphics::DrawContext {.command_buffer = command_buffer,
-                                .render_pass = render_pass};
+                                .render_pass = render_pass,
+                                .draw_colliders = game_context_.draw_colliders};
 }
 
 void GhouliesLib::EndDrawContext(graphics::DrawContext ctx)
@@ -620,7 +707,7 @@ void GhouliesLib::EndDrawContext(graphics::DrawContext ctx)
 }
 
 void GhouliesLib::SetDefaultTexture(
-    std::unique_ptr<graphics::Texture>&& texture)
+    std::shared_ptr<graphics::Texture>&& texture)
 {
   // TODO: Check move semantics and remove the reset
   this->default_texture_.reset();
@@ -900,6 +987,18 @@ void GhouliesLib::UpdateScene()
       + glm::vec3 {0, 11, 0} - 20.0F * player_transform.Forwards();
 
   game_context_.active_camera.transform.rotation = player_transform.rotation;
+}
+
+const graphics::Model& GhouliesLib::GetSphereModel() const
+{
+  return *this->sphere_model_;
+}
+
+void GhouliesLib::SetDefaultMaterial(
+    std::shared_ptr<graphics::PBRMaterial>&& material)
+{
+  assert(material != nullptr);
+  this->default_material_ = material;
 }
 
 }  // namespace ghoulies

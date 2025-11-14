@@ -61,7 +61,10 @@ struct GhouliesLib
   void DrawTestModel(::graphics::Model& model,
                      const ::graphics::Texture& texture);
 
-  void SetDefaultTexture(std::unique_ptr<::graphics::Texture>&& texture);
+  void SetDefaultTexture(std::shared_ptr<::graphics::Texture>&& texture);
+  void SetDefaultMaterial(std::shared_ptr<graphics::PBRMaterial>&& material);
+
+  [[nodiscard]] const graphics::Model& GetSphereModel() const;
 
   void SetLighting(::graphics::LightingUniforms&& uniforms);
 
@@ -69,7 +72,7 @@ struct GhouliesLib
       std::string_view playcam_aid);
 
   std::shared_ptr<::graphics::Model> LoadModel(const Asset&);
-  std::unique_ptr<::graphics::Texture> LoadTexture(
+  std::shared_ptr<::graphics::Texture> LoadTexture(
       ::graphics::TextureAsset asset);
 
   [[nodiscard]] SDL_GPUDevice* SDLDevice() const { return this->device_; }
@@ -121,13 +124,17 @@ private:
 
   const bool* key_states_;
 
-  std::unique_ptr<::graphics::Texture> default_texture_;
+  std::shared_ptr<::graphics::Texture> default_texture_;
+  std::shared_ptr<graphics::PBRMaterial> default_material_;
+
   SDL_GPUTexture* depth_texture_;
 
   std::filesystem::path game_directory_;
   ghoulies::GameContext game_context_;
 
   std::map<std::string, BNLFile> bnl_files_;
+
+  std::unique_ptr<graphics::Model> sphere_model_;
 };
 
 }  // namespace ghoulies

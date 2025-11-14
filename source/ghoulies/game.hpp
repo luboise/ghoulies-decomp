@@ -21,6 +21,7 @@ struct GameContext
   bool move_on {false};
 
   bool draw_backgrounds {true};
+  bool draw_colliders {false};
   std::string background_model_aid;
 
   std::shared_ptr<objects::Actor> player;

@@ -4,7 +4,6 @@
 #include <cstring>
 #include <expected>
 #include <iostream>
-#include <list>
 #include <memory>
 #include <numeric>
 
@@ -37,20 +36,9 @@ struct ModelDrawData
 namespace
 {
 
-struct NewModelParams
-{
-  std::vector<PBRVertex> pbr_vertices;
-  std::size_t current_vertex_count {0};
-
-  std::vector<Index> pbr_indices;
-  std::size_t current_index_count;
-
-  std::vector<DrawCommand> draw_commands;
-};
-
 void FindDrawsFromNodeRecursive(const NdNode& node,
                                 std::vector<ModelDrawData>& draws,
-                                const NewModelParams& params)
+                                const ModelParams& params)
 {
   // TODO: Separate out BG push buffer
   if (node.nd_type == ghoulies::NdType::PushBuffer
@@ -60,6 +48,8 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
 
     for (const auto& push_buffer_draw : push_buffer->draws) {
       ModelDrawData new_draw_data {
+          .primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+          .indices {},
           .material_index = push_buffer_draw.material_index,
           .vertices_index = params.current_vertex_count,
           .indices_index = params.current_index_count};
@@ -153,8 +143,8 @@ void FindDrawsFromNodeRecursive(const NdNode& node,
   }
 }
 
-inline std::vector<ModelDrawData> FindDrawsFromNode(
-    const NdNode& node, const NewModelParams& params)
+inline std::vector<ModelDrawData> FindDrawsFromNode(const NdNode& node,
+                                                    const ModelParams& params)
 {
   std::vector<ModelDrawData> draws;
   FindDrawsFromNodeRecursive(node, draws, params);
@@ -164,8 +154,7 @@ inline std::vector<ModelDrawData> FindDrawsFromNode(
 
 }  // namespace
 
-void NdNodeToModelParams(std::shared_ptr<NdNode> root_node,
-                         NewModelParams& params)
+void NdNodeToModelParams(std::shared_ptr<NdNode> root_node, ModelParams& params)
 {
   if (root_node->nd_type == ghoulies::NdType::VertexBuffer) {
     std::cout << "Found new vertex buffer.\n";
@@ -299,7 +288,7 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
     throw std::runtime_error("Unable to create model from 0 root nodes.");
   }
 
-  NewModelParams new_model_params {};
+  ModelParams new_model_params {};
 
   for (auto root_node : asset.root_nodes) {
     NdNodeToModelParams(std::move(root_node), new_model_params);
@@ -327,10 +316,10 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
 
   for (const TextureAsset& texture : asset.textures) {
     try {
-      PBRMaterial new_material {device,
-                                PBRMaterialParams {.diffuse_texture = texture}};
-
-      this->materials_.push_back(std::move(new_material));
+      this->materials_.emplace_back(std::make_shared<PBRMaterial>(
+          device,
+          PBRMaterialParams {.base_colour = glm::vec4 {1.0F, 1.0F, 1.0F, 1.0F},
+                             .diffuse_texture = texture}));
 
     } catch (std::runtime_error& e) {
       throw e;
@@ -340,6 +329,34 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
   // TODO: Process this once more information is known
   this->collider0x4s_float_ = asset.colliders_0x4_float;
   this->collider0x4s_ = asset.colliders_0x4;
+}
+
+Model::Model(SDL_GPUDevice* device,
+             const ModelParams& params,
+             std::span<std::shared_ptr<PBRMaterial>> materials)
+    : device_(device)
+    , descriptor_({})
+    , draw_commands_(params.draw_commands)
+{
+  this->materials_ = std::vector(materials.begin(), materials.end());
+
+  // std::cout << "Num processed vertices: " << pbr_vertices.size() << "\n";
+
+  // Create all of the resources here
+
+  std::span<const PBRVertex> vert_span {params.pbr_vertices};
+
+  auto vertex_buffer {CreateVertexBuffer(device, vert_span)};
+  if (!vertex_buffer.has_value()) {
+    throw std::runtime_error("Unable to create vertex buffer for model.");
+  }
+  this->vertex_buffer_ = std::move(vertex_buffer).value();
+
+  auto index_buffer {CreateIndexBuffer(device, params.pbr_indices)};
+  if (!index_buffer.has_value()) {
+    throw std::runtime_error("Unable to create index buffer for model.");
+  }
+  this->index_buffer_ = std::move(index_buffer).value();
 }
 
 Model::~Model() = default;
@@ -361,15 +378,8 @@ void Model::DrawBasic(SDL_GPURenderPass* render_pass)
   // render_pass, this->index_buffer_.count, 1, 0, 0, 0);
 
   for (const auto& command : this->draw_commands_) {
-    const auto& material {materials_[command.material_index]};
-
-    const auto* diffuse {material.DiffuseTexture()};
-
-    if (diffuse != nullptr) {
-      std::array bindings {diffuse->SDLBinding()};
-      SDL_BindGPUFragmentSamplers(
-          render_pass, 0, bindings.data(), bindings.size());
-    }
+    // TODO: Check that material is in bounds
+    materials_[command.material_index]->Bind(render_pass);
 
     SDL_DrawGPUIndexedPrimitives(render_pass,
                                  command.num_indices,
@@ -380,7 +390,8 @@ void Model::DrawBasic(SDL_GPURenderPass* render_pass)
   }
 }
 
-void Model::DrawWithTransform(DrawContext& ctx, const Transform& transform)
+void Model::DrawWithTransform(DrawContext& ctx,
+                              const Transform& transform) const
 {
   std::array<SDL_GPUBufferBinding, 1> vb_bindings {vertex_buffer_.GetBinding()};
 
@@ -392,11 +403,10 @@ void Model::DrawWithTransform(DrawContext& ctx, const Transform& transform)
   SDL_BindGPUIndexBuffer(
       ctx.render_pass, &ib_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 
-  // SDL_DrawGPUIndexedPrimitives(
-  // render_pass, this->index_buffer_.count, 1, 0, 0, 0);
-
   ModelUniforms uniforms {.model = transform.ModelMatrix()};
   ctx.SetModelUniforms(uniforms);
+
+  assert(!this->draw_commands_.empty());
 
   for (const auto& command : this->draw_commands_) {
     assert(!materials_.empty());
@@ -411,7 +421,7 @@ void Model::DrawWithTransform(DrawContext& ctx, const Transform& transform)
     assert(!materials_.empty());
     const auto& material {materials_[command.material_index]};
 
-    const auto* diffuse {material.DiffuseTexture()};
+    const auto* diffuse {material->DiffuseTexture()};
 
     if (diffuse != nullptr) {
       std::array bindings {diffuse->SDLBinding()};
@@ -425,13 +435,13 @@ void Model::DrawWithTransform(DrawContext& ctx, const Transform& transform)
 
   if (ctx.draw_colliders) {
     if (!this->collider0x4s_.empty()) {
+      std::cout << "Drawing colliders for model.\n";
+
       for (const auto& collider : this->collider0x4s_) {
-        std::cout << std::format("Sphere  Radius: {}   Pos: {}, {}, {}",
-                                 collider.radius,
-                                 collider.position[0],
-                                 collider.position[1],
-                                 collider.position[2])
-                  << "\n";
+        graphics::DrawSphere(
+            ctx,
+            {collider.position[0], collider.position[1], collider.position[2]},
+            collider.radius);
       }
     }
   }
