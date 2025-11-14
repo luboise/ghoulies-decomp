@@ -217,6 +217,37 @@ std::expected<ModelAsset, std::string> ModelAsset::FromAsset(const Asset& asset)
           new_model.textures = tex_assets;
           break;
         }
+        case Colliders0x4: {
+          std::uint32_t num_colliders {};
+          float unknown_float {};
+
+          std::memcpy(&num_colliders,
+                      &descriptor_bytes[entry.subresource_ptr],
+                      sizeof(num_colliders));
+          std::memcpy(
+              &unknown_float,
+              &descriptor_bytes[entry.subresource_ptr + sizeof(num_colliders)],
+              sizeof(unknown_float));
+
+          if (num_colliders == 0) {
+            return unexpected(
+                "Model has a 0x4 subresource, but does not have any colliders "
+                "within it.");
+          }
+
+          new_model.colliders_0x4_float = unknown_float;
+
+          new_model.colliders_0x4.resize(num_colliders);
+
+          std::memcpy(
+              new_model.colliders_0x4.data(),
+              &descriptor_bytes[entry.subresource_ptr + sizeof(num_colliders)
+                                + sizeof(unknown_float)],
+              num_colliders * sizeof(Collider0x4));
+
+          break;
+        }
+
         case Unknown0x2:
         case Unknown0x3:
         case Matrices:

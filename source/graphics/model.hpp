@@ -10,6 +10,12 @@
 #include "graphics.hpp"
 #include "material.hpp"
 
+namespace physics
+{
+struct Collider0x4;
+
+}  // namespace physics
+
 namespace graphics
 {
 
@@ -39,6 +45,9 @@ private:
   std::vector<DrawCommand> draw_commands_;
 
   std::vector<PBRMaterial> materials_;
+
+  float collider0x4s_float_;
+  std::vector<physics::Collider0x4> collider0x4s_;
 };
 
 }  // namespace graphics

@@ -336,6 +336,10 @@ Model::Model(SDL_GPUDevice* device, const ModelAsset& asset)
       throw e;
     }
   }
+
+  // TODO: Process this once more information is known
+  this->collider0x4s_float_ = asset.colliders_0x4_float;
+  this->collider0x4s_ = asset.colliders_0x4;
 }
 
 Model::~Model() = default;
@@ -417,6 +421,19 @@ void Model::DrawWithTransform(DrawContext& ctx, const Transform& transform)
 
     SDL_DrawGPUIndexedPrimitives(
         ctx.render_pass, command.num_indices, 1, command.first_index, 0, 0);
+  }
+
+  if (ctx.draw_colliders) {
+    if (!this->collider0x4s_.empty()) {
+      for (const auto& collider : this->collider0x4s_) {
+        std::cout << std::format("Sphere  Radius: {}   Pos: {}, {}, {}",
+                                 collider.radius,
+                                 collider.position[0],
+                                 collider.position[1],
+                                 collider.position[2])
+                  << "\n";
+      }
+    }
   }
 }
 

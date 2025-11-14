@@ -196,6 +196,7 @@ struct DrawContext
 {
   SDL_GPUCommandBuffer* command_buffer;
   SDL_GPURenderPass* render_pass;
+  bool draw_colliders {false};
 
   void SetModelUniforms(const ModelUniforms& uniforms);
 };

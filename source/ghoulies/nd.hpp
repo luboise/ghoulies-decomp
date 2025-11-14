@@ -40,6 +40,7 @@ enum ModelSubresourceType : uint32_t
   Model = 0,
   Unknown0x2 = 2,
   Unknown0x3 = 3,
+  Colliders0x4 = 4,
   Matrices = 5,
   Colliders = 6,
   Textures = 7,
