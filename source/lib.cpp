@@ -16,6 +16,7 @@
 #include <SDL3/SDL_gpu.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_iostream.h>
+#include <SDL3/SDL_keycode.h>
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_oldnames.h>
@@ -420,43 +421,69 @@ void GhouliesLib::UpdateEvents()
 
   // Hack to get window to stay up
   SDL_Event e;
-  while (SDL_PollEvent(&e)) {
-    menu_->ProcessEvent(&e);
 
-    // TODO: Move this into an event loop somewhere else
-    auto& player_transform {game_context_.player->GetTransform()};
+  glm::vec2 player_rotation {0, 0};
+
+  while (SDL_PollEvent(&e)) {
+    if (e.type == SDL_EVENT_KEY_DOWN) {
+      if (e.key.key == SDLK_F8) {
+        this->toggle_menu_ = true;
+      }
+    }
+
+    if (menu_active_) {
+      menu_->ProcessEvent(&e);
+    }
 
     if (e.type == SDL_EVENT_QUIT) {
       this->quit_ = true;
-    } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
-      constexpr float kMouseSensitivity {0.1F};
+    }
 
-      player_transform.RotateX(e.motion.yrel * kMouseSensitivity);
-      player_transform.RotateY(-e.motion.xrel * kMouseSensitivity);
+    // Only handle these events if the menu isn't active
+    if (!menu_active_) {
+      // TODO: Move this into an event loop somewhere else
+      if (e.type == SDL_EVENT_MOUSE_MOTION) {
+        constexpr float kMouseSensitivity {0.1F};
+        player_rotation = {e.motion.yrel * kMouseSensitivity,
+                           -e.motion.xrel * kMouseSensitivity};
+      }
     }
   }
 
-  if (key_states_[SDL_SCANCODE_EQUALS]) {
-    movement_speed = std::min(kMaxMovementSpeed, movement_speed * 1.03F);
+  if (menu_active_) {
+    return;
   }
 
-  if (key_states_[SDL_SCANCODE_MINUS]) {
-    movement_speed = std::max(kMinMovementSpeed, movement_speed / 1.03F);
+  if (game_context_.player == nullptr) {
+    return;
   }
 
-  if (key_states_[SDL_SCANCODE_0]) {
-    this->lighting_uniforms_.ambient_brightness =
-        std::min(1.0F, this->lighting_uniforms_.ambient_brightness + 0.005F);
-  } else if (key_states_[SDL_SCANCODE_9]) {
-    this->lighting_uniforms_.ambient_brightness =
-        std::max(0.1F, this->lighting_uniforms_.ambient_brightness - 0.005F);
-  }
+  auto& player_transform {game_context_.player->GetTransform()};
+  player_transform.RotateX(player_rotation.x);
+  player_transform.RotateY(player_rotation.y);
+  if (!menu_active_) {
+    if (key_states_[SDL_SCANCODE_EQUALS]) {
+      movement_speed = std::min(kMaxMovementSpeed, movement_speed * 1.03F);
+    }
 
-  if (key_states_[SDL_SCANCODE_B]) {
-    this->game_context_.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
-  }
-  if (key_states_[SDL_SCANCODE_C]) {
-    this->game_context_.draw_colliders = !key_states_[SDL_SCANCODE_LSHIFT];
+    if (key_states_[SDL_SCANCODE_MINUS]) {
+      movement_speed = std::max(kMinMovementSpeed, movement_speed / 1.03F);
+    }
+
+    if (key_states_[SDL_SCANCODE_0]) {
+      this->lighting_uniforms_.ambient_brightness =
+          std::min(1.0F, this->lighting_uniforms_.ambient_brightness + 0.005F);
+    } else if (key_states_[SDL_SCANCODE_9]) {
+      this->lighting_uniforms_.ambient_brightness =
+          std::max(0.1F, this->lighting_uniforms_.ambient_brightness - 0.005F);
+    }
+
+    if (key_states_[SDL_SCANCODE_B]) {
+      this->game_context_.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
+    }
+    if (key_states_[SDL_SCANCODE_C]) {
+      this->game_context_.draw_colliders = !key_states_[SDL_SCANCODE_LSHIFT];
+    }
   }
 }
 
@@ -704,8 +731,8 @@ void GhouliesLib::EndDrawContext(graphics::DrawContext&& ctx)
   SDL_EndGPURenderPass(ctx.render_pass);
   ctx.render_pass = nullptr;
 
-  if (menu_ != nullptr) {
-    menu_->Render(ctx);
+  if (this->menu_active_) {
+    menu_->Render(ctx, this->game_context_);
   }
 
   // TODO: Make sure this didn't fail
@@ -917,11 +944,14 @@ std::expected<void, std::string> GhouliesLib::Destroy()
 
 void GhouliesLib::UpdateScene()
 {
+  if (game_context_.player == nullptr || menu_active_) {
+    return;
+  }
+
   static float movement_speed {1};
 
   constexpr float kMaxMovementSpeed {100.0F};
   constexpr float kMinMovementSpeed {0.2F};
-
   auto& player_transform {game_context_.player->GetTransform()};
 
   // Hack to get window to stay up
@@ -1074,7 +1104,16 @@ NothingApparently2  ();
 
 void GhouliesLib::BeginFrame()
 {
-  if (this->menu_ != nullptr) {
+  if (toggle_menu_) {
+    this->menu_active_ = !this->menu_active_;
+    std::cout << "Toggling debug menu " << (this->menu_active_ ? "on" : "off")
+              << "\n";
+  }
+
+  toggle_menu_ = false;
+
+  if (this->menu_active_) {
+    assert(this->menu_ != nullptr);
     this->menu_->NewFrame();
   }
 }

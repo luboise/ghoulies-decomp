@@ -5,6 +5,7 @@
 #include <backends/imgui_impl_sdlgpu3.h>
 #include <imgui.h>
 
+#include "ghoulies/game.hpp"
 #include "graphics/graphics.hpp"
 
 namespace menu
@@ -45,20 +46,27 @@ Menu::~Menu()
   ImGui::DestroyContext();
 }
 
-void Menu::Render(graphics::DrawContext& ctx)
+void Menu::Render(graphics::DrawContext& draw_ctx,
+                  ghoulies::GameContext& game_ctx)
 {
-  ImGui::ShowDemoWindow();
+  if (ImGui::Begin("ScriptLauncher")) {
+    ImGui::Text("Test text");
+    if (ImGui::Button("Load playcam script")) {
+      std::cout << "Loading new playcam script...\n";
+    }
+    ImGui::End();
+  }
 
   // Rendering
   // (Your code clears your framebuffer, renders your other stuff etc.)
   ImGui::Render();
 
   ImDrawData* draw_data = ImGui::GetDrawData();
-  ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, ctx.command_buffer);
+  ImGui_ImplSDLGPU3_PrepareDrawData(draw_data, draw_ctx.command_buffer);
 
   // Setup and start a render pass
   SDL_GPUColorTargetInfo target_info = {};
-  target_info.texture = ctx.swapchain_texture;
+  target_info.texture = draw_ctx.swapchain_texture;
   target_info.clear_color = SDL_FColor {0, 0, 0, 1};
   target_info.load_op = SDL_GPU_LOADOP_LOAD;
   target_info.store_op = SDL_GPU_STOREOP_STORE;
@@ -67,10 +75,11 @@ void Menu::Render(graphics::DrawContext& ctx)
   target_info.cycle = false;
 
   SDL_GPURenderPass* render_pass =
-      SDL_BeginGPURenderPass(ctx.command_buffer, &target_info, 1, nullptr);
+      SDL_BeginGPURenderPass(draw_ctx.command_buffer, &target_info, 1, nullptr);
 
   // Render ImGui
-  ImGui_ImplSDLGPU3_RenderDrawData(draw_data, ctx.command_buffer, render_pass);
+  ImGui_ImplSDLGPU3_RenderDrawData(
+      draw_data, draw_ctx.command_buffer, render_pass);
 
   SDL_EndGPURenderPass(render_pass);
 }

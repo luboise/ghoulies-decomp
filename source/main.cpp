@@ -2,7 +2,6 @@
 
 #include <SDL3/SDL_gpu.h>
 
-#include "graphics/graphics.hpp"
 #include "lib.hpp"
 
 using ghoulies::GhouliesLibParams;
@@ -38,23 +37,9 @@ auto main(int argc, char** argv) -> int
 
   std::cout << "Ghoulies launcher launched." << '\n';
 
-  // lib.DrawTestObjects(*tex);
   while (!lib.ShouldQuit()) {
     lib.BeginFrame();
     lib.UpdateEvents();
-
-    // TODO:
-    // - Begin one command buffer
-    // - Begin new render pass
-    // - Draw scene
-    // - End render pass
-    // - Render Imgui
-    // - Begin new render pass
-    // - Render to the screen
-    // - End render pass
-    // - Submit command buffer all together
-
-    // lib.Menu().NewFrame();
 
     lib.UpdateScene();
 

@@ -116,6 +116,8 @@ private:
 
   std::string name_;
 
+  bool menu_active_ {false};
+  bool toggle_menu_ {false};
   std::unique_ptr<menu::Menu> menu_;
 
   SDL_Window* window_;
