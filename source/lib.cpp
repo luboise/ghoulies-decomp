@@ -91,6 +91,7 @@ std::expected<void, std::string> GhouliesLib::Initialise(
 GhouliesLib::~GhouliesLib()
 {
   this->game_context_.Clear();
+  this->game_state_ = {};
 
   // Force flush the game context to ensure it is empty
   this->game_context_ = {};
