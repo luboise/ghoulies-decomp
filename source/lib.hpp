@@ -53,9 +53,14 @@ struct GhouliesLib
 
   // void UpdateMenu();
 
+  void BeginFrame();
+  void EndFrame();
+
   [[nodiscard]] ::graphics::DrawContext NewDrawContext();
-  void EndDrawContext(::graphics::DrawContext ctx);
+  void EndDrawContext(::graphics::DrawContext&& ctx);
   void UpdateScene();
+
+  void GameLoop();
 
   void DrawScene(::graphics::DrawContext& ctx);
   void DrawTestModel(::graphics::Model& model,

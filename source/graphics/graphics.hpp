@@ -197,6 +197,7 @@ struct DrawCommand
 
 struct DrawContext
 {
+  SDL_GPUTexture* swapchain_texture {nullptr};
   SDL_GPUCommandBuffer* command_buffer {nullptr};
   SDL_GPURenderPass* render_pass {nullptr};
   bool draw_colliders {false};

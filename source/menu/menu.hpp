@@ -2,6 +2,11 @@
 
 #include <SDL3/SDL.h>
 
+namespace graphics
+{
+struct DrawContext;
+}  // namespace graphics
+
 namespace menu
 {
 
@@ -10,7 +15,7 @@ class Menu
 public:
   Menu(SDL_GPUDevice* device, SDL_Window* window);
   ~Menu();
-  void Render();
+  void Render(graphics::DrawContext&);
 
   void NewFrame();
 

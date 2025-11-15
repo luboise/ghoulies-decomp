@@ -51,10 +51,7 @@ public:
     uint8_t field15_0x63f;
   };
 
-  explicit Actor(const ActorParams& params)
-      : Avatar(params)
-  {
-  }
+  explicit Actor(const ActorParams& params);
 
 private:
   // struct Node<actor @0x934> node0x934;

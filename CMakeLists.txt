@@ -48,6 +48,7 @@ target_sources(
           source/ghoulies/nd.cpp
           source/ghoulies/script.cpp
           source/ghoulies/assets/marker.cpp
+          source/ghoulies/objects/actor/actor.cpp
           source/ghoulies/objects/avatar/avatar.cpp
           source/ghoulies/objects/weapon/weapon.cpp
           # utils

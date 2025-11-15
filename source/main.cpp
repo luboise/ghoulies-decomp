@@ -40,6 +40,7 @@ auto main(int argc, char** argv) -> int
 
   // lib.DrawTestObjects(*tex);
   while (!lib.ShouldQuit()) {
+    lib.BeginFrame();
     lib.UpdateEvents();
 
     // TODO:
@@ -60,9 +61,8 @@ auto main(int argc, char** argv) -> int
     // Draw everything
     auto draw_ctx {lib.NewDrawContext()};
     lib.DrawScene(draw_ctx);
-    lib.EndDrawContext(draw_ctx);
-
-    // lib.Menu().Render();
+    lib.EndDrawContext(std::move(draw_ctx));
+    lib.EndFrame();
   }
 
   if (auto result {ghoulies::GhouliesLib::Destroy()}; !result.has_value()) {

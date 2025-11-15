@@ -692,15 +692,21 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
                                  &this->lighting_uniforms_,
                                  sizeof(this->lighting_uniforms_));
 
-  return graphics::DrawContext {.command_buffer = command_buffer,
+  return graphics::DrawContext {.swapchain_texture = swapchain_texture,
+                                .command_buffer = command_buffer,
                                 .render_pass = render_pass,
                                 .draw_colliders = game_context_.draw_colliders};
 }
 
-void GhouliesLib::EndDrawContext(graphics::DrawContext ctx)
+void GhouliesLib::EndDrawContext(graphics::DrawContext&& ctx)
 {
   // SDL_Log("Ending render pass.");
   SDL_EndGPURenderPass(ctx.render_pass);
+  ctx.render_pass = nullptr;
+
+  if (menu_ != nullptr) {
+    menu_->Render(ctx);
+  }
 
   // TODO: Make sure this didn't fail
   SDL_SubmitGPUCommandBuffer(ctx.command_buffer);
@@ -1000,5 +1006,79 @@ void GhouliesLib::SetDefaultMaterial(
   assert(material != nullptr);
   this->default_material_ = material;
 }
+
+void GhouliesLib::GameLoop()
+{
+  /*
+System::UpdateClocks();
+Events::Update();
+Graphics::CurrentCameraStruct = Graphics::CameraStructs;
+Input::ReadRawInputs();
+Input::UpdateRumbles();
+Audio::Update(System::DeltaTime);
+Audio::UpdateListener();
+Audio::UpdatePlayerContexts();
+Audio::ResolveFightingAudioChannels();
+NothingApparently2  ();
+
+
+  System::StreamFiles();
+  if (((System::CacheContext.field10_0x34 == 0)
+       && (System::CacheContext.utilityDriveError == 0))
+      && (System::CacheContext.nextCache != NULL))
+  {
+    CloseUnneededOpenFiles
+        ? (extraout_ECX, (z_stream*)System::CacheContext.nextCache);
+  }
+  Audio::ProcessSamples();
+  SizeOf_g_int[12] _array();
+  if ((DoDat0x0050e0b8 == 0) && (i = g_MovieListHead, g_PlayingMovies?? == 0)) {
+    for (; i != NULL; i = (AllocatedMovie*)i->nextMovie) {
+      AllocatedMovie::MustRead ? ? (i);
+    }
+  }
+
+  FUN_00106c70();
+  i2 = System::Saves;
+  if (0.0 < (float)System::Saves->timer) {
+    System::Saves->timer = (float)System::Saves->timer - System::DeltaTime;
+  }
+  if ((i2->save3 != NULL) && ((float)i2->timer <= 0.0)) {
+    System::SomethingSaveRelated();
+  }
+  */
+
+  // TODO: Implement controller connection handling
+  // bool controller_is_connected {-1 < (char)g_globalFlagset};
+  bool controller_is_connected {true};
+  if (controller_is_connected) {
+    // TODO: Implement regular update logic
+    // bool do_regular_update{(g_globalFlagset & DoRenderLoop?) == 0};
+    bool do_regular_update {true};
+    if (do_regular_update) {
+      // System::RunUpdate(&CurrentChapterState);
+      // System::UpdateStateLinkedLists(&CurrentChapterState);
+      // HandleUIUpdate();
+      // PeriodicUpdateWithPi();
+      // FUN_00048f90();
+    }
+    // FUN_00033480();
+    // FUN_00032ab0();
+    // Graphics::Update();
+    return;
+  }
+  // FUN_0011d410();
+  // FUN_00033480();
+  // Graphics::Update();
+}
+
+void GhouliesLib::BeginFrame()
+{
+  if (this->menu_ != nullptr) {
+    this->menu_->NewFrame();
+  }
+}
+
+void GhouliesLib::EndFrame() {}
 
 }  // namespace ghoulies

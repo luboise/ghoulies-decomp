@@ -309,4 +309,9 @@ Avatar::Avatar(const AvatarParams& params)
   }
 }
 
+bool Avatar::RunPhysics()
+{
+  return true;
+}
+
 }  // namespace ghoulies::objects

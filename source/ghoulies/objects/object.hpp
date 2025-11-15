@@ -267,7 +267,7 @@ public:
   };
 
 protected:
-  explicit Object(const ObjectParams& /*params*/) {};
+  explicit Object(const ObjectParams& /*params*/) {}
 
 private:
   uint8_t unknown_1_ {};

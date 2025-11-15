@@ -57,13 +57,31 @@ public:
     AssetAID shadow_model_aid;
   };
 
-  virtual void OnMessage(events::Message& msg);
-  virtual void Update();
-  virtual bool Draw(::graphics::DrawContext& ctx);
-
   virtual void SetModel(std::string_view model_aid);
 
   [[nodiscard]] graphics::Transform& GetTransform() { return this->transform_; }
+
+  // From ghidra makeshift VTable
+  // 0x00 = getAllocDetails
+  // 0x04 = ctor
+  // 0x08 = dtor
+  // 0x0c = onMessage
+  virtual void OnMessage(events::Message& msg);
+  // 0x10 = update
+  virtual void Update();
+  // 0x14 = draw
+  virtual bool Draw(::graphics::DrawContext& ctx);
+  // 0x18 = func6
+  // 0x1c = runPhysics
+  virtual bool RunPhysics();
+
+  // 0x20 = runDeltaPhysics
+  // 0x24 = handleWallCollisions
+  // 0x28 = func10 (checkCollisions2)
+  // 0x2c = func11 (checkForHitByWeapon)
+  // 0x30 = func12
+  // 0x34 = func13 (updatePositionsAndBlendTargets)
+  // 0x38 = func14 (unknown)
 
 protected:
   explicit Avatar(const AvatarParams& params);
