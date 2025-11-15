@@ -452,7 +452,7 @@ void GhouliesLib::UpdateEvents()
     if (!menu_active_) {
       // TODO: Move this into an event loop somewhere else
       if (e.type == SDL_EVENT_MOUSE_MOTION) {
-        constexpr float kMouseSensitivity {0.1F};
+        constexpr float kMouseSensitivity {0.3F};
         player_rotation = {e.motion.yrel * kMouseSensitivity,
                            -e.motion.xrel * kMouseSensitivity};
       }
