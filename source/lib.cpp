@@ -92,10 +92,14 @@ GhouliesLib::~GhouliesLib()
   this->game_context_ = {};
 
   // Destroy default texture before destroying the GPU device
+
+  this->sphere_model_.reset();
   this->default_texture_.reset();
   this->default_material_.reset();
 
   this->menu_.reset();
+
+  SDL_ReleaseGPUTexture(device_, this->depth_texture_);
 
   SDL_ReleaseGPUShader(device_, pbr_vert_shader_);
   SDL_ReleaseGPUShader(device_, pbr_frag_shader_);
