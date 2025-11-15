@@ -61,6 +61,8 @@ public:
 
   [[nodiscard]] graphics::Transform& GetTransform() { return this->transform_; }
 
+  void UpdateRecursive();
+
   // From ghidra makeshift VTable
   // 0x00 = getAllocDetails
   // 0x04 = ctor
@@ -152,9 +154,15 @@ private:
   UNKNOWN_FIELD(0x5ec, 0x613);
 
   struct astruct_25* field805_0x614_ {};
-  UNKNOWN_FIELD(0x618, 0x917);
+  UNKNOWN_FIELD(0x618, 0x907);
+
+  bool skip_update_ {false};
+
+  UNKNOWN_FIELD(0x09c, 0x907);
+
   int* int_or_struct_ptr_ {};
-  // avatarOffsetPtr* nextAvatar; // TODO: Figure out how to map to this engine
+
+  EmbeddedNode<Avatar*> node0x918_;
   EntityStatePickup* state_pick_up_ {nullptr};
   float field1577_0x924_ {};
   UNKNOWN_FIELD(0x928, 0x92b);

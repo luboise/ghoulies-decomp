@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 
+#include "game/logic.hpp"
 #include "ghoulies/game.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
@@ -60,9 +61,8 @@ struct GhouliesLib
   void EndDrawContext(::graphics::DrawContext&& ctx);
   void UpdateScene();
 
-  void GameLoop();
+  void GameLoop(graphics::DrawContext& draw_ctx);
 
-  void DrawScene(::graphics::DrawContext& ctx);
   void DrawTestModel(::graphics::Model& model,
                      const ::graphics::Texture& texture);
 
@@ -95,6 +95,8 @@ struct GhouliesLib
   }
 
   [[nodiscard]] auto& GameContext() { return this->game_context_; }
+
+  [[nodiscard]] auto& GameState() { return this->game_state_; }
 
   GhouliesLib(const GhouliesLib&) = delete;
   GhouliesLib(GhouliesLib&&) = delete;
@@ -138,6 +140,7 @@ private:
 
   std::filesystem::path game_directory_;
   ghoulies::GameContext game_context_;
+  game::GameState game_state_;
 
   std::map<std::string, BNLFile> bnl_files_;
 

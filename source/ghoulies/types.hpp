@@ -6,6 +6,12 @@ namespace ghoulies
 {
 
 using AssetAID = std::array<char, 0x80>;
+
+constexpr bool IsValidAssetAID(const AssetAID& aid)
+{
+  return aid[0] == 'a' && aid[1] == 'i' && aid[2] == 'd' && aid[3] == '_';
+}
+
 using AudioID = std::array<char, 0x80>;
 
 template<typename T>
@@ -53,6 +59,13 @@ template<typename... Ts>
 struct Overload : Ts...
 {
   using Ts::operator()...;
+};
+
+template<typename T>
+struct EmbeddedNode
+{
+  T prev;
+  T next;
 };
 
 }  // namespace ghoulies

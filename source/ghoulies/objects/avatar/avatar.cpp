@@ -314,4 +314,26 @@ bool Avatar::RunPhysics()
   return true;
 }
 
+void Avatar::UpdateRecursive()
+{
+  if (!this->skip_update_) {
+    this->Update();
+
+    // Entity::UpdateAvatarRenderMats(av);
+    /* Validate model???? */
+    // updateSubresMatrix(av);
+  }
+  /* If this has child???
+   */
+  /*
+if (this->state_pick_up_ != nullptr) {
+  this->state_pick_up_->UpdateRecursive();
+}
+*/
+
+  if (this->node0x918_.next != nullptr) {
+    this->node0x918_.next->UpdateRecursive();
+  }
+}
+
 }  // namespace ghoulies::objects

@@ -31,6 +31,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "file.hpp"
+#include "game/logic.hpp"
 #include "ghoulies/bnl.hpp"
 #include "ghoulies/game.hpp"
 #include "ghoulies/script.hpp"
@@ -60,6 +61,9 @@ std::unique_ptr<GhouliesLib> GhouliesLib::instance {nullptr};
 
 constexpr auto kWindowWidth = 1280;
 constexpr auto kWindowHeight = 720;
+
+using game::Background;
+using objects::Actor;
 
 std::expected<void, std::string> GhouliesLib::Initialise(
     GhouliesLibParams params)
@@ -756,23 +760,6 @@ void GhouliesLib::SetLighting(graphics::LightingUniforms&& uniforms)
   this->lighting_uniforms_ = std::move(uniforms);
 }
 
-void GhouliesLib::DrawScene(graphics::DrawContext& ctx)
-{
-  if (game_context_.draw_backgrounds) {
-    for (auto& bg : game_context_.backgrounds) {
-      bg->Draw(ctx);
-    }
-  }
-
-  for (auto& weapon : game_context_.weapons) {
-    weapon->Draw(ctx);
-  }
-
-  if (game_context_.player) {
-    game_context_.player->Draw(ctx);
-  }
-}
-
 std::expected<void, std::string> GhouliesLib::SetPlaycamScript(
     std::string_view playcam_aid)
 {
@@ -811,8 +798,8 @@ std::expected<void, std::string> GhouliesLib::SetPlaycamScript(
 
   try {
     auto bg {std::make_shared<objects::Background>(bg_params)};
-    game_context_.backgrounds.push_back(bg);
 
+    game_state_.scene_info.backgrounds.push_back(bg);
   } catch (std::runtime_error& e) {
     return unexpected(
         std::format("Failed to load new background. Error: {}", e.what()));
@@ -1041,7 +1028,7 @@ void GhouliesLib::SetDefaultMaterial(
   this->default_material_ = material;
 }
 
-void GhouliesLib::GameLoop()
+void GhouliesLib::GameLoop(graphics::DrawContext& draw_ctx)
 {
   /*
 System::UpdateClocks();
@@ -1090,7 +1077,8 @@ NothingApparently2  ();
     // bool do_regular_update{(g_globalFlagset & DoRenderLoop?) == 0};
     bool do_regular_update {true};
     if (do_regular_update) {
-      // System::RunUpdate(&CurrentChapterState);
+      game::RunUpdate(draw_ctx, this->game_state_);
+
       // System::UpdateStateLinkedLists(&CurrentChapterState);
       // HandleUIUpdate();
       // PeriodicUpdateWithPi();

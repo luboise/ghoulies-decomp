@@ -42,6 +42,8 @@ target_sources(
           source/graphics/model.cpp
           source/graphics/graphics.cpp
           source/graphics/model.cpp
+          source/runtime/runtime.cpp
+          source/game/logic.cpp
           source/ghoulies/bnl.cpp
           source/ghoulies/game.cpp
           source/ghoulies/model.cpp

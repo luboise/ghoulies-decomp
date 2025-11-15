@@ -6,12 +6,9 @@
 #include "ghoulies/objects/weapon/weapon.hpp"
 #include "graphics/graphics.hpp"
 #include "objects/actor.hpp"
-#include "objects/avatar/background.hpp"
 
 namespace ghoulies
 {
-
-using objects::Actor;
 
 struct GameContext
 {
@@ -25,9 +22,7 @@ struct GameContext
   std::string background_model_aid;
 
   std::shared_ptr<objects::Actor> player;
-
   std::list<std::shared_ptr<objects::Weapon>> weapons;
-  std::list<std::shared_ptr<objects::Background>> backgrounds;
 
   std::expected<void, std::string> InitialiseFromMarker(const Marker& marker);
   void Clear();

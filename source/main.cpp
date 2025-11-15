@@ -45,7 +45,7 @@ auto main(int argc, char** argv) -> int
 
     // Draw everything
     auto draw_ctx {lib.NewDrawContext()};
-    lib.DrawScene(draw_ctx);
+    lib.GameLoop(draw_ctx);
     lib.EndDrawContext(std::move(draw_ctx));
     lib.EndFrame();
   }

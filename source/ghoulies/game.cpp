@@ -62,7 +62,6 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
 void GameContext::Clear()
 {
   this->weapons.clear();
-  this->backgrounds.clear();
   this->player.reset();
 }
 
