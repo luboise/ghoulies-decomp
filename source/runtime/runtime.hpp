@@ -29,4 +29,12 @@ inline bool DecrementTimerByDelta(float& timer)
   return false;
 }
 
+/// Recalculates delta based on dx_timer. If dx_timer is non-zero, then delta is
+/// calculated as 0. Otherwise, delta is calcualted as normal.
+inline float GetDeltaFromDxTimer()
+{
+  return runtime::dx_timer <= 0.0F ? runtime::delta_time * runtime::time_scale
+                                   : 0.0F;
+}
+
 }  // namespace runtime

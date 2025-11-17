@@ -61,7 +61,14 @@ public:
 
   [[nodiscard]] graphics::Transform& GetTransform() { return this->transform_; }
 
+  [[nodiscard]] glm::vec3 GetWorldPosition() const;
+  [[nodiscard]] glm::vec3 GetWorldRotation() const;
+
   void UpdateRecursive();
+
+  [[nodiscard]] auto GetFreezeTimer() const { return this->freeze_timer_; }
+
+  [[nodiscard]] auto GetActionSpeed() const { return this->action_speed_; }
 
   // From ghidra makeshift VTable
   // 0x00 = getAllocDetails
@@ -171,7 +178,7 @@ private:
   uint8_t field1580_0x92a_ {};
   uint8_t field1581_0x92b_ {};
   float action_speed_ {};
-  float movement_freeze_timer_ {};
+  float freeze_timer_ {};
 };
 
 }  // namespace ghoulies::objects

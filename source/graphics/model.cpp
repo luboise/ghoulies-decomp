@@ -435,8 +435,6 @@ void Model::DrawWithTransform(DrawContext& ctx,
 
   if (ctx.draw_colliders) {
     if (!this->collider0x4s_.empty()) {
-      std::cout << "Drawing colliders for model.\n";
-
       for (const auto& collider : this->collider0x4s_) {
         graphics::DrawSphere(
             ctx,

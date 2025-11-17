@@ -336,4 +336,62 @@ if (this->state_pick_up_ != nullptr) {
   }
 }
 
+[[nodiscard]] glm::vec3 Avatar::GetWorldPosition() const
+{
+  // TODO: Figure out sound source vel (likely to be world origin)
+  /*
+  auto ptr {this->physicsCtx};
+  if (ptr != NULL) {
+    if ((ptr->actor != NULL)
+        || ((pEVar3 = (this->node0x918).prev,
+             pEVar3 != NULL && (pEVar3->prev != NULL))))
+    {
+      fVar5 = this->camera_affine_[1][2] * Audio::SoundSourceVel.z;
+      fVar4 = this->camera_affine_[1][1] * Audio::SoundSourceVel.y;
+      fVar6 = this->camera_affine_[1][0] * Audio::SoundSourceVel.x;
+      fVar1 = this->camera_affine_[1][3];
+      fVar7 = this->camera_affine_[2][1] * Audio::SoundSourceVel.y;
+      fVar8 = this->camera_affine_[2][2] * Audio::SoundSourceVel.z;
+      fVar9 = this->camera_affine_[2][0] * Audio::SoundSourceVel.x;
+      fVar2 = this->camera_affine_[2][3];
+      v.x = this->camera_affine_[0][1] * Audio::SoundSourceVel.y
+          + this->camera_affine_[0][2] * Audio::SoundSourceVel.z
+          + this->camera_affine_[0][0] * Audio::SoundSourceVel.x
+          + this->camera_affine_[0][3];
+      v.y = fVar4 + fVar5 + fVar6 + fVar1;
+      v.z = fVar7 + fVar8 + fVar9 + fVar2;
+
+      return v;
+    }
+    // Invalid sound pos
+    free(ptr);
+    this->physicsCtx = NULL;
+  }
+*/
+
+  return this->transform_.position;
+}
+
+[[nodiscard]] glm::vec3 Avatar::GetWorldRotation() const
+{
+  // TODO: Figure out physics ctx
+  /*
+  p_ctx = actor->physicsCtx;
+  if (p_ctx != NULL) {
+     if ((p_ctx->actor != NULL) ||
+          ((pEVar1 = (actor->node0x918).prev, pEVar1 != NULL && (pEVar1->prev !=
+  NULL)))) { Math::GetEulerAngles((D3DXMATRIX *)&p_ctx->affine,&local_vec);
+        v3->x = (actor->rotEuler).x + local_vec.x;
+        v3->y = (actor->rotEuler).y + local_vec.y;
+        v3->z = (actor->rotEuler).z + local_vec.z;
+        return;
+     }
+     free(p_ctx);
+     actor->physicsCtx = NULL;
+  }
+  */
+
+  return this->transform_.rotation;
+}
+
 }  // namespace ghoulies::objects

@@ -1,6 +1,9 @@
 #pragma once
 
+#include <memory>
+
 #include "avatar.hpp"
+#include "ghoulies/events/input_handler.hpp"
 
 namespace ghoulies::assets
 {
@@ -14,12 +17,15 @@ class ActorStrategy;
 class ActorMind;
 class ActorBody;
 class ActorState;
+class ActorMove;
 
 struct ActorDroneData;
 
 struct ActorAttribsResource;
 
-class Actor : public Avatar
+class Actor
+    : public Avatar
+    , public std::enable_shared_from_this<Actor>
 {
 public:
   enum ActorType : uint16_t
@@ -53,6 +59,12 @@ public:
 
   explicit Actor(const ActorParams& params);
 
+  void SetBody(const AssetAID& body_aid);
+  void SetMind(const AssetAID& mind_aid);
+  void SetStrategy(const AssetAID& strategy_aid);
+
+  void Update() override;
+
 private:
   // struct Node<actor @0x934> node0x934;
   // struct Node<actor @0x93c> node0x93c;
@@ -60,10 +72,10 @@ private:
   uint32_t* field4_0x948_ {};
   uint32_t field5_0x94c_ {};
   uint32_t* field6_0x950_ {};
-  ActorStrategy* strategy_ {};
-  ActorMind* mind_ {};
-  ActorBody* body_ {};
-  struct ScriptType1* script_type1_ {};
+  std::shared_ptr<ActorStrategy> strategy_ {nullptr};
+  std::shared_ptr<ActorMind> mind_ {nullptr};
+  std::shared_ptr<ActorBody> body_ {nullptr};
+  std::shared_ptr<InputHandler> input_handler_ {nullptr};
   ActorAttribsResource* attribs_ {};
   uint8_t field12_0x968_ {};
   uint8_t rand6_ {};
@@ -100,8 +112,8 @@ private:
   glm::vec3 some_vec3_ {};
 
   UNKNOWN_FIELD(0xcb8, 0xcbf);
-  glm::vec3 v1_ {};
-  glm::vec3 v2_ {};
+  glm::vec3 world_pos_ {};
+  glm::vec3 world_rot_ {};
 
   UNKNOWN_FIELD(0xcd8, 0xcdb);
   ActorType actor_type_;
@@ -109,6 +121,93 @@ private:
   UNKNOWN_FIELD(0xce0, 0xcf3);
   uint16_t statsheet_index_ {};
   ObjectTag tag_;
+};
+
+class ActorBody : public Object
+{
+public:
+  struct ActorBodyParams : ObjectParams
+  {
+    AssetAID attack_data_aid;
+    AssetAID statetable_aid;
+    AssetAID hit_reaction_aid;
+    std::uint8_t default_animation_index;
+    std::uint8_t unknown_u8_1;
+    std::uint8_t unknown_u8_2;
+    std::uint8_t unknown_u8_3;
+    float scale;
+    float camera_offset_vertical;
+    float unknown_f32_1;
+    std::array<float, 3> some_v;
+    ushort unknown_u16_1;
+    UNKNOWN_FIELD(0x1a6, 0x1a9);
+    std::uint8_t some_count_not_flag;
+    std::uint8_t unknown_u8_4;
+    std::uint32_t unknown_u32_1;
+    std::weak_ptr<Actor> parent_actor;
+    UNKNOWN_FIELD(0x1b4, 0x1c1);
+
+    AssetAID burn_fx_obj_params_aid;
+    AssetAID invulnerable_fx_obj_params_aid;
+    std::uint8_t unknown_u8_5;
+    std::uint8_t unknown_u8_6;
+    float unknown_f32_2;
+    AssetAID unknown_aid_1;
+    AssetAID unknown_aid_2;
+    AssetAID unknown_aid_3;
+    AssetAID unknown_aid_4;
+    AssetAID unknown_aid_5;
+    AssetAID unknown_aid_6;
+    AssetAID unknown_aid_7;
+    AssetAID unknown_aid_8;
+    AssetAID unknown_aid_9;
+    AssetAID unknown_aid_10;
+  };
+
+  explicit ActorBody(ActorBodyParams& params);
+
+  virtual void Update(InputHandler* handler);
+
+  std::shared_ptr<Actor> GetActor();
+
+private:
+  std::weak_ptr<Actor> parent_actor_;
+
+  std::shared_ptr<ActorState> actor_state_;
+  std::shared_ptr<ActorMove> actor_move_;
+};
+
+class ActorMind : public Object
+{
+public:
+  struct ActorMindParams : ObjectParams
+  {
+    std::weak_ptr<Actor> parent_actor;
+  };
+};
+
+class ActorState : public Object
+{
+public:
+  virtual void Update(InputHandler* input_handler);
+
+private:
+  std::weak_ptr<ActorBody> parent_body_;
+  std::uint16_t func6_ret_;
+  // std::uint8_t unknown_u8_1;
+  // std::uint8_t unknown_u8_2;
+
+  float t_ {0.0F};
+};
+
+class ActorMove : public Object
+{
+public:
+  virtual void Update(InputHandler* input_handler);
+
+private:
+  std::weak_ptr<ActorBody> parent_body_;
+  float t_ {0.0F};
 };
 
 }  // namespace ghoulies::objects

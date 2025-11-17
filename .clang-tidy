@@ -25,7 +25,10 @@ Checks: "*,\
   -bugprone-suspicious-stringview-data-usage,\
   -misc-no-recursion,\
   -cppcoreguidelines-pro-type-static-cast-downcast,\
-  -cppcoreguidelines-avoid-do-while"
+  -cppcoreguidelines-avoid-do-while,\
+  -cert-msc30-c,-cert-msc30-cpp,\
+  -cert-msc50-cpp,\
+  -fuchsia-multiple-inheritance"
 
 WarningsAsErrors: ""
 CheckOptions:
