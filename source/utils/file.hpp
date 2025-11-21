@@ -100,6 +100,45 @@ public:
     return std::bit_cast<T>(bytes);
   }
 
+  [[nodiscard]] VoidResult ReadBytesAt(std::span<std::byte> bytes, O offset)
+  {
+    auto old_cursor {GetCursor()};
+
+    if (!Seek(offset).has_value()) {
+      return std::unexpected(
+          std::format("Unable to seek to offset {}.", offset));
+    }
+
+    auto success {ReadBytes(bytes)};
+    SetCursor(old_cursor);
+
+    if (!success.has_value()) {
+      return std::unexpected("Failed to read bytes.");
+    };
+
+    return {};
+  }
+
+  template<typename T>
+    requires std::is_default_constructible_v<T>
+  [[nodiscard]] std::optional<T> ReadAt(O offset)
+  {
+    auto old_cursor {GetCursor()};
+    if (!Seek(offset).has_value()) {
+      return std::nullopt;
+    }
+
+    std::array<std::byte, sizeof(T)> bytes;
+
+    if (auto success {ReadBytes(bytes)}; !success.has_value()) {
+      return std::nullopt;
+    };
+
+    SetCursor(old_cursor);
+
+    return std::bit_cast<T>(bytes);
+  }
+
   [[nodiscard]] auto GetCursor() const { return cursor_; }
 
   Stream(Stream&& other) noexcept = default;

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "game/logic.hpp"
+#include "ghoulies/executable/executable.hpp"
 #include "ghoulies/game.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
@@ -148,6 +149,7 @@ private:
   std::unique_ptr<graphics::Model> sphere_model_;
 
   std::unique_ptr<utils::file::XBEStream> xbe_stream_;
+  std::unique_ptr<GhouliesExecutable> ghoulies_executable_;
 };
 
 }  // namespace ghoulies

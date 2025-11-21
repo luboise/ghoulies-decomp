@@ -213,7 +213,7 @@ VoidResult XBEStream::Seek(std::uint32_t offset)
     return unexpected(errors::kOffsetOutOfBounds);
   }
 
-  SetCursor(file_offset.value());
+  SetCursor(offset);
 
   return {};
 }

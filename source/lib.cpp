@@ -32,6 +32,7 @@
 
 #include "game/logic.hpp"
 #include "ghoulies/bnl.hpp"
+#include "ghoulies/executable/executable.hpp"
 #include "ghoulies/game.hpp"
 #include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
@@ -144,6 +145,10 @@ GhouliesLib::GhouliesLib(const GhouliesLibParams& params)
 
   this->xbe_stream_ =
       std::make_unique<XBEStream>(OrThrow(XBEStream::FromBytes(xbe_bytes)));
+
+  this->ghoulies_executable_ = std::make_unique<GhouliesExecutable>(
+      OrThrow(GhouliesExecutable::FromXBEStream(*this->xbe_stream_,
+                                                kXbeConfigPalv1v0)));
 
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     std::cerr << std::format("SDL could not initialize! SDL_Error: {}\n",
