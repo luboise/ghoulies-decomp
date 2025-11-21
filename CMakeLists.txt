@@ -37,7 +37,6 @@ target_include_directories(ghoulies_launcher_lib
 target_sources(
   ghoulies_launcher_lib
   PRIVATE source/lib.cpp
-          source/file.cpp
           source/graphics/material.cpp
           source/graphics/model.cpp
           source/graphics/graphics.cpp

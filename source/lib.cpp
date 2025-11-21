@@ -36,6 +36,7 @@
 #include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
+#include "utils/errors.hpp"
 #include "utils/file.hpp"
 #include "utils/images.hpp"
 
@@ -64,6 +65,8 @@ constexpr auto kWindowHeight = 720;
 
 using game::Background;
 using objects::Actor;
+using utils::errors::OrThrow;
+using utils::file::XBEStream;
 
 std::expected<void, std::string> GhouliesLib::Initialise(
     GhouliesLibParams params)
@@ -135,6 +138,12 @@ GhouliesLib::GhouliesLib(const GhouliesLibParams& params)
   }
 
   this->game_directory_ = std::move(game_directory);
+
+  path xbe_path {OrThrow(this->FindGameFile("default.xbe"))};
+  Bytes xbe_bytes {OrThrow(utils::file::ReadFileBytes(xbe_path))};
+
+  this->xbe_stream_ =
+      std::make_unique<XBEStream>(OrThrow(XBEStream::FromBytes(xbe_bytes)));
 
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     std::cerr << std::format("SDL could not initialize! SDL_Error: {}\n",

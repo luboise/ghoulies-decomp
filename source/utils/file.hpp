@@ -93,7 +93,7 @@ public:
   {
     std::array<std::byte, sizeof(T)> bytes;
 
-    if (auto success {ReadBytes(bytes)}; success.is_error()) {
+    if (auto success {ReadBytes(bytes)}; !success.has_value()) {
       return std::nullopt;
     };
 
@@ -102,10 +102,11 @@ public:
 
   [[nodiscard]] auto GetCursor() const { return cursor_; }
 
-  Stream(const Stream&) = delete;
   Stream(Stream&& other) noexcept = default;
+  Stream& operator=(Stream&&) = default;
+
+  Stream(const Stream&) = delete;
   Stream& operator=(const Stream&) = delete;
-  Stream& operator=(Stream&&) = delete;
 
 protected:
   void SetCursor(O cursor) { this->cursor_ = cursor; }
@@ -146,35 +147,24 @@ public:
     return {};
   }
 
-  template<typename T>
-    requires std::is_default_constructible_v<T>
-  std::optional<T> Read()
-  {
-    if (cursor_ >= bytes_.size() || cursor_ + sizeof(T) >= bytes_.size()) {
-      return std::nullopt;
-    }
-
-    T t;
-
-    std::memcpy(&t, &bytes_[cursor_], sizeof(T));
-
-    cursor_ += sizeof(T);
-
-    return t;
-  }
-
 private:
   std::span<const std::byte> bytes_;
-  std::size_t cursor_ {0};
 };
 
 class XBEStream : public Stream<std::uint32_t>
 {
 public:
   static std::expected<XBEStream, std::string> FromBytes(Bytes bytes);
+  ~XBEStream() override = default;
 
   VoidResult ReadBytes(std::span<std::byte> bytes) override;
   VoidResult Seek(std::uint32_t offset) override;
+
+  XBEStream(XBEStream&&) = default;
+  XBEStream& operator=(XBEStream&&) = default;
+
+  XBEStream(const XBEStream&) = delete;
+  XBEStream& operator=(const XBEStream&) = delete;
 
 private:
   explicit XBEStream(Bytes bytes);

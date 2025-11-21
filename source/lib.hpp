@@ -9,6 +9,7 @@
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
 #include "menu/menu.hpp"
+#include "utils/file.hpp"
 
 class SDL_Window;
 class SDL_GPUDevice;
@@ -145,6 +146,8 @@ private:
   std::map<std::string, BNLFile> bnl_files_;
 
   std::unique_ptr<graphics::Model> sphere_model_;
+
+  std::unique_ptr<utils::file::XBEStream> xbe_stream_;
 };
 
 }  // namespace ghoulies

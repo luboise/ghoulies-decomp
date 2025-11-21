@@ -20,6 +20,7 @@ class Menu
 public:
   Menu(SDL_GPUDevice* device, SDL_Window* window);
   ~Menu();
+
   void Render(graphics::DrawContext& draw_ctx, ghoulies::GameContext& game_ctx);
 
   void NewFrame();
@@ -31,4 +32,4 @@ private:
   SDL_GPUDevice* device_;
 };
 
-};  // namespace menu
+}  // namespace menu

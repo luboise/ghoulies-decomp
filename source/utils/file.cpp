@@ -134,13 +134,16 @@ struct XBEHeaderSection
   std::uint32_t reference;
   std::uint32_t head_ref_ptr;
   std::uint32_t tail_ref_ptr;
+  std::array<std::byte, 20> checksum;
 };
+
+static_assert(sizeof(XBEHeaderSection) == (sizeof(std::uint32_t) * 9) + 20);
 
 XBEStream::XBEStream(Bytes bytes)
     : Stream(0)
     , bytes_(std::move(bytes))
 {
-  ByteStream stream {bytes};
+  ByteStream stream {bytes_};
 
   // Seek to image base in header
   OrThrow(stream.Seek(0x104));
