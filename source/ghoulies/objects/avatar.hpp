@@ -40,13 +40,13 @@ public:
     struct DataForInfoFromBackground* prev;
   };
 
-  struct AvatarParams : Object::ObjectParams
+  struct AvatarParamsRaw : Object::ObjectParams
   {
-    glm::vec3 pos {0, 0, 0};
-    glm::vec3 rot_euler {0, 0, 0};
+    std::array<float, 3> pos;
+    std::array<float, 3> rot_euler;
     float scale {1};
     float unknown_float;
-    std::string model_aid;
+    AssetAID model_aid;
     AssetAID stand_animation_aid;
     AssetAID animtable_aid;
     AssetAID callout_aid;
@@ -55,6 +55,27 @@ public:
     uint32_t field11_0x2ac;
     float field12_0x2b0;
     AssetAID shadow_model_aid;
+  };
+
+  static_assert(sizeof(AvatarParamsRaw) == 0x334);
+
+  struct AvatarParams : Object::ObjectParams
+  {
+    glm::vec3 pos {0, 0, 0};
+    glm::vec3 rot_euler {0, 0, 0};
+    float scale {1};
+    float unknown_float;
+    std::string model_aid;
+    std::string stand_animation_aid;
+    std::string animtable_aid;
+    std::string callout_aid;
+    std::string some_asset_name;
+    uint32_t field10_0x2a8;
+    uint32_t field11_0x2ac;
+    float field12_0x2b0;
+    std::string shadow_model_aid;
+
+    static AvatarParams FromRaw(const AvatarParamsRaw& raw);
   };
 
   virtual void SetModel(std::string_view model_aid);

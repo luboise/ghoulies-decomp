@@ -3,6 +3,7 @@
 #include "game.hpp"
 
 #include "../lib.hpp"
+#include "ghoulies/executable/executable.hpp"
 
 namespace ghoulies
 {
@@ -10,34 +11,31 @@ namespace ghoulies
 std::expected<void, std::string> GameContext::InitialiseFromMarker(
     const Marker& marker)
 {
+  auto& lib {GhouliesLib::Instance()};
+
   static const auto kVisitor = Overload {
-      [this](const WeaponMarker& weapon_marker)
+      [&, this](const WeaponMarker& weapon_marker)
       {
-        auto model_name {std::string(weapon_marker.objparams_aid.data())};
+        std::string weapon_aid {weapon_marker.objparams_aid.data()};
 
-        std::cout << "Loading weapon \"" << model_name << "\" from marker.\n";
+        std::cout << "Loading weapon \"" << weapon_aid << "\" from marker.\n";
 
-        auto objparams_index {model_name.find("objparams")};
-
-        if (objparams_index == std::string::npos) {
-          std::cerr << "Objparams asset ID \"" << model_name.data()
-                    << "\" does not contain objparams. Unable to get model.\n";
+        const auto* res = lib.ExecutableData().GetResource(weapon_aid);
+        if (res == nullptr) {
+          std::cerr << "Failed to resource with id \"" << weapon_aid << "\"\n";
           return;
         }
 
-        model_name.replace(objparams_index, 9, "model");
-
-        const auto* model_asset {GhouliesLib::Instance().GetAsset(model_name)};
-
-        if (model_asset == nullptr) {
-          std::cerr << "Failed to get model from objparams \""
-                    << weapon_marker.objparams_aid.data() << "\".\n";
+        auto objparams_opt {res->AsType<objects::Weapon::WeaponParamsRaw>()};
+        if (!objparams_opt.has_value()) {
+          std::cerr << "Failed to convert resource \"" << weapon_aid
+                    << "\" to objparams.\n";
           return;
         }
 
         try {
-          objects::Weapon::WeaponParams params {};
-          params.model_aid = model_name;
+          auto params {objects::Weapon::WeaponParams::FromRaw(
+              std::move(objparams_opt).value())};
 
           params.pos = weapon_marker.header.pos;
           params.rot_euler = weapon_marker.header.rot_euler;
@@ -45,7 +43,7 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
 
           this->weapons.push_back(std::make_shared<objects::Weapon>(params));
         } catch (std::runtime_error& e) {
-          std::cerr << "Failed to create weapon from AID " << model_name
+          std::cerr << "Failed to create weapon from AID " << weapon_aid
                     << ". Error: " << e.what() << "\n";
         }
       },

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <expected>
+#include <iostream>
 #include <string>
+#include <type_traits>
 
 #include "../../utils/file.hpp"
 #include "ghoulies/types.hpp"
@@ -53,9 +55,28 @@ struct XBEResource
   std::string name;
   Bytes data;
   std::uint32_t type_hash;
+
+  template<typename OP>
+    requires std::is_default_constructible_v<OP>
+  std::optional<OP> AsType() const
+  {
+    if (this->data.size() <= sizeof(OP)) {
+      return std::nullopt;
+    }
+    if (this->data.size() > sizeof(OP)) {
+      std::cout << "Warning: Constructing objparams of size " << sizeof(OP)
+                << " from data of size " << this->data.size()
+                << ". There may be an ObjectParams type mismatch between the "
+                   "asset and its instance.";
+    }
+
+    OP op {};
+    std::memcpy(&op, this->data.data(), sizeof(OP));
+    return op;
+  }
 };
 
-struct GhouliesExecutable
+struct GhouliesExecutableData
 {
   std::vector<XBEResource> anim_tables;
   std::vector<XBEResource> attack_data;
@@ -65,10 +86,13 @@ struct GhouliesExecutable
   std::vector<XBEResource> move_state_objparams;
   std::vector<XBEResource> state_tables;
 
-  static std::expected<GhouliesExecutable, std::string> FromXBEStream(
+  static std::expected<GhouliesExecutableData, std::string> FromXBEStream(
       utils::file::XBEStream& stream, const XBEConfig& config);
-};
 
-std::expected<GhouliesExecutable, std::string> GetExecutable();
+  [[nodiscard]] const XBEResource* GetResource(
+      std::string_view objparams_aid) const;
+
+  std::expected<GhouliesExecutableData, std::string> GetExecutable();
+};
 
 }  // namespace ghoulies

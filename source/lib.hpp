@@ -5,7 +5,6 @@
 #include <string>
 
 #include "game/logic.hpp"
-#include "ghoulies/executable/executable.hpp"
 #include "ghoulies/game.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
@@ -20,6 +19,7 @@ class SDL_GPUGraphicsPipeline;
 
 namespace ghoulies
 {
+struct GhouliesExecutableData;
 
 struct GhouliesLibParams
 {
@@ -100,6 +100,8 @@ struct GhouliesLib
 
   [[nodiscard]] auto& GameState() { return this->game_state_; }
 
+  [[nodiscard]] const GhouliesExecutableData& ExecutableData();
+
   GhouliesLib(const GhouliesLib&) = delete;
   GhouliesLib(GhouliesLib&&) = delete;
   GhouliesLib& operator=(const GhouliesLib&) = delete;
@@ -149,7 +151,7 @@ private:
   std::unique_ptr<graphics::Model> sphere_model_;
 
   std::unique_ptr<utils::file::XBEStream> xbe_stream_;
-  std::unique_ptr<GhouliesExecutable> ghoulies_executable_;
+  std::unique_ptr<GhouliesExecutableData> executable_data_;
 };
 
 }  // namespace ghoulies

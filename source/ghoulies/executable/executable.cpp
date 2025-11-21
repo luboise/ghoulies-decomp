@@ -8,11 +8,11 @@ namespace ghoulies
 {
 using utils::errors::OrThrow;
 
-std::expected<GhouliesExecutable, std::string>
-ghoulies::GhouliesExecutable::FromXBEStream(utils::file::XBEStream& stream,
-                                            const XBEConfig& config)
+std::expected<GhouliesExecutableData, std::string>
+ghoulies::GhouliesExecutableData::FromXBEStream(utils::file::XBEStream& stream,
+                                                const XBEConfig& config)
 {
-  GhouliesExecutable executable {};
+  GhouliesExecutableData executable {};
 
   const auto get_xbe_resources =
       [&stream](const XBEConfig::ResourceLocator& locator)
@@ -74,6 +74,34 @@ ghoulies::GhouliesExecutable::FromXBEStream(utils::file::XBEStream& stream,
   }
 
   return executable;
+}
+
+[[nodiscard]] const XBEResource* GhouliesExecutableData::GetResource(
+    std::string_view objparams_aid) const
+{
+  const auto search = [&objparams_aid](std::span<const XBEResource> values)
+      -> const XBEResource*
+  {
+    for (const auto& header : values) {
+      if (header.name == objparams_aid) {
+        return &header;
+      }
+    }
+
+    return nullptr;
+  };
+
+  const XBEResource* ptr {nullptr};
+
+  ptr = (ptr == nullptr) ? search(this->anim_tables) : ptr;
+  ptr = (ptr == nullptr) ? search(this->attack_data) : ptr;
+  ptr = (ptr == nullptr) ? search(this->hit_reactions) : ptr;
+  ptr = (ptr == nullptr) ? search(this->main_objparams) : ptr;
+  ptr = (ptr == nullptr) ? search(this->script_tables) : ptr;
+  ptr = (ptr == nullptr) ? search(this->move_state_objparams) : ptr;
+  ptr = (ptr == nullptr) ? search(this->state_tables) : ptr;
+
+  return ptr;
 }
 
 }  // namespace ghoulies

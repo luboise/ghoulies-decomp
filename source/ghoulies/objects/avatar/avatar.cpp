@@ -394,4 +394,24 @@ if (this->state_pick_up_ != nullptr) {
   return this->transform_.rotation;
 }
 
+Avatar::AvatarParams Avatar::AvatarParams::FromRaw(const AvatarParamsRaw& raw)
+{
+  return AvatarParams {
+      .pos = {raw.pos[0], raw.pos[1], raw.pos[2]},
+      .rot_euler = {raw.rot_euler[0], raw.rot_euler[1], raw.rot_euler[2]},
+      .scale = raw.scale,
+      .unknown_float = raw.unknown_float,
+      .model_aid = raw.model_aid.data(),
+      .stand_animation_aid = raw.stand_animation_aid.data(),
+      .animtable_aid = raw.animtable_aid.data(),
+      .callout_aid = raw.callout_aid.data(),
+      .some_asset_name = raw.some_asset_name.data(),
+      .field10_0x2a8 = raw.field10_0x2a8,
+      .field11_0x2ac = raw.field11_0x2ac,
+      .field12_0x2b0 = raw.field12_0x2b0,
+      .shadow_model_aid = raw.shadow_model_aid.data(),
+
+  };
+}
+
 }  // namespace ghoulies::objects
