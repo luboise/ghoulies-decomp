@@ -52,9 +52,15 @@ struct WeaponMarker
   std::array<float, 12> floats;
 };
 
+struct PowerupMarker
+{
+  MarkerHeader header;
+  AssetAID objparams_aid;
+};
+
 static_assert(sizeof(WeaponMarker) == 0x258);
 
-using MarkerEntry = std::variant<RawMarkerEntry, WeaponMarker>;
+using MarkerEntry = std::variant<RawMarkerEntry, WeaponMarker, PowerupMarker>;
 
 class Marker
 {

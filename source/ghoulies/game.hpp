@@ -3,6 +3,7 @@
 #include <list>
 
 #include "ghoulies/assets/marker.hpp"
+#include "ghoulies/objects/avatar/powerup.hpp"
 #include "ghoulies/objects/weapon/weapon.hpp"
 #include "graphics/graphics.hpp"
 #include "objects/actor.hpp"
@@ -23,8 +24,9 @@ struct GameContext
 
   std::shared_ptr<objects::Actor> player;
   std::list<std::shared_ptr<objects::Weapon>> weapons;
+  std::list<std::shared_ptr<objects::Powerup>> powerups;
 
-  std::expected<void, std::string> InitialiseFromMarker(const Marker& marker);
+  std::expected<void, std::string> LoadAvatarsFromMarker(const Marker& marker);
   void Clear();
 };
 

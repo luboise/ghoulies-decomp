@@ -4,6 +4,7 @@
 #include "../../game.hpp"
 #include "background.hpp"
 #include "graphics/model.hpp"
+#include "powerup.hpp"
 
 using graphics::DrawContext;
 
@@ -412,6 +413,18 @@ Avatar::AvatarParams Avatar::AvatarParams::FromRaw(const AvatarParamsRaw& raw)
       .shadow_model_aid = raw.shadow_model_aid.data(),
 
   };
+}
+
+Powerup::PowerupParams Powerup::PowerupParams::FromRaw(PowerupParamsRaw raw)
+{
+  return PowerupParams {AvatarParams::FromRaw(raw),
+                        .powerup_texture = raw.powerup_texture};
+}
+
+Powerup::Powerup(const PowerupParams& params)
+    : Avatar(params)
+    , powerup_texture_(nullptr)
+{
 }
 
 }  // namespace ghoulies::objects

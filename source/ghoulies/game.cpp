@@ -4,11 +4,12 @@
 
 #include "../lib.hpp"
 #include "ghoulies/executable/executable.hpp"
+#include "ghoulies/objects/avatar/powerup.hpp"
 
 namespace ghoulies
 {
 
-std::expected<void, std::string> GameContext::InitialiseFromMarker(
+std::expected<void, std::string> GameContext::LoadAvatarsFromMarker(
     const Marker& marker)
 {
   auto& lib {GhouliesLib::Instance()};
@@ -22,7 +23,8 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
 
         const auto* res = lib.ExecutableData().GetResource(weapon_aid);
         if (res == nullptr) {
-          std::cerr << "Failed to resource with id \"" << weapon_aid << "\"\n";
+          std::cerr << "Failed to get resource with id \"" << weapon_aid
+                    << "\"\n";
           return;
         }
 
@@ -44,6 +46,41 @@ std::expected<void, std::string> GameContext::InitialiseFromMarker(
           this->weapons.push_back(std::make_shared<objects::Weapon>(params));
         } catch (std::runtime_error& e) {
           std::cerr << "Failed to create weapon from AID " << weapon_aid
+                    << ". Error: " << e.what() << "\n";
+        }
+      },
+
+      [&, this](const PowerupMarker& powerup_marker)
+      {
+        std::string powerup_aid {powerup_marker.objparams_aid.data()};
+
+        std::cout << "Loading powerup \"" << powerup_aid << "\" from marker.\n";
+
+        const auto* res = lib.ExecutableData().GetResource(powerup_aid);
+        if (res == nullptr) {
+          std::cerr << "Failed to get resource with id \"" << powerup_aid
+                    << "\"\n";
+          return;
+        }
+
+        auto objparams_opt {res->AsType<objects::Powerup::PowerupParamsRaw>()};
+        if (!objparams_opt.has_value()) {
+          std::cerr << "Failed to convert resource \"" << powerup_aid
+                    << "\" to objparams.\n";
+          return;
+        }
+
+        try {
+          auto params {objects::Powerup::PowerupParams::FromRaw(
+              std::move(objparams_opt).value())};
+
+          params.pos = powerup_marker.header.pos;
+          params.rot_euler = powerup_marker.header.rot_euler;
+          params.scale = powerup_marker.header.scale;
+
+          this->powerups.push_back(std::make_shared<objects::Powerup>(params));
+        } catch (std::runtime_error& e) {
+          std::cerr << "Failed to create weapon from AID " << powerup_aid
                     << ". Error: " << e.what() << "\n";
         }
       },

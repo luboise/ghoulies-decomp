@@ -27,23 +27,51 @@ Marker::Marker(const Asset& asset)
     Bytes data;
 
     if (header.size > sizeof(MarkerHeader)) {
-      if (header.marker_type == MarkerType::Weapon) {
-        if (header.size != sizeof(WeaponMarker)) {
-          throw std::runtime_error(std::
-                                       format("Mismatch between declared "
-                                              "header " "size " "{} and " "actu"
-                                                                          "al" " " "si" "ze" " " "of a " "weapon " "marker {}.",
-                                              header.size,
-                                              sizeof(WeaponMarker)));
+      switch (header.marker_type) {
+        case (MarkerType::Weapon): {
+          if (header.size != sizeof(WeaponMarker)) {
+            throw std::runtime_error(
+                std::format(
+                    "Mismatch between declared " "header " "size " "{} and " "a" "c" "t" "u" "al" " " "si" "ze" " " "of a " "weapon " "marker {}.",
+                    header.size,
+                    sizeof(WeaponMarker)));
+          }
+
+          WeaponMarker weapon_marker {};
+
+          std::memcpy(static_cast<void*>(&weapon_marker),
+                      &asset.descriptor[curr],
+                      sizeof(WeaponMarker));
+
+          marker_entries.emplace_back(weapon_marker);
+          break;
         }
 
-        WeaponMarker weapon_marker {};
+        case MarkerType::Powerup: {
+          if (header.size != sizeof(PowerupMarker)) {
+            throw std::runtime_error(
+                std::format(
+                    "Mismatch between declared " "header " "size " "{} and " "a" "c" "t" "u" "al" " " "si" "ze" " " "of a " "powerup " "marker {}.",
+                    header.size,
+                    sizeof(PowerupMarker)));
+          }
 
-        std::memcpy(static_cast<void*>(&weapon_marker),
-                    &asset.descriptor[curr],
-                    sizeof(WeaponMarker));
+          PowerupMarker powerup_marker {};
 
-        marker_entries.emplace_back(weapon_marker);
+          std::memcpy(static_cast<void*>(&powerup_marker),
+                      &asset.descriptor[curr],
+                      sizeof(PowerupMarker));
+
+          marker_entries.emplace_back(powerup_marker);
+          break;
+        }
+        case MarkerType::Player:
+        case MarkerType::GhoulyBoxGhouly:
+        case MarkerType::FxEmitter:
+        case MarkerType::Unknown0x0b:
+        case MarkerType::Unknown0x0c:
+        case MarkerType::GhoulyBoxItem:
+          break;
       }
 
       std::size_t data_size {header.size - sizeof(MarkerHeader)};

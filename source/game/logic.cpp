@@ -198,6 +198,10 @@ void game::UpdateEntities(graphics::DrawContext& draw_ctx, GameState& state)
     weapon->Draw(draw_ctx);
   }
 
+  for (auto& powerup : game_context.powerups) {
+    powerup->Draw(draw_ctx);
+  }
+
   if (game_context.player) {
     game_context.player->Draw(draw_ctx);
   }

@@ -846,7 +846,7 @@ std::expected<void, std::string> GhouliesLib::SetPlaycamScript(
 
     std::cout << "Num marker entries: " << marker.Size() << ".\n";
 
-    if (auto result {game_context_.InitialiseFromMarker(marker)};
+    if (auto result {game_context_.LoadAvatarsFromMarker(marker)};
         !result.has_value())
     {
       return unexpected(

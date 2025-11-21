@@ -60,7 +60,7 @@ struct XBEResource
     requires std::is_default_constructible_v<OP>
   std::optional<OP> AsType() const
   {
-    if (this->data.size() <= sizeof(OP)) {
+    if (this->data.size() < sizeof(OP)) {
       return std::nullopt;
     }
     if (this->data.size() > sizeof(OP)) {

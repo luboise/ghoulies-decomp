@@ -34,7 +34,7 @@ public:
     NPC = 5
   };
 
-  struct ActorParams : AvatarParams
+  struct ActorParamsRaw : AvatarParamsRaw
   {
     uint16_t field1_0x334;
     uint16_t field2_0x336;
@@ -57,11 +57,38 @@ public:
     uint8_t field15_0x63f;
   };
 
+  static_assert(sizeof(ActorParamsRaw) == 0x640);
+
+  struct ActorParams : AvatarParams
+  {
+    // uint16_t field1_0x334;
+    // uint16_t field2_0x336;
+    // uint16_t field3_0x338;
+    std::string strategy_obj_params_aid;
+    std::string ai_mind_obj_params_aid;
+    std::string body_obj_params_aid;
+    std::string starting_weapon_aid;
+
+    /* eg:
+                             "aid_ghoulybox_powerups_bonusbooks_chapter3a_scene10",
+                             vampire spawns book on death */
+    std::string ghouly_box_aid;
+    std::string actor_attribs_defaults_aid;
+    // uint8_t field10_0x63a;
+    // uint8_t field11_0x63b;
+    // uint8_t field12_0x63c;
+    // uint8_t field13_0x63d;
+    // uint8_t field14_0x63e;
+    // uint8_t field15_0x63f;
+
+    static ActorParams FromRaw(const ActorParamsRaw& raw);
+  };
+
   explicit Actor(const ActorParams& params);
 
-  void SetBody(const AssetAID& body_aid);
-  void SetMind(const AssetAID& mind_aid);
-  void SetStrategy(const AssetAID& strategy_aid);
+  void SetBody(std::string_view body_aid);
+  void SetMind(std::string_view mind_aid);
+  void SetStrategy(std::string_view strategy_aid);
 
   void Update() override;
 

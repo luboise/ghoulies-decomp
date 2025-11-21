@@ -388,7 +388,7 @@ std::shared_ptr<Actor> ActorBody::GetActor()
   return this->parent_actor_.lock();
 }
 
-void Actor::SetBody(const AssetAID& body_aid)
+void Actor::SetBody(std::string_view body_aid)
 {
   this->body_.reset();
 
@@ -406,7 +406,7 @@ void Actor::SetBody(const AssetAID& body_aid)
   }
 }
 
-void Actor::SetMind(const AssetAID& mind_aid)
+void Actor::SetMind(std::string_view mind_aid)
 {
   this->mind_.reset();
   // Assets::DeleteResource(this->mind_);
@@ -425,7 +425,7 @@ void Actor::SetMind(const AssetAID& mind_aid)
   }
 }
 
-void Actor::SetStrategy(const AssetAID& strategy_aid)
+void Actor::SetStrategy(std::string_view strategy_aid)
 {
   /*
 actorStrategyState aVar1;
@@ -463,6 +463,20 @@ actorMind::removeGoals ? (strategy->parentActor->mind);
 }
 return;
 */
+}
+
+Actor::ActorParams Actor::ActorParams::FromRaw(const ActorParamsRaw& raw)
+{
+  return ActorParams {
+      AvatarParams::FromRaw(raw),
+      .strategy_obj_params_aid = raw.strategy_obj_params_aid.data(),
+      .ai_mind_obj_params_aid = raw.ai_mind_obj_params_aid.data(),
+      .body_obj_params_aid = raw.body_obj_params_aid.data(),
+      .starting_weapon_aid = raw.starting_weapon_aid.data(),
+      .ghouly_box_aid = raw.ghouly_box_aid.data(),
+      .actor_attribs_defaults_aid = raw.actor_attribs_defaults_aid.data(),
+
+  };
 }
 
 }  // namespace ghoulies::objects
