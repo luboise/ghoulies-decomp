@@ -53,8 +53,10 @@ target_sources(
           source/ghoulies/objects/actor/actor.cpp
           source/ghoulies/objects/avatar/avatar.cpp
           source/ghoulies/objects/weapon/weapon.cpp
+          source/ghoulies/executable/executable.cpp
           # utils
           source/utils/images.cpp
+          source/utils/file.cpp
           source/menu/menu.cpp
           ${IMGUI_SOURCES})
 

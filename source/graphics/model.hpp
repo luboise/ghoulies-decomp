@@ -7,7 +7,6 @@
 
 #include "../ghoulies/model.hpp"
 #include "../ghoulies/nd.hpp"
-#include "ghoulies/d3d.hpp"
 #include "graphics.hpp"
 #include "material.hpp"
 

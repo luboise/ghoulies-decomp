@@ -151,7 +151,7 @@ struct TextureAsset
   std::uint16_t height;
   std::uint32_t tile_count {1};
 
-  ghoulies::utils::Bytes data;
+  utils::file::Bytes data;
 };
 
 class Texture
@@ -228,6 +228,9 @@ struct Buffer
       , handle(nullptr)
   {
   }
+
+  Buffer(const Buffer&) = delete;
+  Buffer& operator=(const Buffer&) = delete;
 
   Buffer(SDL_GPUDevice* device,
          BufferType buffer_type,

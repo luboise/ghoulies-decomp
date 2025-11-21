@@ -22,7 +22,7 @@ public:
   {
     static T s {};
     return s;
-  };
+  }
 
   Singleton() = default;
 

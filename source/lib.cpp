@@ -30,21 +30,21 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "file.hpp"
 #include "game/logic.hpp"
 #include "ghoulies/bnl.hpp"
 #include "ghoulies/game.hpp"
 #include "ghoulies/script.hpp"
 #include "graphics/graphics.hpp"
 #include "graphics/model.hpp"
+#include "utils/file.hpp"
 #include "utils/images.hpp"
 
 // using std::filesystem::path;
 // using ghoulies::ModelDescriptor;
 //
-using ghoulies::Bytes;
-using ghoulies::utils::ReadFile;
-using ghoulies::utils::ReadFileBytes;
+using utils::file::Bytes;
+using utils::file::ReadFile;
+using utils::file::ReadFileBytes;
 
 using graphics::Texture;
 
@@ -332,7 +332,7 @@ GhouliesLib::GhouliesLib(const GhouliesLibParams& params)
   }
 
   auto default_texture_opt {
-      ghoulies::utils::LoadTexture("resources/textures/default_texture.png")};
+      utils::LoadTexture("resources/textures/default_texture.png")};
 
   auto tex {this->LoadTexture(default_texture_opt.value())};
   if (tex == nullptr) {

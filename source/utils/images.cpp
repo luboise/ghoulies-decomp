@@ -6,15 +6,15 @@
 #include "images.hpp"
 #include "stb_image.h"
 
-namespace ghoulies
-{
-
 using std::filesystem::path;
 
-std::optional<TextureAsset> ghoulies::utils::LoadTexture(
+using utils::file::Bytes;
+
+std::optional<ghoulies::TextureAsset> utils::LoadTexture(
     std::string_view image_path)
 {
-  auto file_bytes_opt {ReadFileBytes(static_cast<path>(image_path))};
+  auto file_bytes_opt {
+      ::utils::file::ReadFileBytes(static_cast<path>(image_path))};
 
   if (!file_bytes_opt.has_value()) {
     return std::nullopt;
@@ -40,11 +40,12 @@ std::optional<TextureAsset> ghoulies::utils::LoadTexture(
 
   std::size_t data_size {static_cast<size_t>(x * y * desired_channels)};
 
-  TextureAsset new_tex_asset {.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                              .width = static_cast<uint16_t>(x),
-                              .height = static_cast<uint16_t>(y),
-                              .tile_count {},
-                              .data = Bytes(data_size)};
+  ghoulies::TextureAsset new_tex_asset {
+      .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+      .width = static_cast<uint16_t>(x),
+      .height = static_cast<uint16_t>(y),
+      .tile_count {},
+      .data = Bytes(data_size)};
 
   std::memcpy(new_tex_asset.data.data(), image_data, data_size);
 
@@ -52,5 +53,3 @@ std::optional<TextureAsset> ghoulies::utils::LoadTexture(
 
   return new_tex_asset;
 }
-
-}  // namespace ghoulies

@@ -4,13 +4,13 @@
 #include <type_traits>
 #include <variant>
 
-#include "../file.hpp"
+#include "../utils/file.hpp"
 #include "types.hpp"
 
 namespace ghoulies
 {
 
-using utils::Bytes;
+using utils::file::Bytes;
 
 enum ScriptOpcode : uint32_t
 {

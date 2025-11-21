@@ -37,7 +37,7 @@ std::expected<BNLFile, std::string> BNLFile::FromBytes(
   Bytes compressed_bytes {subspan.begin(), subspan.end()};
 
   Bytes decompressed_bytes {
-      utils::ZLibDecompress(
+      utils::file::ZLibDecompress(
           compressed_bytes,
           max_offset + 500)  // 500 is just extra chunk to make sure a second
                              // allocation isn't made

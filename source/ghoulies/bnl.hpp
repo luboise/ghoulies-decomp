@@ -8,14 +8,13 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
-#include "../file.hpp"
+#include "../utils/file.hpp"
 
 namespace ghoulies
 {
 
-using utils::Bytes;
+using utils::file::Bytes;
 
 // Taken from project_grabbed
 // https://github.com/x1nixmzeng/project-grabbed
