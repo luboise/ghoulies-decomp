@@ -9,6 +9,9 @@ for asset_name in args:
     hashed = 0
 
     for c in asset_name[4:]:
+        if ord(c) == 0:
+            break
+
         hashed = (ord(c) & 0xdf) + hashed * 0x10
         has_flag = hashed & 0xf0000000
         if has_flag:

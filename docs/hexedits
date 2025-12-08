@@ -188,3 +188,9 @@ set {int}0x11c7e1=0x0007b2ac
 
 Set game speed to 4.0
 set {int}0x11c7e1=0x000809e0
+
+Hit acceleration (Sets air resistance to -1)
+set {int}0x957a4=0x4e555
+
+Disable actor scares on background breaking
+set {char[5]}0x6ac05={0x90,0x90,0x90,0x90,0x90}
