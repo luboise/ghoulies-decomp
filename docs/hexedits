@@ -194,3 +194,14 @@ set {int}0x957a4=0x4e555
 
 Disable actor scares on background breaking
 set {char[5]}0x6ac05={0x90,0x90,0x90,0x90,0x90}
+
+Disable all bone updates
+set {char}0x2f720=0xc3
+
+Disable half of the bone updates
+set {char}0x2f734=3
+set {char}0x2f738=0x35
+
+// Bobblehead cooper
+set {short}0x73ac2=0x9090
+set {short}0x73adb=0x9090
