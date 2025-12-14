@@ -1,5 +1,5 @@
 #pragma once
-#include "ghoulies/nd"
+#include "ghoulies/nd/all"
 
 enum ModelSubresourceType : u32
 {
@@ -10,7 +10,7 @@ enum ModelSubresourceType : u32
   MatrixSubres = 0x5,
   CollidersSubres = 0x6,
   TexturesSubres = 0x7,
-  Unknown0x9Subres = 0x9,
+  BoneIndexSubres = 0x9,
   VertexBufferSubres = 0x12
 };
 
@@ -18,6 +18,35 @@ struct Mesh
 {
   u32 mesh_data;
 };
+
+struct SizedCollection<T>
+{
+  s128 model_root = parent.model_root;
+
+  u32 numValues;
+  u32 dataStart;
+  T values[numValues];
+};
+
+struct SubresourcePtr
+{
+  u32* ptr : u32 [[pointer_base("section1innersptr")]];
+};
+
+struct KeyValue
+{
+  s128 model_root = parent.model_root;
+
+  NdPtr<std::string::NullString> key;
+  u32 value_ptr;
+  u32 value_size;
+
+  if (value_size > 0 && value_ptr != 0) {
+    u8 data[value_size] @model_root + value_ptr;
+  }
+};
+
+using ModelKeyValueSet = SizedCollection<KeyValue>;
 
 struct ModelSubresource
 {
@@ -27,7 +56,7 @@ struct ModelSubresource
   u32 idk2;
   u32 nd_nodes_ptr;
   u32 num_nd_nodes;
-  // ModelKeyValueSet* keyValues : u32 [[pointer_base("section1innersptr")]];
+  NdPtr<ModelKeyValueSet> keyValues;
   // u32* somePtr : u32 [[pointer_base("section1innersptr")]];
   // float float1;
   // float float2;
@@ -45,6 +74,25 @@ struct ModelSubresource
   }
 };
 
+struct TexturesSubresource
+{
+  s128 start = parent.start;
+  s128 model_root = start;
+
+  u32 num_textures;
+  u32 textures_ptr;
+
+  if (textures_ptr != 0 && num_textures > 0) {
+    NdPtr<TEXTURE_HEADER> texture_headers[num_textures] @model_root
+        + textures_ptr;
+  }
+};
+
+struct BoneIndexSubres
+{
+  u8 indices[32];
+};
+
 struct ModelFooterEntry
 {
   s128 start = parent.start;
@@ -59,7 +107,12 @@ struct ModelFooterEntry
       if (model_start_ptr != 0) {
         ModelSubresource subres @parent.start + model_start_ptr;
       }
+    } else if (subres_type == ModelSubresourceType::TexturesSubres) {
+      TexturesSubresource subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::BoneIndexSubres) {
+      BoneIndexSubres subres @parent.start + offset;
     }
+
     // Other subresources here
   }
 };

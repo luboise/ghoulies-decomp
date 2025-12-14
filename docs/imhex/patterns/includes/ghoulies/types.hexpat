@@ -6,6 +6,22 @@ struct vec3 {
     float z;
 };
 
+struct vec4
+{
+  float x;
+  float y;
+  float z;
+  float w;
+};
+
+struct mat4
+{
+  vec4 r1;
+  vec4 r2;
+  vec4 r3;
+  vec4 r4;
+};
+
 struct quat {
     float x;
     float y;
@@ -29,3 +45,4 @@ struct AssetChunkInfo
   u32 resource_view_ptr;
   u32 resource_size;
 };
+

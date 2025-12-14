@@ -3,7 +3,6 @@
 #include "ghoulies/asset"
 #include "ghoulies/marker"
 #include "ghoulies/model"
-#include "ghoulies/nd"
 #include "ghoulies/script"
 #include "ghoulies/statetable"
 #include "ghoulies/types"

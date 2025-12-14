@@ -5,7 +5,10 @@
 #include <std/ptr>
 #include <std/string>
 
-#include "ghoulies/nd_vertex_buffer"
+#include "ghoulies/nd/push_buffer"
+#include "ghoulies/nd/rigid_skin_idx"
+#include "ghoulies/nd/skeleton"
+#include "ghoulies/nd/vertex_buffer"
 #include "ghoulies/types"
 
 struct SubresHeader
@@ -127,23 +130,15 @@ struct NdHeader
   {
     (NdType::ndVertexBuffer)
         : NdVertexBufferDetails;
+    (NdType::ndPushBuffer)
+        : NdPushBufferDetails;
+    (NdType::ndBGPushBuffer)
+        : NdBGPushBufferDetails;
+    (NdType::ndSkeleton)
+        : NdSkeletonDetails;
+    (NdType::ndRigidSkinIdx)
+        : NdRigidSkinIdxDetails;
   }
-};
-
-struct vec4
-{
-  float x;
-  float y;
-  float z;
-  float w;
-};
-
-struct mat4
-{
-  vec4 r1;
-  vec4 r2;
-  vec4 r3;
-  vec4 r4;
 };
 
 struct ndMtxSomething
