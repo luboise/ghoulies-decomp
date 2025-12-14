@@ -1,20 +1,23 @@
 #pragma once
-
-#include <std/string>
-#include <std/ptr>
+#pragma eval_depth 99
 
 #include <std/math>
+#include <std/ptr>
+#include <std/string>
 
+#include "ghoulies/nd_vertex_buffer"
 #include "ghoulies/types"
 
-struct SubresHeader {
-u32 dataSize;
-u32* dataStart : u32;
+struct SubresHeader
+{
+  u32 dataSize;
+  u32* dataStart : u32;
 };
 
-struct SubresDef {
-u32 subresType;
-SubresHeader* header : u32;
+struct SubresDef
+{
+  u32 subresType;
+  SubresHeader* header : u32;
 };
 
 /*
@@ -27,41 +30,38 @@ SubresDef subresdef_at_0x5750 @ 0x5750;
 */
 
 struct TEXTURE_HEADER
-        {
-            u32 format;
-            u32 headerSize; // 28
-            u16 width;
-            u16 height;
-            u32 flags; // 0x00000001
-            u32 unknown_3a;
-            u32 tileCount;
-            u32 texture_offset;
-            u32 dataSize;
+{
+  u32 format;
+  u32 headerSize;  // 28
+  u16 width;
+  u16 height;
+  u32 flags;  // 0x00000001
+  u32 unknown_3a;
+  u32 tileCount;
+  u32 texture_offset;
+  u32 dataSize;
 
-            u8 bruh[12];
-        };
-
-        
-struct DataSpan<T> {
-    u32 numItems;
-    T* items : u32;
+  u8 bruh[12];
 };
 
-
-struct ResourceView {
-u32 offset;
-u32 size;
-u32 unknown1;
-u32 unknown2;
-u32 unknown3;
-u32 unknown4;
+struct DataSpan<T>
+{
+  u32 numItems;
+  T* items : u32;
 };
 
+struct ResourceView
+{
+  u32 offset;
+  u32 size;
+  u32 unknown1;
+  u32 unknown2;
+  u32 unknown3;
+  u32 unknown4;
+};
 
 // DataView dataview_at_0x5420 @ 0x5420;
 // DataSpan<TexHeaderPtr> type9header_at_0x5420 @ 0x5420;
-
-
 
 /*
 ResourceView res1[5] @ 0x1A0;
@@ -70,358 +70,406 @@ ResourceView resourceview_at_0x1B8 @ 0x1B8;
 ResourceView resourceview_at_0x1D0 @ 0x1D0;
 */
 
-struct SizedBlock {
-    u32 size;
-    u32 data[size-4];
+struct SizedBlock
+{
+  u32 size;
+  u32 data[size - 4];
 };
 
-enum NdType : u16 {
-    ndGroup = 0x01,
-    ndSkeleton = 0x02,
-    
-    
-    ndRigidSkinIdx = 0x0b,
-    ndMtxArray = 0x0c,
-    
-    
-    ndShader2 = 0x11,
-    ndShaderParam2 = 0x12,
-    ndVertexBuffer = 0x13,
-    ndPushBuffer = 0x14,
-    ndVertexShader = 0x15,
-    ndBGPushBuffer = 0x16,
-    ndBlendShape = 0x17,
+enum NdType : u16
+{
+  ndGroup = 0x01,
+  ndSkeleton = 0x02,
+
+  ndRigidSkinIdx = 0x0b,
+  ndMtxArray = 0x0c,
+
+  ndShader2 = 0x11,
+  ndShaderParam2 = 0x12,
+  ndVertexBuffer = 0x13,
+  ndPushBuffer = 0x14,
+  ndVertexShader = 0x15,
+  ndBGPushBuffer = 0x16,
+  ndBlendShape = 0x17,
 };
 
 // SizedBlock sizedblock_at_0x40 @ 0x40;
 
-fn section1innersptr(u32 offset) {
-    if (offset == 0){
-        return 0x;
-    } 
-    
-    return 0x40;
+using NdHeader;
+
+struct NdHeader
+{
+  s128 model_root = parent.model_root;
+
+  u32 name_ptr;
+  NdType nd_type;
+  u16 idk1b;
+  u32 unknown_ptr_1;
+  u32 unknown_ptr_2;
+  u32 unknown_u32_1;
+  u32 children_ptr;
+  u32 right_sibling_ptr;
+  u32 prev_node_ptr;
+
+  if (name_ptr != 0) {
+    std::string::NullString name @model_root + name_ptr;
+  }
+
+  if (children_ptr != 0) {
+    NdHeader first_child @model_root + children_ptr;
+  }
+
+  if (right_sibling_ptr != 0) {
+    NdHeader next_sibling @model_root + right_sibling_ptr;
+  }
+
+  match(nd_type)
+  {
+    (NdType::ndVertexBuffer)
+        : NdVertexBufferDetails;
+  }
 };
 
-struct NdHeader {
-    u32* name: u32 [[pointer_base("section1innersptr")]];
-    NdType subresType;
-    u16 idk1b;
-    u32* idk2: u32 [[pointer_base("section1innersptr")]];  
-    u32* somePtr: u32 [[pointer_base("section1innersptr")]];  
-    u32 idk4;
-    u32* child: u32 [[pointer_base("section1innersptr")]];
-    u32* nextSibling: u32 [[pointer_base("section1innersptr")]];
-    u32* parentNode: u32 [[pointer_base("section1innersptr")]];
+struct vec4
+{
+  float x;
+  float y;
+  float z;
+  float w;
 };
 
-struct vec4{
-    float x;
-    float y;
-    float z;
-    float w;
+struct mat4
+{
+  vec4 r1;
+  vec4 r2;
+  vec4 r3;
+  vec4 r4;
 };
 
-struct mat4{
-vec4 r1;
-vec4 r2;
-vec4 r3;
-vec4 r4;
+struct ndMtxSomething
+{
+  u32 something1;
+  u32 something2;
 };
 
-struct ndMtxSomething{
-    u32 something1;
-    u32 something2;
+struct ndMtxArray
+{
+  NdHeader subres;
+
+  // 0x20
+  ndMtxSomething* somePtr : u32 [[pointer_base("section1innersptr")]];
+  u32 numSomethings;
+
+  // 0x28
+  u16 unknown2;
+  u16 maybeNext;
+
+  // 0x2c
+  mat4* matrices : u32 [[pointer_base("section1innersptr")]];
+  u32 numMatrices;
+  // 0x30
 };
 
-struct ndMtxArray {
-    NdHeader subres;
-    
-    // 0x20
-    ndMtxSomething* somePtr: u32 [[pointer_base("section1innersptr")]];
-    u32 numSomethings;
-    
-    // 0x28
-    u16 unknown2;
-    u16 maybeNext;
-    
-    // 0x2c
-    mat4* matrices: u32 [[pointer_base("section1innersptr")]];
-    u32 numMatrices;
-    // 0x30
+struct ndPushBufferDescriptor
+{
+  NdHeader subres;
+  u32 numDraws;
+  u32 idk1;
+  u32 idk2;
+  u32 idk3;
+  // Pointer lists
+  u32* pushDataPtrs : u32 [[pointer_base("section1innersptr")]];
+  u32* primitiveTypes : u32 [[pointer_base("section1innersptr")]];
+  u32* vertexCounts : u32 [[pointer_base("section1innersptr")]];
+  u8 doNotCull;  // Bool
+  u8 pad[3];
 };
 
-struct ndPushBufferDescriptor {
-    NdHeader subres;
-    u32    numDraws;
-    u32    idk1;
-    u32    idk2;
-    u32    idk3;
-    // Pointer lists
-    u32* pushDataPtrs: u32 [[pointer_base("section1innersptr")]];
-    u32* primitiveTypes: u32 [[pointer_base("section1innersptr")]];
-    u32* vertexCounts: u32 [[pointer_base("section1innersptr")]];
-     u8 doNotCull; // Bool
-     u8 pad[3];
-}; 
+struct ndSkeleton
+{
+  NdHeader subres;
 
-struct ndSkeleton {
-    NdHeader subres;
-    
-    // 0x20
-    u32 numBones;
-    u32* bonesStart: u32 [[pointer_base("section1innersptr")]];
-}; 
-
-struct RawColour{
-    u8 r;
-    u8 g;
-    u8 b;
-    u8 w;
+  // 0x20
+  u32 numBones;
+  u32* bonesStart : u32 [[pointer_base("section1innersptr")]];
 };
 
-struct TextureAssignment{
-    u32 textureIndex;
-    u8 flag1;
-    u8 flag2;
-    u8 flag3;
-    bool skipDiffuseTexture;
-    u32 unknown3;
-    u32 unknown4;
-    u32 unknown5;
-    u32 unknown6;
-    u32 unknown7;
+struct RawColour
+{
+  u8 r;
+  u8 g;
+  u8 b;
+  u8 w;
 };
 
-struct NDSP2Bruh {
-    
+struct TextureAssignment
+{
+  u32 textureIndex;
+  u8 flag1;
+  u8 flag2;
+  u8 flag3;
+  bool skipDiffuseTexture;
+  u32 unknown3;
+  u32 unknown4;
+  u32 unknown5;
+  u32 unknown6;
+  u32 unknown7;
 };
 
-struct ndShaderParam2Payload {
-    RawColour* pixelShaderConstants: u32 [[pointer_base("section1innersptr")]];
-    u32* somePtr2: u32 [[pointer_base("section1innersptr")]];
-    TextureAssignment* textureAssignments: u32 [[pointer_base("section1innersptr")]];
-    u32 numTextureAssignments;
-    u32 numBruhs;
-    u32 numPixelShaderConstants;    
-    
-    // 0x18
-    u8 alphaReference;
-    u8 flag1;
-    u8 flag2;
-    u8 someCount;
-    
-    u32 someU32_5;
-    
-    // 0x20
-    u32* child: u32 [[pointer_base("section1innersptr")]];
-    
-    u32* assignmentsStart: u32 [[pointer_base("section1innersptr")]];
-    u32 numAssignments;
+struct NDSP2Bruh
+{
 };
 
-struct ndShaderParam2Assignment{
-    std::string::NullString* namePtr:  u32 [[pointer_base("section1innersptr")]];
-    u32 someVal1;
-    u32 textureSlot; // The slot in the renderer which the texture will be loaded in
-    u32 someVal3;
+struct ndShaderParam2Payload
+{
+  RawColour* pixelShaderConstants : u32 [[pointer_base("section1innersptr")]];
+  u32* somePtr2 : u32 [[pointer_base("section1innersptr")]];
+  TextureAssignment* textureAssignments : u32
+      [[pointer_base("section1innersptr")]];
+  u32 numTextureAssignments;
+  u32 numBruhs;
+  u32 numPixelShaderConstants;
+
+  // 0x18
+  u8 alphaReference;
+  u8 flag1;
+  u8 flag2;
+  u8 someCount;
+
+  u32 someU32_5;
+
+  // 0x20
+  u32* child : u32 [[pointer_base("section1innersptr")]];
+
+  u32* assignmentsStart : u32 [[pointer_base("section1innersptr")]];
+  u32 numAssignments;
 };
 
-struct ndShaderParam2 {
-    NdHeader header;
-    
-    // 0x20
-    ndShaderParam2Payload* payload1: u32 [[pointer_base("section1innersptr")]];
-    
-    // Payload 2 is optional
-    ndShaderParam2Payload* payload2: u32 [[pointer_base("section1innersptr")]];
-}; 
-
-struct ndBGPushBufferDescriptor {
-    NdHeader subres;
-    u32    numDraws;
-    u32    idk1;
-    u32    idk2;
-    u32    idk3;
-    // Pointer lists
-    u32* pushDataPtrs: u32 [[pointer_base("section1innersptr")]];
-    u32* primitiveTypes: u32 [[pointer_base("section1innersptr")]];
-    u32* vertexCounts: u32 [[pointer_base("section1innersptr")]];
-     u8 doNotCull; // Bool
-     u8 pad[3];
-}; 
-
-struct TextureSubresource{
-    u32 numTextures;
-    std::ptr::NullablePtr<TEXTURE_HEADER, u32>* texture_headers[numTextures]: u32;
+struct ndShaderParam2Assignment
+{
+  std::string::NullString* namePtr : u32 [[pointer_base("section1innersptr")]];
+  u32 someVal1;
+  u32 textureSlot;  // The slot in the renderer which the texture will be loaded
+                    // in
+  u32 someVal3;
 };
 
-struct SamplerAssignment{
-    u32 numAssignments;
-    u32* assignments[numAssignments]: u32;
+struct ndShaderParam2
+{
+  NdHeader header;
+
+  // 0x20
+  ndShaderParam2Payload* payload1 : u32 [[pointer_base("section1innersptr")]];
+
+  // Payload 2 is optional
+  ndShaderParam2Payload* payload2 : u32 [[pointer_base("section1innersptr")]];
 };
 
-struct ModelSubresource0xe{
-    u32 idk1;
-    u32 idk2;
-    
-    u32* somePtr: u32;
-    u32* somePtr2: u32;
-    
-    // 0x10
-    u32 idk3;
-    u32 numSamplerAssignments;
-    u32 idk4;
-    u32 idk5;
-    
-    // 0x20
-    u32 idk6;
-    vec3 someVec1;
-    
-    // 0x30
-    vec3 someVec2;
-    u32 idk13;
-    
-    // 0x40
-    float someFloat;
-    SamplerAssignment* samplerAssignments[numSamplerAssignments]: u32;   
+struct ndBGPushBufferDescriptor
+{
+  NdHeader subres;
+  u32 numDraws;
+  u32 idk1;
+  u32 idk2;
+  u32 idk3;
+  // Pointer lists
+  u32* pushDataPtrs : u32 [[pointer_base("section1innersptr")]];
+  u32* primitiveTypes : u32 [[pointer_base("section1innersptr")]];
+  u32* vertexCounts : u32 [[pointer_base("section1innersptr")]];
+  u8 doNotCull;  // Bool
+  u8 pad[3];
 };
 
-enum ColliderType: u8 {
-    Sphere = 0,
-    Cylinder = 1,
-    Box = 2,
-    PartSphere = 3
+struct TextureSubresource
+{
+  u32 numTextures;
+  std::ptr::NullablePtr<TEXTURE_HEADER, u32>* texture_headers[numTextures]
+      : u32;
 };
 
-struct Collider0x14{
-    u32 idk1;
-    u32 idk2;
-    u32 idk3;
-    u32 idk4;
-    u32 pad;
+struct SamplerAssignment
+{
+  u32 numAssignments;
+  u32* assignments[numAssignments] : u32;
 };
 
-struct ColliderEntry{
-    u32 numColliders;
-    Collider0x14* Collider[numColliders]: u32;
+struct ModelSubresource0xe
+{
+  u32 idk1;
+  u32 idk2;
+
+  u32* somePtr : u32;
+  u32* somePtr2 : u32;
+
+  // 0x10
+  u32 idk3;
+  u32 numSamplerAssignments;
+  u32 idk4;
+  u32 idk5;
+
+  // 0x20
+  u32 idk6;
+  vec3 someVec1;
+
+  // 0x30
+  vec3 someVec2;
+  u32 idk13;
+
+  // 0x40
+  float someFloat;
+  SamplerAssignment* samplerAssignments[numSamplerAssignments] : u32;
 };
 
-bitfield CollisionMask{
-
-bool mask01: 1;
-bool mask02: 1;
-bool Wall:   1;
-bool Ground: 1;
-bool mask0x10: 1;
-bool mask0x20: 1;
-bool mask0x40: 1;
-bool mask0x80: 1;
-
-bool mask0x100: 1;
-bool mask0x200: 1;
-bool mask0x400: 1;
-bool mask0x800: 1;
-bool mask0x1000: 1;
-bool mask0x2000: 1;
-bool mask0x4000: 1;
-bool mask0x8000: 1;
-
-bool mask0x10000: 1;
-bool mask0x20000: 1;
-bool mask0x40000: 1;
-bool mask0x80000: 1;
-bool mask0x100000: 1;
-bool mask0x200000: 1;
-bool mask0x400000: 1;
-bool mask0x800000: 1;
-
-bool mask0x1000000: 1;
-bool mask0x2000000: 1;
-bool mask0x4000000: 1;
-bool mask0x8000000: 1;
-bool mask0x10000000: 1;
-bool mask0x20000000: 1;
-bool mask0x40000000: 1;
-bool mask0x80000000: 1;
+enum ColliderType : u8
+{
+  Sphere = 0,
+  Cylinder = 1,
+  Box = 2,
+  PartSphere = 3
 };
 
-struct ColliderSet {
-    ColliderType type;
-    u8 idk1;
-    u8 idk2;
-    u8 idk3;    
-    CollisionMask collisionMask;
-    u32 size;
-    u32 idk4;
-    s16 maxX;
-    s16 maxY;
-    s128 start = $;
-    s16 maxZ;
-    u16 count1;
-    u16 count2;
-    u16 count3;
-    u16 count5;
-    u16 count6;
-    u16 numEntries;
-    u16 gridDivisions;
-    s16 minX;
-    s16 minY;
-    s16 minZ;
-    u16 idk5;
-    
-    ColliderEntry entries[numEntries];
-    
-    s128 end = $;
-    
-    
-    u8 data[size - (end - start)];
+struct Collider0x14
+{
+  u32 idk1;
+  u32 idk2;
+  u32 idk3;
+  u32 idk4;
+  u32 pad;
 };
 
-struct ColliderSetDescriptor {
-u32 numColliders;
-u32 idk1;
-u32 idk2;
-mat4* matrix: u32;
-ColliderSet colliderSets[numColliders];
+struct ColliderEntry
+{
+  u32 numColliders;
+  Collider0x14* Collider[numColliders] : u32;
 };
 
-struct Subres0x4Value {
-    s128 start = $;
-    
-    ColliderType colliderType;
-    u8 size;
-    u16 blendTargetIndex;
-    
-    
-    CollisionMask collisionMask;
-    u16 short1;
-    u16 short2;
-    
-    u32 padZero;
-    float f1;
-    vec3 v;
-    u32 group;
-    
-    s128 end = $;
-    
-    padding[std::math::max(0, 36 - (end - start))];
+bitfield CollisionMask
+{
+  bool mask01 : 1;
+  bool mask02 : 1;
+  bool Wall : 1;
+  bool Ground : 1;
+  bool mask0x10 : 1;
+  bool mask0x20 : 1;
+  bool mask0x40 : 1;
+  bool mask0x80 : 1;
+
+  bool mask0x100 : 1;
+  bool mask0x200 : 1;
+  bool mask0x400 : 1;
+  bool mask0x800 : 1;
+  bool mask0x1000 : 1;
+  bool mask0x2000 : 1;
+  bool mask0x4000 : 1;
+  bool mask0x8000 : 1;
+
+  bool mask0x10000 : 1;
+  bool mask0x20000 : 1;
+  bool mask0x40000 : 1;
+  bool mask0x80000 : 1;
+  bool mask0x100000 : 1;
+  bool mask0x200000 : 1;
+  bool mask0x400000 : 1;
+  bool mask0x800000 : 1;
+
+  bool mask0x1000000 : 1;
+  bool mask0x2000000 : 1;
+  bool mask0x4000000 : 1;
+  bool mask0x8000000 : 1;
+  bool mask0x10000000 : 1;
+  bool mask0x20000000 : 1;
+  bool mask0x40000000 : 1;
+  bool mask0x80000000 : 1;
 };
 
-struct Subres0x4 {
-    u32 numValues;
-    u32 idk1;
-    Subres0x4Value values[numValues];
+struct ColliderSet
+{
+  ColliderType type;
+  u8 idk1;
+  u8 idk2;
+  u8 idk3;
+  CollisionMask collisionMask;
+  u32 size;
+  u32 idk4;
+  s16 maxX;
+  s16 maxY;
+  s128 start = $;
+  s16 maxZ;
+  u16 count1;
+  u16 count2;
+  u16 count3;
+  u16 count5;
+  u16 count6;
+  u16 numEntries;
+  u16 gridDivisions;
+  s16 minX;
+  s16 minY;
+  s16 minZ;
+  u16 idk5;
+
+  ColliderEntry entries[numEntries];
+
+  s128 end = $;
+
+  u8 data[size - (end - start)];
 };
 
+struct ColliderSetDescriptor
+{
+  u32 numColliders;
+  u32 idk1;
+  u32 idk2;
+  mat4* matrix : u32;
+  ColliderSet colliderSets[numColliders];
+};
 
-bitfield ModelBitfield {
-    bool bruh1: 1;
-    bool bruh2: 2;
-    bool bruh3: 3;
-    bool bruh4: 4;
-    bool bruh5: 5;
-    bool bruh6: 6;
-    bool bruh7: 7;
-    bool bruh8: 8;
+struct Subres0x4Value
+{
+  s128 start = $;
+
+  ColliderType colliderType;
+  u8 size;
+  u16 blendTargetIndex;
+
+  CollisionMask collisionMask;
+  u16 short1;
+  u16 short2;
+
+  u32 padZero;
+  float f1;
+  vec3 v;
+  u32 group;
+
+  s128 end = $;
+
+  padding[std::math::max(0, 36 - (end - start))];
+};
+
+struct Subres0x4
+{
+  u32 numValues;
+  u32 idk1;
+  Subres0x4Value values[numValues];
+};
+
+bitfield ModelBitfield
+{
+  bool bruh1 : 1;
+  bool bruh2 : 2;
+  bool bruh3 : 3;
+  bool bruh4 : 4;
+  bool bruh5 : 5;
+  bool bruh6 : 6;
+  bool bruh7 : 7;
+  bool bruh8 : 8;
+};
+
+struct NdHeaderPtr
+{
+  s128 model_root = parent.model_root;
+
+  u32 nd_header_ptr;
+  if (nd_header_ptr != 0) {
+    NdHeader header @model_root + nd_header_ptr;
+  }
 };

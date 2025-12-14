@@ -1,4 +1,5 @@
 #pragma once
+#include "ghoulies/nd"
 
 enum ModelSubresourceType : u32
 {
@@ -20,7 +21,7 @@ struct Mesh
 
 struct ModelSubresource
 {
-  s128 start = $;
+  s128 model_root = $;
 
   u32 ptr1;
   u32 idk2;
@@ -33,19 +34,21 @@ struct ModelSubresource
   // float float3;
   // float float4;
   // u32* nextPtr : u32 [[pointer_base("section1innersptr")]];
-  // u32 model_start;
+  // u32 model_model_root;
 
   if (ptr1 != 0) {
-    u32 unknown_u32_1 @start + ptr1;
+    u32 unknown_u32_1 @model_root + ptr1;
   }
 
   if (nd_nodes_ptr != 0 && num_nd_nodes > 0) {
-    NdHeader* nodes[] : u32 @start + nd_nodes_ptr;
+    NdHeaderPtr nd_header_ptrs[num_nd_nodes] @model_root + nd_nodes_ptr;
   }
 };
 
 struct ModelFooterEntry
 {
+  s128 start = parent.start;
+
   ModelSubresourceType subres_type;
   u32 offset;
 
