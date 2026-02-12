@@ -67,7 +67,7 @@ struct XBEResource
       std::cout << "Warning: Constructing objparams of size " << sizeof(OP)
                 << " from data of size " << this->data.size()
                 << ". There may be an ObjectParams type mismatch between the "
-                   "asset and its instance.";
+                   "asset and its instance.\n";
     }
 
     OP op {};
