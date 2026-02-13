@@ -16,3 +16,4 @@ gbtg/
 profile.txt
 gmon.out
 imgui.ini
+.cache/

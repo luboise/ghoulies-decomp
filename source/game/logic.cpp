@@ -227,6 +227,7 @@ void game::SetGameplayState(GameState& state, GameplayState new_state)
         // System::FinaliseLoad();
         break;
       case Paused:
+		break;
         /* If the new state isn't PAUSED, then we should unpause the game */
         // UnpauseGame();
     }
