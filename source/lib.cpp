@@ -309,9 +309,6 @@ GhouliesLib::GhouliesLib(const GhouliesLibParams& params)
           .num_color_targets = color_target_descriptions.size(),
           .depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
           .has_depth_stencil_target = true,
-          .padding1 = {},
-          .padding2 = {},
-          .padding3 = {},
       }};
 
   pbr_pipeline_ = SDL_CreateGPUGraphicsPipeline(device_, &pipeline_create_info);
@@ -598,8 +595,6 @@ void GhouliesLib::DrawTestModel(graphics::Model& model,
       .cycle = false,
 
       .clear_stencil = {},
-      .padding1 = {},
-      .padding2 = {},
       // .clear_stencil=
   };
 
@@ -697,8 +692,6 @@ graphics::DrawContext GhouliesLib::NewDrawContext()
       .cycle = false,
 
       .clear_stencil = {},
-      .padding1 = {},
-      .padding2 = {},
       // .clear_stencil=
   };
 
