@@ -1,0 +1,10 @@
+[package]
+name = "ghoulies_decomp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bnl = { path = "../ghoulies_reader" }
+gltf_writer = { path = "../gltf_writer" }
+vulkano = "0.35.2"
+vulkano-shaders = "0.35.0"

@@ -17,3 +17,8 @@ profile.txt
 gmon.out
 imgui.ini
 .cache/
+
+
+# Added by cargo
+
+/target
