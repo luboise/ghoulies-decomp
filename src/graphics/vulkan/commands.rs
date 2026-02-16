@@ -54,7 +54,7 @@ impl CommandSubmit<VulkanRenderer> for VulkanCommandsCtx {
     }
 
     fn draw(&mut self, draw_call: DrawCall) -> RendererOk {
-        println!("Drawing one thing.");
+        // println!("Drawing one thing.");
 
         unsafe {
             self.builder

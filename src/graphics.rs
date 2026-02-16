@@ -116,7 +116,7 @@ where
 
 pub trait Render: Sized {
     type VertexBufferType<V: BufferValue>: Buffer<V>;
-    type IndexBufferType;
+    type IndexBufferType: Buffer<buffer::Index>;
 
     type CommandsCtx: CommandSubmit<Self>;
 

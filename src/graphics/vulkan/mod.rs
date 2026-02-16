@@ -43,6 +43,7 @@ use crate::graphics::{texture, vulkan::commands::VulkanCommandsCtx};
 use super::{CreationError, Render, RenderError, RenderIndex, RendererOk, types::Vertex3D};
 
 pub use vs_pbr::ViewUniforms;
+pub use vs_pbr::Skeleton;
 
 pub mod buffer;
 
@@ -446,7 +447,7 @@ mod vs_pbr {
     vulkano_shaders::shader! {
         ty: "vertex",
         // path: "src/rendering/default_shaders/default_3d.vert"
-        path: "src/graphics/default_shaders/default_3d.vert"
+        path: "resources/shaders/pbr.vert"
     }
 }
 

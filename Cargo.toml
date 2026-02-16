@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bnl = { path = "../ghoulies_reader" }
+bnl = { path = "../bnl" }
 cgmath = "0.18.0"
 gltf_writer = { path = "../gltf_writer" }
 vulkano = "0.35.2"

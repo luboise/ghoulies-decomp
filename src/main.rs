@@ -120,6 +120,29 @@ where
 
         let mut vb = self.renderer.create_vertex_buffer::<Vertex3D>(3).unwrap();
         let mut ib = self.renderer.create_index_buffer(4).unwrap();
+        ib.write_values(&[0, 1, 2], 0).unwrap();
+
+        vb.write_values(
+            &[
+                Vertex3D {
+                    position: [0.0, 0.0, 0.0],
+                    colour: [1.0, 1.0, 1.0],
+                    ..Default::default()
+                },
+                Vertex3D {
+                    position: [1.0, 0.0, 0.0],
+                    colour: [1.0, 1.0, 1.0],
+                    ..Default::default()
+                },
+                Vertex3D {
+                    position: [0.0, 0.5, 0.0],
+                    colour: [1.0, 1.0, 1.0],
+                    ..Default::default()
+                },
+            ],
+            0,
+        )
+        .map_err(|e| e.to_string())?;
 
         self.renderer
             .run_commands(|ctx| {
