@@ -102,58 +102,16 @@ impl VulkanSurfaceContext {
     }
 }
 
-fn get_render_pass(
-    device: &Arc<Device>,
-    swapchain: &Arc<Swapchain>,
-) -> RendererRes<Arc<RenderPass>> {
-    vulkano::single_pass_renderpass!(
-        device.clone(),
-        attachments: {
-            color: {
-                // Set the format the same as the swapchain.
-                format: swapchain.image_format(),
-                samples: 1,
-                load_op: Clear,
-                store_op: Store,
-            },
-        },
-        pass: {
-            color: [color],
-            depth_stencil: {},
-        },
-    )
-    .map_err(|_| RenderError::Creation("Failed to create render pass.".into()))
-}
-
-fn get_framebuffers(
-    images: &[Arc<vulkano::image::Image>],
-    render_pass: &Arc<RenderPass>,
-) -> Vec<Arc<Framebuffer>> {
-    images
-        .iter()
-        .map(|image| {
-            let view = ImageView::new_default(image.clone()).unwrap();
-
-            Framebuffer::new(
-                render_pass.clone(),
-                FramebufferCreateInfo {
-                    attachments: vec![view],
-                    ..Default::default()
-                },
-            )
-            .unwrap()
-        })
-        .collect::<Vec<_>>()
-}
-
 #[derive(Debug)]
 pub struct VulkanRenderer {
     vk: VulkanContext,
 
     surface_ctx: Option<VulkanSurfaceContext>,
 
-    pipelines: Vec<Arc<GraphicsPipeline>>,
-    current_pipeline_index: RenderIndex,
+    pipeline: Arc<GraphicsPipeline>,
+
+    // pipelines: Vec<Arc<GraphicsPipeline>>,
+    // current_pipeline_index: RenderIndex,
 
     // current_vertex_buffer_index: RenderIndex,
     // current_index_buffer_index: RenderIndex,
@@ -385,19 +343,12 @@ impl VulkanRenderer {
                     // pbr_render_pass: render_pass,
                     // pbr_subpass: subpass.into(),
                 },
+                pipeline: default_pipeline,
                 surface_ctx: None,
-                pipelines: vec![],
-                current_pipeline_index: 0,
-
-                // current_vertex_buffer_index: 0,
-
-                // current_index_buffer_index: 0,
+                // current_pipeline_index: 0,
                 default_texture,
                 window: None,
             };
-
-            vulkan_renderer.pipelines.push(default_pipeline);
-            vulkan_renderer.current_pipeline_index = 0;
 
             vulkan_renderer
                 .set_window(window.clone())
@@ -466,9 +417,9 @@ impl VulkanRenderer {
         */
 
         let vs_3d: Arc<ShaderModule> =
-            vs_test::load(self.vk.device.clone()).expect("Unable to compile PBR Vertex Shader.");
+            vs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Vertex Shader.");
         let fs_3d: Arc<ShaderModule> =
-            fs_test::load(self.vk.device.clone()).expect("Unable to compile PBR Fragment Shader.");
+            fs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Fragment Shader.");
 
         let pbr_pipeline =
             create_pipeline(&self.vk.device.clone(), subpass.clone(), &vs_3d, &fs_3d)?;
@@ -497,18 +448,6 @@ impl VulkanRenderer {
     }
 
     pub fn bind_pipeline(&mut self, pipeline_index: RenderIndex) -> RendererOk {
-        todo!()
-    }
-
-    fn pipeline(&self) -> RenderIndex {
-        self.current_pipeline_index
-    }
-
-    // fn pipeline_mut(&mut self) -> &mut super::Pipeline {
-    //     &mut self.pipelines[self.current_pipeline_index]
-    // }
-
-    fn pipelines(&self) -> &[super::Pipeline] {
         todo!()
     }
 
@@ -568,7 +507,7 @@ impl VulkanRenderer {
                     surface_ctx.recreate_swapchain = true;
                     return Ok(());
                 }
-                Err(e) => panic!("Unexpected error: {}", e),
+                Err(e) => return Err(RenderError::Draw(format!("Unexpected error: {e}"))),
             };
 
         // dbg!("Current swapchain index: {}", image_index);
@@ -670,7 +609,6 @@ impl VulkanRenderer {
         set: usize,
         set_binding: u32,
     ) -> Result<Arc<vulkano::descriptor_set::DescriptorSet>, Box<dyn std::error::Error>> {
-        dbg!(self.current_pipeline().unwrap().layout().set_layouts());
         let descriptor_set = vulkano::descriptor_set::DescriptorSet::new(
             self.vk.descriptor_set_allocator.clone(),
             self.current_pipeline()
@@ -695,7 +633,7 @@ impl VulkanRenderer {
     }
 
     fn current_pipeline(&self) -> Option<Arc<GraphicsPipeline>> {
-        self.pipelines.get(self.current_pipeline_index).cloned()
+        self.surface_ctx.as_ref().map(|v| v.pbr_pipeline.clone())
     }
 }
 
@@ -769,49 +707,46 @@ fn create_pipeline(
     .map_err(|e| CreationError(format!("{:?}", e)))
 }
 
-#[cfg(test)]
-mod tests {
+fn get_render_pass(
+    device: &Arc<Device>,
+    swapchain: &Arc<Swapchain>,
+) -> RendererRes<Arc<RenderPass>> {
+    vulkano::single_pass_renderpass!(
+        device.clone(),
+        attachments: {
+            color: {
+                // Set the format the same as the swapchain.
+                format: swapchain.image_format(),
+                samples: 1,
+                load_op: Clear,
+                store_op: Store,
+            },
+        },
+        pass: {
+            color: [color],
+            depth_stencil: {},
+        },
+    )
+    .map_err(|_| RenderError::Creation("Failed to create render pass.".into()))
+}
 
-    // TODO: Fix this test
-    /*
-    use crate::graphics::types::VertexTest;
-    use super::*;
+fn get_framebuffers(
+    images: &[Arc<vulkano::image::Image>],
+    render_pass: &Arc<RenderPass>,
+) -> Vec<Arc<Framebuffer>> {
+    images
+        .iter()
+        .map(|image| {
+            let view = ImageView::new_default(image.clone()).unwrap();
 
-    #[test]
-    fn vertex_3d_binding_description() -> Result<(), CreationError> {
-        let renderer = VulkanRenderer::new(None).unwrap();
-
-        let vertex_shader = vs_test::load(renderer.vk.device.clone())
-            .expect("Unable to compile PBR Vertex Shader.");
-
-        let test_vs = vertex_shader.entry_point("main").ok_or(CreationError(
-            "Failed to get entry point main of PBR vertex shader.".to_string(),
-        ))?;
-
-        let test_vertex_input = VertexTest::per_vertex().definition(&test_vs).map_err(|e| {
-            CreationError(format!(
-                "Unable to get vertex definition for PBR vertex shader. Error: {}",
-                e
-            ))
-        })?;
-
-        dbg!(VertexTest::per_vertex());
-
-        // dbg!(VertexTest::per_vertex().definition(&test_vs));
-
-        assert_eq!(
-            test_vertex_input.attributes.len(),
-            1,
-            "Should have one attribute."
-        );
-
-        let (a_index, a_desc) = test_vertex_input.attributes.iter().next().unwrap();
-
-        assert_eq!(*a_index, 0, "Attribute should be index 0.");
-        assert_eq!(a_desc.binding, 0, "Attribute binding should be index 0.");
-        assert_eq!(a_desc.offset, 0, "Position offset should be 0.");
-
-        Ok(())
-    }
-    */
+            Framebuffer::new(
+                render_pass.clone(),
+                FramebufferCreateInfo {
+                    attachments: vec![view],
+                    ..Default::default()
+                },
+            )
+            .unwrap()
+        })
+        .collect::<Vec<_>>()
 }

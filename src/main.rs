@@ -341,7 +341,9 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                self.update_frame();
+                if let Err(e) = self.update_frame() {
+                    eprintln!("Error drawing frame: {e}");
+                }
             }
             _ => (),
         }
