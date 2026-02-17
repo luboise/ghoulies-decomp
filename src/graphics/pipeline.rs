@@ -1,4 +1,4 @@
-use crate::graphics::{RenderIndex, RendererOk};
+use crate::graphics::{RenderIndex, RendererOk, ViewUniforms};
 
 #[derive(Debug)]
 pub struct Pipeline {}
@@ -15,6 +15,8 @@ impl Pipeline {
     pub fn set_sampler(&mut self, index: RenderIndex, value: &[u8]) -> RendererOk {
         todo!();
     }
+
+    pub fn set_view_uniforms(&self, view_uniforms: ViewUniforms) {}
 }
 
 pub trait ShaderConstant: Sized {

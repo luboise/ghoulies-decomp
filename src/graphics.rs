@@ -1,12 +1,17 @@
 mod vulkan;
 use std::{error::Error, fmt::Display, sync::Arc};
 
+use cgmath::SquareMatrix as _;
 pub use vulkan::*;
 
 pub mod types;
 
+pub mod renderer;
+
 mod pipeline;
 pub use pipeline::*;
+
+pub mod camera;
 
 /*
 mod registry;
@@ -16,7 +21,6 @@ pub use registry::RenderRegistry;
 pub use vulkano::pipeline::graphics::vertex_input::Vertex;
 
 pub mod buffer;
-pub use buffer::*;
 
 use types::*;
 
@@ -24,6 +28,9 @@ mod texture;
 pub use texture::ColourFormat;
 
 use PrimitiveType;
+
+pub use buffer::{Buffer, BufferValue, Index};
+pub use camera::Camera;
 
 pub type RenderIndex = usize;
 
@@ -71,7 +78,7 @@ pub type RendererRes<T> = Result<T, RenderError>;
 pub type RendererOk = RendererRes<()>;
 
 pub trait Draw {
-    fn draw<R: Render>(&self, renderer: &mut R) -> RendererOk;
+    fn draw(&self, renderer: &mut VulkanRenderer) -> RendererOk;
 }
 
 // renderer.set_shader(self.shader_index);
@@ -98,66 +105,6 @@ pub struct ImageParams {
     pub data: Vec<u8>,
 }
 
-pub trait BufferValue: Vertex + Clone {}
-
-pub trait CommandSubmit<R>
-where
-    R: Render,
-{
-    // fn vertex_buffers(&mut self) -> RendererRes<&[R::VertexBufferType<V>]>;
-    fn set_vertex_buffer<V: BufferValue>(&mut self, buffer: &R::VertexBufferType<V>) -> RendererOk;
-    // fn set_vertex_buffers(&mut self, vertex_buffers: &[R::VertexBufferType<V>]);
-
-    // fn index_buffer(&self, buffer_index: &R::IndexBufferType) -> Option<R::IndexBufferType>;
-    fn set_index_buffer(&mut self, buffer: &R::IndexBufferType) -> RendererOk;
-
-    fn draw(&mut self, draw_call: DrawCall) -> RendererOk;
-}
-
-pub trait Render: Sized {
-    type VertexBufferType<V: BufferValue>: Buffer<V>;
-    type IndexBufferType: Buffer<buffer::Index>;
-
-    type CommandsCtx: CommandSubmit<Self>;
-
-    // type CommandsCtx<V: BufferValue>: CommandSubmit<Self::VertexBufferType<V>, Self::IndexBufferType>;
-
-    fn set_window(&mut self, window: Arc<winit::window::Window>) -> RendererOk;
-
-    fn begin_frame(&mut self) -> RendererOk;
-    fn end_frame(&mut self) -> RendererOk;
-
-    fn bind_pipeline(&mut self, pipeline_index: RenderIndex) -> RendererOk;
-    // fn shader(&mut self) -> Shader;
-
-    fn pipeline(&self) -> &Pipeline;
-    fn pipeline_mut(&mut self) -> &mut Pipeline;
-
-    fn pipelines(&self) -> &[Pipeline];
-
-    fn create_vertex_buffer<V: BufferValue>(
-        &mut self,
-        capacity: usize,
-    ) -> RendererRes<Self::VertexBufferType<V>>;
-
-    fn create_index_buffer(&mut self, capacity: usize) -> RendererRes<Self::IndexBufferType>;
-
-    // TODO: Implement multi set
-    // fn set_vertex_buffers(&mut self, buffer_index: &[RenderIndex]) -> Result<(), RenderError>;
-
-    fn set_view_uniforms(&mut self, view_uniforms: ViewUniforms);
-
-    fn create_image(&mut self, params: ImageParams) -> Arc<crate::graphics::texture::ImageHandle>;
-    // TODO: Implement rewriting images after they've been created
-    // fn write_image(&mut self, handle: Arc<ImageHandle>);
-
-    fn default_texture(&self) -> RenderIndex;
-
-    fn run_commands<F>(&mut self, f: F) -> RendererOk
-    where
-        F: FnMut(&mut Self::CommandsCtx) -> RendererOk;
-}
-
 #[derive(Debug)]
 pub struct Texture {
     pub(crate) width: usize,
@@ -169,8 +116,8 @@ pub struct Texture {
 }
 
 impl Texture {
-    pub fn from_image_params<R: Render, IP: Into<ImageParams>>(
-        renderer: &mut R,
+    pub fn from_image_params<IP: Into<ImageParams>>(
+        renderer: &mut VulkanRenderer,
         params: IP,
     ) -> RendererRes<Self> {
         let img = renderer.create_image(params.into());
@@ -180,5 +127,65 @@ impl Texture {
             height: img.height(),
             image_handle: img,
         })
+    }
+}
+
+const NUM_CAMERAS: usize = 10;
+
+pub struct RenderContext {
+    pub renderer: VulkanRenderer,
+
+    pub cameras: [Camera; NUM_CAMERAS],
+    camera_uniform_buffer: vulkan::buffer::VulkanBuffer<ViewUniforms>,
+    pub camera_descriptor_set: Arc<vulkano::descriptor_set::DescriptorSet>,
+}
+
+impl RenderContext {
+    pub fn new(renderer: VulkanRenderer) -> Result<Self, Box<dyn std::error::Error>> {
+        let camera_uniform_buffer = renderer
+            .create_buffer(vulkan::buffer::BufferType::Uniform, 1)
+            .map_err(|e| e.to_string())?;
+
+        let camera_descriptor_set = renderer.create_descriptor_set(&camera_uniform_buffer, 1, 0)?;
+
+        Ok(Self {
+            renderer,
+            cameras: Default::default(),
+            camera_uniform_buffer,
+            camera_descriptor_set,
+        })
+    }
+
+    pub fn use_camera(&mut self, index: usize) -> RendererOk {
+        let camera = self
+            .cameras
+            .get(index)
+            .ok_or_else(|| RenderError::Memory(format!("Invalid camera index: {index}")))?
+            .clone();
+
+        // TODO: Make it so this doesn't need access to the subbuffer
+        self.camera_uniform_buffer.subbuffer.write_values(
+            &[ViewUniforms {
+                view: camera.transform.model_matrix().into(),
+                projection: crate::maths::Mat4::identity().into(),
+            }],
+            0,
+        )?;
+
+        // TODO: Bind the descriptor set here
+
+        Ok(())
+    }
+
+    pub fn set_camera(
+        &mut self,
+        index: usize,
+        camera: Camera,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        *self
+            .cameras
+            .get_mut(index)
+            .ok_or_else(|| format!("Failed to get camera {index} from camera list."))? = camera;
+        Ok(())
     }
 }

@@ -1,6 +1,6 @@
 use vulkano::{buffer::BufferContents, pipeline::graphics::vertex_input::Vertex};
 
-use crate::graphics::BufferValue;
+use super::buffer::BufferValue;
 
 pub type Vec2 = [f32; 2];
 pub type Vec3 = [f32; 3];

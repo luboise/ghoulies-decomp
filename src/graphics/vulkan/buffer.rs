@@ -1,12 +1,56 @@
 use vulkano::{
     Validated,
-    buffer::{AllocateBufferError, BufferContents, Subbuffer},
+    buffer::{AllocateBufferError, BufferUsage, Subbuffer},
+    memory::allocator::MemoryTypeFilter,
     sync::HostAccessError,
 };
 
-use crate::graphics;
+use super::RenderError;
 
-use super::{Index, RenderError, Vertex};
+pub struct VulkanBuffer<V> {
+    pub buffer_type: BufferType,
+    pub subbuffer: Subbuffer<[V]>,
+}
+
+impl<V: crate::graphics::BufferValue> crate::graphics::Buffer<V> for VulkanBuffer<V> {
+    fn len(&self) -> usize {
+        self.subbuffer.len() as usize
+    }
+
+    fn write_values(&mut self, values: &[V], start_index: usize) -> super::RendererOk {
+        self.subbuffer.write_values(values, start_index)
+    }
+}
+
+pub enum BufferType {
+    Vertex,
+    Index,
+    Uniform,
+}
+
+impl BufferType {
+    pub fn usage(&self) -> BufferUsage {
+        match self {
+            Self::Vertex => BufferUsage::VERTEX_BUFFER,
+            Self::Index => BufferUsage::INDEX_BUFFER,
+            Self::Uniform => BufferUsage::UNIFORM_BUFFER,
+        }
+    }
+
+    pub fn memory_type_filter(&self) -> MemoryTypeFilter {
+        match self {
+            BufferType::Vertex => {
+                MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
+            }
+            BufferType::Index => {
+                MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
+            }
+            BufferType::Uniform => {
+                MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
+            }
+        }
+    }
+}
 
 impl From<HostAccessError> for RenderError {
     fn from(value: HostAccessError) -> Self {
@@ -23,61 +67,5 @@ impl From<AllocateBufferError> for RenderError {
 impl<E: Into<RenderError>> From<Validated<E>> for RenderError {
     fn from(value: Validated<E>) -> Self {
         value.unwrap().into()
-    }
-}
-
-impl<V: BufferContents + Clone> graphics::Buffer<V> for Subbuffer<[V]> {
-    fn len(&self) -> usize {
-        self.len() as usize
-    }
-
-    fn write_values(&mut self, values: &[V], start_index: usize) -> super::RendererOk {
-        if !self.can_write(values, start_index) {
-            return Err(RenderError::Memory(format!(
-                "Invalid write attempted to range [{}, {}] to buffer with length {}.",
-                start_index,
-                start_index + values.len(),
-                self.len()
-            )));
-        }
-
-        let mut content = Subbuffer::write(self)?;
-
-        values
-            .iter()
-            .enumerate()
-            .for_each(|(i, val)| content[start_index + i] = val.clone());
-
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct VulkanVertexBuffer<V: Vertex> {
-    pub(crate) subbuffer: Subbuffer<[V]>,
-}
-
-impl<V: graphics::BufferValue> graphics::Buffer<V> for VulkanVertexBuffer<V> {
-    fn len(&self) -> usize {
-        self.subbuffer.len() as usize
-    }
-
-    fn write_values(&mut self, values: &[V], start_index: usize) -> super::RendererOk {
-        self.subbuffer.write_values(values, start_index)
-    }
-}
-
-#[derive(Debug)]
-pub struct VulkanIndexBuffer {
-    pub(crate) subbuffer: Subbuffer<[graphics::Index]>,
-}
-
-impl graphics::Buffer<graphics::Index> for VulkanIndexBuffer {
-    fn len(&self) -> usize {
-        self.subbuffer.len() as usize
-    }
-
-    fn write_values(&mut self, values: &[Index], start_index: usize) -> super::RendererOk {
-        self.subbuffer.write_values(values, start_index)
     }
 }

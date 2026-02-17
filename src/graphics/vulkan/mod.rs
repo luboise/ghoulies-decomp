@@ -1,13 +1,14 @@
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use vulkano::{
     DeviceSize, Validated, ValidationError, VulkanError, VulkanLibrary,
-    buffer::{BufferCreateInfo, BufferUsage, Subbuffer},
+    buffer::{BufferCreateInfo, Subbuffer},
     command_buffer::{
         AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassBeginInfo,
         SubpassContents, SubpassEndInfo,
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
     },
+    descriptor_set::{WriteDescriptorSet, allocator::StandardDescriptorSetAllocator},
     device::{
         self, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo, QueueFlags,
         physical::PhysicalDevice,
@@ -15,11 +16,10 @@ use vulkano::{
     image::{ImageUsage, view::ImageView},
     instance::{Instance, InstanceCreateInfo, InstanceExtensions},
     memory::allocator::{
-        AllocationCreateInfo, FreeListAllocator, GenericMemoryAllocator, MemoryTypeFilter,
-        StandardMemoryAllocator,
+        AllocationCreateInfo, FreeListAllocator, GenericMemoryAllocator, StandardMemoryAllocator,
     },
     pipeline::{
-        GraphicsPipeline, PipelineLayout, PipelineShaderStageCreateInfo,
+        GraphicsPipeline, Pipeline, PipelineLayout, PipelineShaderStageCreateInfo,
         graphics::{
             GraphicsPipelineCreateInfo,
             color_blend::{ColorBlendAttachmentState, ColorBlendState},
@@ -37,13 +37,15 @@ use vulkano::{
     sync::{self, GpuFuture},
 };
 
-use crate::graphics::{BufferValue, Index, RendererRes};
-use crate::graphics::{texture, vulkan::commands::VulkanCommandsCtx};
+use crate::graphics::RendererRes;
+use crate::graphics::vulkan::commands::VulkanCommandsCtx;
 
-use super::{CreationError, Render, RenderError, RenderIndex, RendererOk, types::Vertex3D};
+use super::{CreationError, RenderError, RenderIndex, RendererOk, types::Vertex3D};
 
-pub use vs_pbr::ViewUniforms;
 pub use vs_pbr::Skeleton;
+pub use vs_pbr::ViewUniforms;
+
+pub use buffer::BufferType;
 
 pub mod buffer;
 
@@ -61,6 +63,7 @@ pub(super) struct VulkanContext {
     // Allocators
     memory_allocator: Arc<GenericMemoryAllocator<FreeListAllocator>>,
     command_buffer_allocator: Arc<StandardCommandBufferAllocator>,
+    descriptor_set_allocator: Arc<StandardDescriptorSetAllocator>,
     // pbr_render_pass: Arc<RenderPass>,
     // pbr_subpass: Arc<Subpass>,
 }
@@ -149,7 +152,7 @@ pub struct VulkanRenderer {
 
     surface_ctx: Option<VulkanSurfaceContext>,
 
-    pipelines: Vec<super::Pipeline>,
+    pipelines: Vec<Arc<GraphicsPipeline>>,
     current_pipeline_index: RenderIndex,
 
     // current_vertex_buffer_index: RenderIndex,
@@ -161,282 +164,6 @@ pub struct VulkanRenderer {
 
 type VkBuffer = vulkano::buffer::Buffer;
 
-impl Render for VulkanRenderer {
-    type VertexBufferType<V: BufferValue> = buffer::VulkanVertexBuffer<V>;
-    type IndexBufferType = buffer::VulkanIndexBuffer;
-    type CommandsCtx = VulkanCommandsCtx;
-
-    fn set_window(&mut self, window: Arc<winit::window::Window>) -> RendererOk {
-        println!("Setting the window in the renderer.");
-        if self.surface_ctx.is_some() {
-            return Err(RenderError::Creation(
-                "Unable to bind new surface to renderer without unbinding the existing one.".into(),
-            ));
-        }
-
-        let surface = Surface::from_window(self.vk.instance.clone(), window.clone())
-            .map_err(|e| RenderError::Creation(format!("{:?}", e)))?;
-
-        let caps = self
-            .vk
-            .physical_device
-            .surface_capabilities(&surface, Default::default())
-            .expect("failed to get surface capabilities");
-
-        let (width, height) = {
-            let size = window.inner_size();
-            (size.width, size.height)
-        };
-
-        let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
-        let image_format = self
-            .vk
-            .physical_device
-            .surface_formats(&surface, Default::default())
-            .unwrap()[0]
-            .0;
-
-        let (swapchain, images) = Swapchain::new(
-            self.vk.device.clone(),
-            surface.clone(),
-            SwapchainCreateInfo {
-                min_image_count: caps.min_image_count + 1,
-                image_format,
-                image_extent: [width as u32, height as u32],
-                image_usage: ImageUsage::COLOR_ATTACHMENT,
-                composite_alpha,
-                ..Default::default()
-            },
-        )
-        .unwrap();
-
-        let render_pass = get_render_pass(&self.vk.device, &swapchain)?;
-        let subpass: Subpass = Subpass::from(render_pass.clone(), 0)
-            .ok_or(CreationError("Unable to create subpass 0.".to_string()))?;
-
-        let framebuffers = get_framebuffers(&images, &render_pass);
-
-        /*
-
-        let vs_3d: Arc<ShaderModule> =
-            vs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Vertex Shader.");
-        let fs_3d: Arc<ShaderModule> =
-            fs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Fragment Shader.");
-        */
-
-        let vs_3d: Arc<ShaderModule> =
-            vs_test::load(self.vk.device.clone()).expect("Unable to compile PBR Vertex Shader.");
-        let fs_3d: Arc<ShaderModule> =
-            fs_test::load(self.vk.device.clone()).expect("Unable to compile PBR Fragment Shader.");
-
-        let pbr_pipeline =
-            create_pipeline(&self.vk.device.clone(), subpass.clone(), &vs_3d, &fs_3d)?;
-
-        self.surface_ctx = Some(VulkanSurfaceContext {
-            window,
-            surface,
-            swapchain,
-            images,
-            recreate_swapchain: false,
-            render_pass,
-            framebuffers,
-            subpass,
-            pbr_pipeline,
-        });
-
-        Ok(())
-    }
-
-    fn begin_frame(&mut self) -> RendererOk {
-        Ok(())
-    }
-
-    fn end_frame(&mut self) -> RendererOk {
-        Ok(())
-    }
-
-    fn bind_pipeline(&mut self, pipeline_index: RenderIndex) -> RendererOk {
-        todo!()
-    }
-
-    fn pipeline(&self) -> &super::Pipeline {
-        &self.pipelines[self.current_pipeline_index]
-    }
-
-    fn pipeline_mut(&mut self) -> &mut super::Pipeline {
-        &mut self.pipelines[self.current_pipeline_index]
-    }
-
-    fn pipelines(&self) -> &[super::Pipeline] {
-        todo!()
-    }
-
-    fn create_vertex_buffer<V: BufferValue>(
-        &mut self,
-        capacity: usize,
-    ) -> RendererRes<Self::VertexBufferType<V>> {
-        let vb: Subbuffer<[V]> = vulkano::buffer::Buffer::new_slice::<V>(
-            self.vk.memory_allocator.clone(),
-            BufferCreateInfo {
-                usage: BufferUsage::VERTEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                // TODO: Make this prefer device, and add a staging buffer
-                memory_type_filter: MemoryTypeFilter::PREFER_HOST
-                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-                ..Default::default()
-            },
-            capacity as DeviceSize,
-        )?;
-
-        Ok(Self::VertexBufferType::<V> { subbuffer: vb })
-    }
-
-    fn create_index_buffer(&mut self, capacity: usize) -> RendererRes<Self::IndexBufferType> {
-        let ib: Subbuffer<[Index]> = vulkano::buffer::Buffer::new_slice::<Index>(
-            self.vk.memory_allocator.clone(),
-            BufferCreateInfo {
-                usage: BufferUsage::INDEX_BUFFER,
-                ..Default::default()
-            },
-            AllocationCreateInfo {
-                // TODO: Make this prefer device, and add a staging buffer
-                memory_type_filter: MemoryTypeFilter::PREFER_HOST
-                    | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
-                ..Default::default()
-            },
-            capacity as DeviceSize,
-        )?;
-
-        Ok(Self::IndexBufferType { subbuffer: ib })
-    }
-
-    fn set_view_uniforms(&mut self, view_uniforms: vs_pbr::ViewUniforms) {
-        println!("Setting the view uniforms.");
-    }
-
-    fn create_image(
-        &mut self,
-        params: super::ImageParams,
-    ) -> Arc<crate::graphics::texture::ImageHandle> {
-        todo!()
-    }
-
-    fn default_texture(&self) -> RenderIndex {
-        self.default_texture
-    }
-
-    fn run_commands<F>(&mut self, mut f: F) -> RendererOk
-    where
-        F: FnMut(&mut Self::CommandsCtx) -> RendererOk,
-    {
-        let surface_ctx = self.surface_ctx.as_mut().ok_or(RenderError::Draw(
-            "No surface to draw onto registered in Vulkan renderer.".into(),
-        ))?;
-
-        let (image_index, suboptimal, acquire_future) =
-            match swapchain::acquire_next_image(surface_ctx.swapchain.clone(), None)
-                .map_err(Validated::unwrap)
-            {
-                Ok(r) => r,
-                Err(VulkanError::OutOfDate) => {
-                    surface_ctx.recreate_swapchain = true;
-                    return Ok(());
-                }
-                Err(e) => panic!("Unexpected error: {}", e),
-            };
-
-        // dbg!("Current swapchain index: {}", image_index);
-
-        if suboptimal {
-            surface_ctx.recreate_swapchain = true
-        }
-
-        if surface_ctx.recreate_swapchain {
-            let extents = surface_ctx.get_extents();
-
-            dbg!("Recreating swapchain with extents {}", &extents);
-
-            surface_ctx
-                .swapchain
-                .recreate(SwapchainCreateInfo {
-                    image_extent: extents,
-                    ..surface_ctx.swapchain.create_info()
-                })
-                .expect("Failed to recreate swapchain.");
-
-            return Ok(());
-        }
-
-        let mut ctx = VulkanCommandsCtx {
-            builder: AutoCommandBufferBuilder::primary(
-                self.vk.command_buffer_allocator.clone(),
-                self.vk.graphics_queue.queue_family_index(),
-                CommandBufferUsage::OneTimeSubmit,
-            )
-            .map_err(|_| RenderError::Draw("Failed to create command buffer.".into()))?,
-        };
-
-        ctx.builder
-            .begin_render_pass(
-                RenderPassBeginInfo {
-                    clear_values: vec![Some([0.0, 0.0, 1.0, 1.0].into())],
-                    ..RenderPassBeginInfo::framebuffer(
-                        surface_ctx.framebuffers[image_index as usize].clone(),
-                    )
-                },
-                SubpassBeginInfo {
-                    contents: SubpassContents::Inline,
-                    ..Default::default()
-                },
-            )
-            .map_err(|_| RenderError::Draw("Failed to begin render pass.".into()))?
-            .bind_pipeline_graphics(surface_ctx.pbr_pipeline.clone())
-            .map_err(|_| RenderError::Draw("Failed to bind PBR pipeline.".into()))?;
-
-        f(&mut ctx)?;
-
-        let VulkanCommandsCtx { mut builder } = ctx;
-
-        builder
-            .end_render_pass(SubpassEndInfo::default())
-            .map_err(|_| RenderError::Draw("Unable to end render pass".to_string()))?;
-
-        let command_buffer = builder
-            .build()
-            .map_err(|_| RenderError::Draw("Unable to build command buffer.".to_string()))?;
-
-        let execution = sync::now(self.vk.device.clone())
-            .join(acquire_future)
-            .then_execute(self.vk.graphics_queue.clone(), command_buffer.clone())
-            .unwrap()
-            .then_swapchain_present(
-                self.vk.graphics_queue.clone(),
-                SwapchainPresentInfo::swapchain_image_index(
-                    surface_ctx.swapchain.clone(),
-                    image_index,
-                ),
-            )
-            .then_signal_fence_and_flush();
-
-        match execution.map_err(Validated::unwrap) {
-            Ok(future) => {
-                // Wait for the GPU to finish.
-                future.wait(None).unwrap();
-            }
-            Err(VulkanError::OutOfDate) => {
-                surface_ctx.recreate_swapchain = true;
-            }
-            Err(e) => {
-                println!("failed to flush future: {e}");
-            }
-        };
-
-        Ok(())
-    }
-}
-
 impl From<ValidationError> for CreationError {
     fn from(value: ValidationError) -> Self {
         CreationError(format!("{:?}", value))
@@ -447,7 +174,8 @@ mod vs_pbr {
     vulkano_shaders::shader! {
         ty: "vertex",
         // path: "src/rendering/default_shaders/default_3d.vert"
-        path: "resources/shaders/pbr.vert"
+        path: "resources/shaders/pbr.vert",
+        custom_derives: [Debug, Clone]
     }
 }
 
@@ -488,7 +216,10 @@ pub fn get_required_extensions(
 }
 
 impl VulkanRenderer {
-    pub fn new(event_loop: &winit::event_loop::EventLoop<()>) -> RendererRes<VulkanRenderer> {
+    pub fn new(
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        window: &Arc<winit::window::Window>,
+    ) -> RendererRes<VulkanRenderer> {
         (|| -> Result<VulkanRenderer, Box<dyn std::error::Error>> {
             let library = VulkanLibrary::new()?;
 
@@ -580,7 +311,68 @@ impl VulkanRenderer {
             // TODO: Implement an actual default texture here
             let default_texture = 0;
 
-            let vulkan_renderer = VulkanRenderer {
+            let default_pipeline = {
+                let surface = Surface::from_window(instance.clone(), window.clone())
+                    .map_err(|e| RenderError::Creation(format!("{:?}", e)).to_string())?;
+
+                let caps = physical_device
+                    .surface_capabilities(&surface, Default::default())
+                    .expect("failed to get surface capabilities");
+
+                let (width, height) = {
+                    let size = window.inner_size();
+                    (size.width, size.height)
+                };
+
+                let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
+                let image_format = physical_device
+                    .surface_formats(&surface, Default::default())
+                    .unwrap()[0]
+                    .0;
+
+                let (swapchain, images) = Swapchain::new(
+                    device.clone(),
+                    surface.clone(),
+                    SwapchainCreateInfo {
+                        min_image_count: caps.min_image_count + 1,
+                        image_format,
+                        image_extent: [width, height],
+                        image_usage: ImageUsage::COLOR_ATTACHMENT,
+                        composite_alpha,
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+
+                let render_pass =
+                    get_render_pass(&device, &swapchain).map_err(|e| e.to_string())?;
+                let subpass: Subpass = Subpass::from(render_pass.clone(), 0)
+                    .ok_or(CreationError("Unable to create subpass 0.".to_string()))?;
+
+                let framebuffers = get_framebuffers(&images, &render_pass);
+
+                /*
+
+                let vs_3d: Arc<ShaderModule> =
+                    vs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Vertex Shader.");
+                let fs_3d: Arc<ShaderModule> =
+                    fs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Fragment Shader.");
+                */
+
+                let vs_3d: Arc<ShaderModule> =
+                    vs_pbr::load(device.clone()).expect("Unable to compile PBR Vertex Shader.");
+                let fs_3d: Arc<ShaderModule> =
+                    fs_pbr::load(device.clone()).expect("Unable to compile PBR Fragment Shader.");
+
+                create_pipeline(&device.clone(), subpass.clone(), &vs_3d, &fs_3d)?
+            };
+
+            let descriptor_set_allocator = Arc::new(StandardDescriptorSetAllocator::new(
+                device.clone(),
+                Default::default(),
+            ));
+
+            let mut vulkan_renderer = VulkanRenderer {
                 vk: VulkanContext {
                     library,
                     instance,
@@ -589,6 +381,7 @@ impl VulkanRenderer {
                     graphics_queue: queue,
                     memory_allocator,
                     command_buffer_allocator,
+                    descriptor_set_allocator,
                     // pbr_render_pass: render_pass,
                     // pbr_subpass: subpass.into(),
                 },
@@ -603,9 +396,306 @@ impl VulkanRenderer {
                 window: None,
             };
 
+            vulkan_renderer.pipelines.push(default_pipeline);
+            vulkan_renderer.current_pipeline_index = 0;
+
+            vulkan_renderer
+                .set_window(window.clone())
+                .map_err(|e| e.to_string())?;
             Ok(vulkan_renderer)
         })()
         .map_err(|e| RenderError::Creation(format!("{:?}", e)))
+    }
+
+    fn set_window(&mut self, window: Arc<winit::window::Window>) -> RendererOk {
+        println!("Setting the window in the renderer.");
+        if self.surface_ctx.is_some() {
+            return Err(RenderError::Creation(
+                "Unable to bind new surface to renderer without unbinding the existing one.".into(),
+            ));
+        }
+
+        let surface = Surface::from_window(self.vk.instance.clone(), window.clone())
+            .map_err(|e| RenderError::Creation(format!("{:?}", e)))?;
+
+        let caps = self
+            .vk
+            .physical_device
+            .surface_capabilities(&surface, Default::default())
+            .expect("failed to get surface capabilities");
+
+        let (width, height) = {
+            let size = window.inner_size();
+            (size.width, size.height)
+        };
+
+        let composite_alpha = caps.supported_composite_alpha.into_iter().next().unwrap();
+        let image_format = self
+            .vk
+            .physical_device
+            .surface_formats(&surface, Default::default())
+            .unwrap()[0]
+            .0;
+
+        let (swapchain, images) = Swapchain::new(
+            self.vk.device.clone(),
+            surface.clone(),
+            SwapchainCreateInfo {
+                min_image_count: caps.min_image_count + 1,
+                image_format,
+                image_extent: [width, height],
+                image_usage: ImageUsage::COLOR_ATTACHMENT,
+                composite_alpha,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+        let render_pass = get_render_pass(&self.vk.device, &swapchain)?;
+        let subpass: Subpass = Subpass::from(render_pass.clone(), 0)
+            .ok_or(CreationError("Unable to create subpass 0.".to_string()))?;
+
+        let framebuffers = get_framebuffers(&images, &render_pass);
+
+        /*
+
+        let vs_3d: Arc<ShaderModule> =
+            vs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Vertex Shader.");
+        let fs_3d: Arc<ShaderModule> =
+            fs_pbr::load(self.vk.device.clone()).expect("Unable to compile PBR Fragment Shader.");
+        */
+
+        let vs_3d: Arc<ShaderModule> =
+            vs_test::load(self.vk.device.clone()).expect("Unable to compile PBR Vertex Shader.");
+        let fs_3d: Arc<ShaderModule> =
+            fs_test::load(self.vk.device.clone()).expect("Unable to compile PBR Fragment Shader.");
+
+        let pbr_pipeline =
+            create_pipeline(&self.vk.device.clone(), subpass.clone(), &vs_3d, &fs_3d)?;
+
+        self.surface_ctx = Some(VulkanSurfaceContext {
+            window,
+            surface,
+            swapchain,
+            images,
+            recreate_swapchain: false,
+            render_pass,
+            framebuffers,
+            subpass,
+            pbr_pipeline,
+        });
+
+        Ok(())
+    }
+
+    pub fn begin_frame(&mut self) -> RendererOk {
+        Ok(())
+    }
+
+    pub fn end_frame(&mut self) -> RendererOk {
+        Ok(())
+    }
+
+    pub fn bind_pipeline(&mut self, pipeline_index: RenderIndex) -> RendererOk {
+        todo!()
+    }
+
+    fn pipeline(&self) -> RenderIndex {
+        self.current_pipeline_index
+    }
+
+    // fn pipeline_mut(&mut self) -> &mut super::Pipeline {
+    //     &mut self.pipelines[self.current_pipeline_index]
+    // }
+
+    fn pipelines(&self) -> &[super::Pipeline] {
+        todo!()
+    }
+
+    pub fn create_buffer<V: vulkano::buffer::BufferContents>(
+        &self,
+        buffer_type: buffer::BufferType,
+        capacity: usize,
+    ) -> RendererRes<buffer::VulkanBuffer<V>> {
+        let subbuffer: Subbuffer<[V]> = vulkano::buffer::Buffer::new_slice::<V>(
+            self.vk.memory_allocator.clone(),
+            BufferCreateInfo {
+                usage: buffer_type.usage(),
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                // TODO: Make this prefer device, and add a staging buffer
+                memory_type_filter: buffer_type.memory_type_filter(),
+                ..Default::default()
+            },
+            capacity as DeviceSize,
+        )?;
+
+        Ok(buffer::VulkanBuffer {
+            buffer_type,
+            subbuffer,
+        })
+    }
+
+    pub fn create_image(
+        &mut self,
+        params: super::ImageParams,
+    ) -> Arc<crate::graphics::texture::ImageHandle> {
+        todo!()
+    }
+
+    pub fn default_texture(&self) -> RenderIndex {
+        self.default_texture
+    }
+
+    pub fn run_commands<F>(&mut self, mut f: F) -> RendererOk
+    where
+        F: FnMut(&mut VulkanCommandsCtx) -> RendererOk,
+    {
+        let current_pipeline = self
+            .current_pipeline()
+            .expect("Failed to get current pipeline");
+        let surface_ctx = self.surface_ctx.as_mut().ok_or(RenderError::Draw(
+            "No surface to draw onto registered in Vulkan renderer.".into(),
+        ))?;
+
+        let (image_index, suboptimal, acquire_future) =
+            match swapchain::acquire_next_image(surface_ctx.swapchain.clone(), None)
+                .map_err(Validated::unwrap)
+            {
+                Ok(r) => r,
+                Err(VulkanError::OutOfDate) => {
+                    surface_ctx.recreate_swapchain = true;
+                    return Ok(());
+                }
+                Err(e) => panic!("Unexpected error: {}", e),
+            };
+
+        // dbg!("Current swapchain index: {}", image_index);
+
+        if suboptimal {
+            surface_ctx.recreate_swapchain = true
+        }
+
+        if surface_ctx.recreate_swapchain {
+            let extents = surface_ctx.get_extents();
+
+            dbg!("Recreating swapchain with extents {}", &extents);
+
+            surface_ctx
+                .swapchain
+                .recreate(SwapchainCreateInfo {
+                    image_extent: extents,
+                    ..surface_ctx.swapchain.create_info()
+                })
+                .expect("Failed to recreate swapchain.");
+
+            return Ok(());
+        }
+
+        let mut ctx = VulkanCommandsCtx {
+            builder: AutoCommandBufferBuilder::primary(
+                self.vk.command_buffer_allocator.clone(),
+                self.vk.graphics_queue.queue_family_index(),
+                CommandBufferUsage::OneTimeSubmit,
+            )
+            .map_err(|_| RenderError::Draw("Failed to create command buffer.".into()))?,
+            current_pipeline,
+        };
+
+        ctx.builder
+            .begin_render_pass(
+                RenderPassBeginInfo {
+                    clear_values: vec![Some([0.0, 0.0, 1.0, 1.0].into())],
+                    ..RenderPassBeginInfo::framebuffer(
+                        surface_ctx.framebuffers[image_index as usize].clone(),
+                    )
+                },
+                SubpassBeginInfo {
+                    contents: SubpassContents::Inline,
+                    ..Default::default()
+                },
+            )
+            .map_err(|_| RenderError::Draw("Failed to begin render pass.".into()))?
+            .bind_pipeline_graphics(surface_ctx.pbr_pipeline.clone())
+            .map_err(|_| RenderError::Draw("Failed to bind PBR pipeline.".into()))?;
+
+        f(&mut ctx)?;
+
+        let VulkanCommandsCtx {
+            mut builder,
+            current_pipeline: _,
+        } = ctx;
+
+        builder
+            .end_render_pass(SubpassEndInfo::default())
+            .map_err(|_| RenderError::Draw("Unable to end render pass".to_string()))?;
+
+        let command_buffer = builder
+            .build()
+            .map_err(|_| RenderError::Draw("Unable to build command buffer.".to_string()))?;
+
+        let execution = sync::now(self.vk.device.clone())
+            .join(acquire_future)
+            .then_execute(self.vk.graphics_queue.clone(), command_buffer.clone())
+            .unwrap()
+            .then_swapchain_present(
+                self.vk.graphics_queue.clone(),
+                SwapchainPresentInfo::swapchain_image_index(
+                    surface_ctx.swapchain.clone(),
+                    image_index,
+                ),
+            )
+            .then_signal_fence_and_flush();
+
+        match execution.map_err(Validated::unwrap) {
+            Ok(future) => {
+                // Wait for the GPU to finish.
+                future.wait(None).unwrap();
+            }
+            Err(VulkanError::OutOfDate) => {
+                surface_ctx.recreate_swapchain = true;
+            }
+            Err(e) => {
+                println!("failed to flush future: {e}");
+            }
+        };
+
+        Ok(())
+    }
+
+    pub fn create_descriptor_set<V: vulkano::buffer::BufferContents>(
+        &self,
+        buffer: &buffer::VulkanBuffer<V>,
+        set: usize,
+        set_binding: u32,
+    ) -> Result<Arc<vulkano::descriptor_set::DescriptorSet>, Box<dyn std::error::Error>> {
+        dbg!(self.current_pipeline().unwrap().layout().set_layouts());
+        let descriptor_set = vulkano::descriptor_set::DescriptorSet::new(
+            self.vk.descriptor_set_allocator.clone(),
+            self.current_pipeline()
+                .ok_or_else(|| format!("Failed to get set {set} from current pipeline"))?
+                .layout()
+                .set_layouts()
+                .get(set)
+                .ok_or_else(|| {
+                    format!(
+                        "Failed to get binding {set_binding} in set {set} from current pipeline"
+                    )
+                })?
+                .clone(),
+            [WriteDescriptorSet::buffer(
+                set_binding,
+                buffer.subbuffer.clone(),
+            )], // 0 is the binding
+            [],
+        )?;
+
+        Ok(descriptor_set)
+    }
+
+    fn current_pipeline(&self) -> Option<Arc<GraphicsPipeline>> {
+        self.pipelines.get(self.current_pipeline_index).cloned()
     }
 }
 

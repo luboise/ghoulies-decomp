@@ -1,4 +1,8 @@
-use crate::graphics::{RendererOk, Vertex};
+use vulkano::pipeline::graphics::vertex_input::Vertex;
+
+use crate::graphics::{RenderError, RendererOk};
+
+pub trait BufferValue: Vertex + Clone {}
 
 pub type Index = u32;
 
@@ -19,48 +23,30 @@ pub trait Buffer<T> {
     }
 }
 
-pub trait VertexBuffer<V: Vertex>: Buffer<V> {}
-
-/*
-pub struct VertexBuffer<V: Vertex, B: Buffer<V: Vertex>> {
-    num_vertices: usize,
-    buffer: B,
-}
-*/
-
-/*
-
-impl<V: Vertex, B: Buffer<V>> Buffer<V> for VertexBuffer<V, B> {
-    fn capacity(&self) -> usize {
-        self.num_vertices
+impl<V: vulkano::buffer::BufferContents + Clone> crate::graphics::Buffer<V>
+    for vulkano::buffer::Subbuffer<[V]>
+{
+    fn len(&self) -> usize {
+        self.len() as usize
     }
 
-    fn capacity_bytes(&self) -> usize {
-        self.num_vertices * size_of::<V>()
-    }
+    fn write_values(&mut self, values: &[V], start_index: usize) -> super::RendererOk {
+        if !self.can_write(values, start_index) {
+            return Err(RenderError::Memory(format!(
+                "Invalid write attempted to range [{}, {}] to buffer with length {}.",
+                start_index,
+                start_index + values.len(),
+                self.len()
+            )));
+        }
 
-    fn write(&mut self, vertices: &[V], start_index: usize) -> RendererOk {
-        self.buffer.write(vertices, start_index)
-    }
-}
+        let mut content = vulkano::buffer::Subbuffer::write(self)?;
 
-pub struct IndexBuffer<B: Buffer<Index>> {
-    num_indices: usize,
-    buffer: B,
-}
+        values
+            .iter()
+            .enumerate()
+            .for_each(|(i, val)| content[start_index + i] = val.clone());
 
-impl<B: Buffer<Index>> Buffer<Index> for IndexBuffer<B> {
-    /// Maximum number of vertices this buffer can hold
-    fn capacity(&self) -> usize {
-        self.num_indices
-    }
-
-    fn capacity_bytes(&self) -> usize {
-        self.num_vertices * size_of::<V>()
-    }
-
-    fn write(&mut self, vertices: &[V], start_index: usize) -> RendererOk {
-        self.buffer.write(vertices, start_index)
+        Ok(())
     }
 }
-*/

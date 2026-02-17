@@ -1,39 +1,26 @@
-use vulkano::command_buffer::{AutoCommandBufferBuilder, PrimaryAutoCommandBuffer};
+use std::sync::Arc;
 
-use crate::graphics::{
-    BufferValue, CommandSubmit, DrawCall, Render, RenderError, RendererOk, VulkanRenderer,
+use vulkano::{
+    buffer::{BufferCreateInfo, BufferUsage},
+    command_buffer::{AutoCommandBufferBuilder, PrimaryAutoCommandBuffer},
+    descriptor_set::DescriptorSet,
+    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
+    pipeline::{GraphicsPipeline, Pipeline},
 };
+
+use vulkano::descriptor_set::WriteDescriptorSet;
+
+use crate::graphics::{DrawCall, RenderError, RendererOk, VulkanRenderer};
 
 pub struct VulkanCommandsCtx {
     pub(crate) builder: AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
+    pub(crate) current_pipeline: Arc<GraphicsPipeline>,
 }
 
-/*
-pub trait CommandSubmit<VB, IB> where VB: VertexBuffer, IB: IndexBuffer {
-    fn set_index_buffer(&mut self, buffer_index: RenderIndex) -> RendererOk;
-
-
-    fn vertex_buffers(&mut self) -> RendererRes<&[VertexBuffer]>;
-    fn set_vertex_buffer(&mut self, buffer_index: RenderIndex) -> RendererOk;
-
-
-
-    fn set_vertex_buffers(&mut self, vertex_buffers: &[VB]);
-
-    fn index_buffer(&self, buffer_index: RenderIndex) -> Option<IndexBuffer>;
-
-    fn set_index_buffer(&mut self, index_buffer: &IB);
-
-    fn draw(&mut self, DrawCall{ num_indices, start_offset })
-
-}
-
-*/
-
-impl CommandSubmit<VulkanRenderer> for VulkanCommandsCtx {
-    fn set_vertex_buffer<V: BufferValue>(
+impl VulkanCommandsCtx {
+    pub fn set_vertex_buffer<V: crate::graphics::BufferValue>(
         &mut self,
-        buffer: &<VulkanRenderer as Render>::VertexBufferType<V>,
+        buffer: &super::buffer::VulkanBuffer<V>,
     ) -> RendererOk {
         self.builder
             .bind_vertex_buffers(0, buffer.subbuffer.clone())
@@ -42,9 +29,9 @@ impl CommandSubmit<VulkanRenderer> for VulkanCommandsCtx {
         Ok(())
     }
 
-    fn set_index_buffer(
+    pub fn set_index_buffer(
         &mut self,
-        buffer: &<VulkanRenderer as Render>::IndexBufferType,
+        buffer: &super::buffer::VulkanBuffer<crate::graphics::Index>,
     ) -> RendererOk {
         self.builder
             .bind_index_buffer(buffer.subbuffer.clone())
@@ -53,7 +40,38 @@ impl CommandSubmit<VulkanRenderer> for VulkanCommandsCtx {
         Ok(())
     }
 
-    fn draw(&mut self, draw_call: DrawCall) -> RendererOk {
+    pub fn set_view_uniforms(
+        &mut self,
+        descriptor_set: Arc<DescriptorSet>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.builder
+            .bind_descriptor_sets(
+                vulkano::pipeline::PipelineBindPoint::Graphics,
+                self.current_pipeline.layout().clone(),
+                1,
+                descriptor_set,
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn set_descriptor_set(
+        &mut self,
+        set: u32,
+        descriptor_set: Arc<DescriptorSet>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.builder
+            .bind_descriptor_sets(
+                vulkano::pipeline::PipelineBindPoint::Graphics,
+                self.current_pipeline.layout().clone(),
+                set,
+                descriptor_set,
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    pub fn draw(&mut self, draw_call: DrawCall) -> RendererOk {
         // println!("Drawing one thing.");
 
         unsafe {

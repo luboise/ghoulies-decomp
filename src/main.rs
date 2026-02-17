@@ -4,15 +4,15 @@
 
 use std::sync::Arc;
 
+use cgmath::SquareMatrix;
 use winit::{
     application::ApplicationHandler,
-    dpi::PhysicalSize,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
-    window::{Window, WindowId},
+    window::WindowId,
 };
 
-use crate::graphics::{Buffer, CommandSubmit, VulkanRenderer, types::Vertex3D};
+use crate::graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D};
 
 mod assets {
     mod texture;
@@ -43,9 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // dispatched any events. This is ideal for games and similar applications.
     event_loop.set_control_flow(ControlFlow::Poll);
 
-    let renderer = graphics::VulkanRenderer::new(&event_loop).map_err(|e| e.to_string())?;
-
-    let mut app = App::new(renderer)?;
+    let mut app = App::new()?;
     event_loop.run_app(&mut app)?;
 
     // Initialise the application
@@ -86,17 +84,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-struct App<R: graphics::Render> {
+struct App {
     window: Option<Arc<winit::window::Window>>,
-    renderer: R,
+    render_context: Option<RenderContext>,
     game_files: ghoulies::GameFiles,
+    bnl: bnl::BNLFile,
 }
 
-impl<R> App<R>
-where
-    R: graphics::Render,
-{
-    fn new(renderer: R) -> Result<Self, Box<dyn std::error::Error>> {
+static mut CAMERA: graphics::camera::Camera = graphics::camera::Camera {
+    transform: maths::Transform::identity(),
+};
+
+impl App {
+    fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let args = std::env::args().collect::<Vec<_>>();
 
         if args.len() != 2 {
@@ -106,48 +106,98 @@ where
         let config = Config::default();
         let game_files = ghoulies::GameFiles::new(config.game_directory)?;
 
+        let bnl_file_path = format!("bundles/aid_script/{}.bnl", args[1]);
+
+        let bnl_file = bnl::BNLFile::from_bytes(
+            &game_files
+                .get(&bnl_file_path)
+                .ok_or_else(|| format!("Failed to find game asset {bnl_file_path}"))?,
+        )
+        // TODO: Fix this error printing
+        .map_err(|e| format!("{e:?}"))?;
+
         let xbe = game_files.get_executable();
 
         Ok(Self {
             window: None,
-            renderer,
             game_files,
+            render_context: None,
+            bnl: bnl_file,
         })
     }
 
     fn update_frame(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.renderer.begin_frame().map_err(|e| e.to_string())?;
+        {
+            let renderer = &mut self.render_context_mut().renderer;
+            renderer.begin_frame().map_err(|e| e.to_string())?;
+        }
 
-        let mut vb = self.renderer.create_vertex_buffer::<Vertex3D>(3).unwrap();
-        let mut ib = self.renderer.create_index_buffer(4).unwrap();
-        ib.write_values(&[0, 1, 2], 0).unwrap();
+        self.update_events()?;
 
-        vb.write_values(
-            &[
-                Vertex3D {
-                    position: [0.0, 0.0, 0.0],
-                    colour: [1.0, 1.0, 1.0],
-                    ..Default::default()
-                },
-                Vertex3D {
-                    position: [1.0, 0.0, 0.0],
-                    colour: [1.0, 1.0, 1.0],
-                    ..Default::default()
-                },
-                Vertex3D {
-                    position: [0.0, 0.5, 0.0],
-                    colour: [1.0, 1.0, 1.0],
-                    ..Default::default()
-                },
-            ],
-            0,
-        )
-        .map_err(|e| e.to_string())?;
+        // lib.UpdateScene();
 
-        self.renderer
+        unsafe {
+            CAMERA.transform.position.x += 500.0;
+        }
+
+        unsafe {
+            #[allow(static_mut_refs)]
+            self.render_context_mut().set_camera(0, CAMERA.clone())?;
+        }
+        self.render_context_mut().use_camera(0).unwrap();
+
+        let mut vb = self
+            .render_context()
+            .renderer
+            .create_buffer::<Vertex3D>(graphics::BufferType::Vertex, 3)
+            .unwrap();
+        let mut ib = self
+            .render_context()
+            .renderer
+            .create_buffer::<graphics::Index>(graphics::BufferType::Index, 4)
+            .unwrap();
+        ib.subbuffer.write_values(&[0, 1, 2], 0).unwrap();
+
+        vb.subbuffer
+            .write_values(
+                &[
+                    Vertex3D {
+                        position: [0.0, 0.0, 0.0],
+                        colour: [1.0, 1.0, 1.0],
+                        ..Default::default()
+                    },
+                    Vertex3D {
+                        position: [1.0, 0.0, 0.0],
+                        colour: [1.0, 1.0, 1.0],
+                        ..Default::default()
+                    },
+                    Vertex3D {
+                        position: [0.0, 0.5, 0.0],
+                        colour: [1.0, 1.0, 1.0],
+                        ..Default::default()
+                    },
+                ],
+                0,
+            )
+            .map_err(|e| e.to_string())?;
+
+        let camera_descriptor_set = self
+            .render_context
+            .as_ref()
+            .unwrap()
+            .camera_descriptor_set
+            .clone();
+
+        // Draw everything
+        self.render_context_mut()
+            .renderer
             .run_commands(|ctx| {
                 ctx.set_vertex_buffer(&vb)?;
                 ctx.set_index_buffer(&ib)?;
+
+                ctx.set_view_uniforms(camera_descriptor_set.clone())
+                    .map_err(|e| graphics::RenderError::Draw(e.to_string()))?;
+
                 ctx.draw(graphics::DrawCall {
                     num_indices: 4,
                     start_offset: 0,
@@ -157,17 +207,110 @@ where
             })
             .map_err(|e| e.to_string())?;
 
-        self.renderer.end_frame().map_err(|e| e.to_string())?;
+        self.render_context_mut()
+            .renderer
+            .end_frame()
+            .map_err(|e| e.to_string())?;
         // println!("Updating frame.");
 
         Ok(())
     }
+
+    fn update_events(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        // static float movement_speed {1};
+
+        const kMaxMovementSpeed: f32 = 100.0;
+        const kMinMovementSpeed: f32 = 0.2;
+
+        // Hack to get window to stay up
+        // SDL_Event e;
+
+        // glm::vec2 player_rotation {0, 0};
+
+        /*
+        while (SDL_PollEvent(&e)) {
+          if (e.type == SDL_EVENT_KEY_DOWN) {
+            if (e.key.key == SDLK_F8) {
+              this->toggle_menu_ = true;
+            }
+          }
+
+          if (menu_active_) {
+            menu_->ProcessEvent(&e);
+          }
+
+          if (e.type == SDL_EVENT_QUIT) {
+            this->quit_ = true;
+          }
+
+          // Only handle these events if the menu isn't active
+          if (!menu_active_) {
+            // TODO: Move this into an event loop somewhere else
+            if (e.type == SDL_EVENT_MOUSE_MOTION) {
+              constexpr float kMouseSensitivity {0.3F};
+              player_rotation = {e.motion.yrel * kMouseSensitivity,
+                                 -e.motion.xrel * kMouseSensitivity};
+            }
+          }
+        }
+        */
+
+        /*
+        if (menu_active_) {
+          return;
+        }
+
+        if (game_context_.player == nullptr) {
+          return;
+        }
+        */
+
+        /*
+        auto& player_transform {game_context_.player->GetTransform()};
+        player_transform.RotateX(player_rotation.x);
+        player_transform.RotateY(player_rotation.y);
+        if (!menu_active_) {
+          if (key_states_[SDL_SCANCODE_EQUALS]) {
+            movement_speed = std::min(kMaxMovementSpeed, movement_speed * 1.03F);
+          }
+
+          if (key_states_[SDL_SCANCODE_MINUS]) {
+            movement_speed = std::max(kMinMovementSpeed, movement_speed / 1.03F);
+          }
+
+          if (key_states_[SDL_SCANCODE_0]) {
+            this->lighting_uniforms_.ambient_brightness =
+                std::min(1.0F, this->lighting_uniforms_.ambient_brightness + 0.005F);
+          } else if (key_states_[SDL_SCANCODE_9]) {
+            this->lighting_uniforms_.ambient_brightness =
+                std::max(0.1F, this->lighting_uniforms_.ambient_brightness - 0.005F);
+          }
+
+          if (key_states_[SDL_SCANCODE_B]) {
+            this->game_context_.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
+          }
+          if (key_states_[SDL_SCANCODE_C]) {
+            this->game_context_.draw_colliders = !key_states_[SDL_SCANCODE_LSHIFT];
+          }
+
+        }
+        */
+
+        Ok(())
+    }
+
+    fn render_context(&self) -> &RenderContext {
+        // TODO: Make this print an error message at the very least
+        self.render_context.as_ref().unwrap()
+    }
+
+    fn render_context_mut(&mut self) -> &mut RenderContext {
+        // TODO: Make this print an error message at the very least
+        self.render_context.as_mut().unwrap()
+    }
 }
 
-impl<R> ApplicationHandler for App<R>
-where
-    R: graphics::Render,
-{
+impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         println!("Resuming");
 
@@ -180,7 +323,11 @@ where
 
         self.window = Some(new_window.clone());
 
-        self.renderer.set_window(new_window).unwrap();
+        if let None = self.render_context {
+            // TODO: Replaces these unwraps with something else
+            let renderer = VulkanRenderer::new(event_loop, &new_window).unwrap();
+            self.render_context = Some(RenderContext::new(renderer).unwrap());
+        }
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
