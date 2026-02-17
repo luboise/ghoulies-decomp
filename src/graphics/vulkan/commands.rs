@@ -1,16 +1,12 @@
 use std::sync::Arc;
 
 use vulkano::{
-    buffer::{BufferCreateInfo, BufferUsage},
     command_buffer::{AutoCommandBufferBuilder, PrimaryAutoCommandBuffer},
     descriptor_set::DescriptorSet,
-    memory::allocator::{AllocationCreateInfo, MemoryTypeFilter},
     pipeline::{GraphicsPipeline, Pipeline},
 };
 
-use vulkano::descriptor_set::WriteDescriptorSet;
-
-use crate::graphics::{DrawCall, RenderError, RendererOk, VulkanRenderer};
+use crate::graphics::{DrawCall, RenderError, RendererOk};
 
 pub struct VulkanCommandsCtx {
     pub(crate) builder: AutoCommandBufferBuilder<PrimaryAutoCommandBuffer>,
@@ -83,7 +79,10 @@ impl VulkanCommandsCtx {
                     0,
                     0,
                 )
-                .map_err(|e| RenderError::Draw(format!("{:?}", e)))?;
+                .map_err(|e| {
+                    eprintln!("{e}");
+                    RenderError::Draw(format!("{:?}", e))
+                })?;
         };
 
         Ok(())

@@ -45,7 +45,7 @@ use super::{CreationError, RenderError, RenderIndex, RendererOk, types::Vertex3D
 pub use vs_pbr::Skeleton;
 pub use vs_pbr::ViewUniforms;
 
-pub use buffer::BufferType;
+pub use buffer::{BufferType, VulkanBuffer};
 
 pub mod buffer;
 
@@ -88,8 +88,6 @@ pub struct VulkanSurfaceContext {
 
     render_pass: Arc<RenderPass>,
     subpass: Subpass,
-
-    pbr_pipeline: Arc<GraphicsPipeline>,
 
     framebuffers: Vec<Arc<Framebuffer>>,
     // render_contexts: Vec<VulkanRenderContext>
@@ -433,8 +431,8 @@ impl VulkanRenderer {
             render_pass,
             framebuffers,
             subpass,
-            pbr_pipeline,
         });
+        self.pipeline = pbr_pipeline;
 
         Ok(())
     }
@@ -555,8 +553,10 @@ impl VulkanRenderer {
                     ..Default::default()
                 },
             )
-            .map_err(|_| RenderError::Draw("Failed to begin render pass.".into()))?
-            .bind_pipeline_graphics(surface_ctx.pbr_pipeline.clone())
+            .map_err(|_| RenderError::Draw("Failed to begin render pass.".into()))?;
+
+        ctx.builder
+            .bind_pipeline_graphics(self.pipeline.clone())
             .map_err(|_| RenderError::Draw("Failed to bind PBR pipeline.".into()))?;
 
         f(&mut ctx)?;
@@ -633,7 +633,7 @@ impl VulkanRenderer {
     }
 
     fn current_pipeline(&self) -> Option<Arc<GraphicsPipeline>> {
-        self.surface_ctx.as_ref().map(|v| v.pbr_pipeline.clone())
+        Some(self.pipeline.clone())
     }
 }
 

@@ -27,17 +27,19 @@ layout(std140, set = 1, binding = 2) uniform Skeleton {
 };
 
 void main() {
-	vec4 base_pos = vec4(a_position, 1.0);
+    vec4 base_pos = vec4(a_position, 1.0);
 
-	vec4 pos = vec4(0,0,0,0);
-	for (int i = 0; i < 4; i++) {
-		float w = a_skin_weights[i];
+    /*
+        vec4 pos = vec4(0, 0, 0, 0);
+        for (int i = 0; i < 4; i++) {
+            float w = a_skin_weights[i];
 
-		mat4 bone = bones[a_skin_indices[i]];
-		pos += w * (bone * base_pos);
-	}
+            mat4 bone = bones[a_skin_indices[i]];
+            pos += w * (bone * base_pos);
+        }
+    	*/
 
-    gl_Position = projection * view * model * pos;
+    gl_Position = projection * view * /* model * */ base_pos;
 
     colour = vec4(a_colour, 1.0);
     tex_coords = a_texcoords;

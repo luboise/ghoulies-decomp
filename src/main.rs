@@ -89,6 +89,9 @@ struct App {
     render_context: Option<RenderContext>,
     game_files: ghoulies::GameFiles,
     bnl: bnl::BNLFile,
+
+    vb: Option<Arc<graphics::VulkanBuffer<Vertex3D>>>,
+    ib: Option<Arc<graphics::VulkanBuffer<graphics::Index>>>,
 }
 
 static mut CAMERA: graphics::camera::Camera = graphics::camera::Camera {
@@ -123,6 +126,8 @@ impl App {
             game_files,
             render_context: None,
             bnl: bnl_file,
+            vb: None,
+            ib: None,
         })
     }
 
@@ -146,40 +151,48 @@ impl App {
         }
         self.render_context_mut().use_camera(0).unwrap();
 
-        let mut vb = self
-            .render_context()
-            .renderer
-            .create_buffer::<Vertex3D>(graphics::BufferType::Vertex, 3)
-            .unwrap();
-        let mut ib = self
-            .render_context()
-            .renderer
-            .create_buffer::<graphics::Index>(graphics::BufferType::Index, 4)
-            .unwrap();
-        ib.subbuffer.write_values(&[0, 1, 2], 0).unwrap();
+        if self.vb.is_none() {
+            let mut vb = self
+                .render_context()
+                .renderer
+                .create_buffer::<Vertex3D>(graphics::BufferType::Vertex, 3)
+                .unwrap();
+            vb.subbuffer
+                .write_values(
+                    &[
+                        Vertex3D {
+                            position: [0.0, 0.0, 0.0],
+                            colour: [1.0, 1.0, 1.0],
+                            ..Default::default()
+                        },
+                        Vertex3D {
+                            position: [1.0, 0.0, 0.0],
+                            colour: [1.0, 1.0, 1.0],
+                            ..Default::default()
+                        },
+                        Vertex3D {
+                            position: [0.0, 0.5, 0.0],
+                            colour: [1.0, 1.0, 1.0],
+                            ..Default::default()
+                        },
+                    ],
+                    0,
+                )
+                .map_err(|e| e.to_string())?;
 
-        vb.subbuffer
-            .write_values(
-                &[
-                    Vertex3D {
-                        position: [0.0, 0.0, 0.0],
-                        colour: [1.0, 1.0, 1.0],
-                        ..Default::default()
-                    },
-                    Vertex3D {
-                        position: [1.0, 0.0, 0.0],
-                        colour: [1.0, 1.0, 1.0],
-                        ..Default::default()
-                    },
-                    Vertex3D {
-                        position: [0.0, 0.5, 0.0],
-                        colour: [1.0, 1.0, 1.0],
-                        ..Default::default()
-                    },
-                ],
-                0,
-            )
-            .map_err(|e| e.to_string())?;
+            self.vb = Some(vb.into());
+        }
+
+        if self.ib.is_none() {
+            let mut ib = self
+                .render_context()
+                .renderer
+                .create_buffer::<graphics::Index>(graphics::BufferType::Index, 3)
+                .unwrap();
+            ib.subbuffer.write_values(&[0, 1, 2], 0).unwrap();
+
+            self.ib = Some(ib.into());
+        }
 
         let camera_descriptor_set = self
             .render_context
@@ -187,6 +200,9 @@ impl App {
             .unwrap()
             .camera_descriptor_set
             .clone();
+
+        let vb = self.vb.clone().unwrap();
+        let ib = self.ib.clone().unwrap();
 
         // Draw everything
         self.render_context_mut()
@@ -199,7 +215,7 @@ impl App {
                     .map_err(|e| graphics::RenderError::Draw(e.to_string()))?;
 
                 ctx.draw(graphics::DrawCall {
-                    num_indices: 4,
+                    num_indices: 3,
                     start_offset: 0,
                     primitive_type: graphics::types::PrimitiveType::LineStrip,
                 })?;
@@ -342,7 +358,7 @@ impl ApplicationHandler for App {
             }
             WindowEvent::RedrawRequested => {
                 if let Err(e) = self.update_frame() {
-                    eprintln!("Error drawing frame: {e}");
+                    // eprintln!("Error drawing frame: {e}");
                 }
             }
             _ => (),
