@@ -142,7 +142,8 @@ impl App {
         // lib.UpdateScene();
 
         unsafe {
-            CAMERA.transform.position.x += 500.0;
+            CAMERA.transform.position.x += 0.0001;
+            CAMERA.transform.scale.y *= 1.0 - 0.001;
         }
 
         unsafe {

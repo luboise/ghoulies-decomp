@@ -57,23 +57,17 @@ impl Transform {
     }
 
     pub fn model_matrix(&self) -> Mat4 {
-        Mat4::identity()
-
-        /*
         let mut mat: Mat4 = self.rotation_matrix().into();
 
         mat.w[0] = self.position.x;
         mat.w[1] = self.position.y;
         mat.w[2] = self.position.z;
 
-        // glm::mat4 matrix(1.0F);
+        Mat4::from(self.scale_matrix()) * mat
+    }
 
-        // matrix = glm::translate(matrix, this->position);
-        // matrix = matrix * this->RotationMatrix();
-        // matrix = glm::scale(matrix, this->scale);
-
-        mat
-            */
+    pub fn view_matrix(&self) -> Mat4 {
+        self.model_matrix().transpose()
     }
 
     pub fn rotation_matrix(&self) -> Mat3 {
@@ -81,6 +75,14 @@ impl Transform {
             * rotation_matrix_x(self.rotation.x)
             * rotation_matrix_z(self.rotation.z)
             * Mat3::identity()
+    }
+
+    pub fn scale_matrix(&self) -> Mat3 {
+        let mut m = Mat3::identity();
+        m[0][0] = self.scale.x;
+        m[1][1] = self.scale.y;
+        m[2][2] = self.scale.z;
+        m
     }
 
     /*
