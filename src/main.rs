@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use cgmath::SquareMatrix;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -90,13 +89,11 @@ struct App {
     game_files: ghoulies::GameFiles,
     bnl: bnl::BNLFile,
 
+    input_helper: winit_input_helper::WinitInputHelper,
+
     vb: Option<Arc<graphics::VulkanBuffer<Vertex3D>>>,
     ib: Option<Arc<graphics::VulkanBuffer<graphics::Index>>>,
 }
-
-static mut CAMERA: graphics::camera::Camera = graphics::camera::Camera {
-    transform: maths::Transform::identity(),
-};
 
 impl App {
     fn new() -> Result<Self, Box<dyn std::error::Error>> {
@@ -126,30 +123,20 @@ impl App {
             game_files,
             render_context: None,
             bnl: bnl_file,
+            input_helper: winit_input_helper::WinitInputHelper::new(),
             vb: None,
             ib: None,
         })
     }
 
     fn update_frame(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        self.update_events()?;
+
         {
             let renderer = &mut self.render_context_mut().renderer;
             renderer.begin_frame().map_err(|e| e.to_string())?;
         }
 
-        self.update_events()?;
-
-        // lib.UpdateScene();
-
-        unsafe {
-            CAMERA.transform.position.x += 0.0001;
-            CAMERA.transform.scale.y *= 1.0 - 0.001;
-        }
-
-        unsafe {
-            #[allow(static_mut_refs)]
-            self.render_context_mut().set_camera(0, CAMERA.clone())?;
-        }
         self.render_context_mut().use_camera(0).unwrap();
 
         if self.vb.is_none() {
@@ -236,8 +223,34 @@ impl App {
     fn update_events(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // static float movement_speed {1};
 
-        const kMaxMovementSpeed: f32 = 100.0;
-        const kMinMovementSpeed: f32 = 0.2;
+        const K_MAX_MOVEMENT_SPEED: f32 = 100.0;
+        // const K_MIN_MOVEMENT_SPEED: f32 = 0.2;
+        const K_MIN_MOVEMENT_SPEED: f32 = 0.2;
+
+        let delta = self
+            .input_helper
+            .delta_time()
+            .unwrap_or(std::time::Duration::from_micros(1_000_000 / 60))
+            .as_secs_f64() as f32;
+
+        let mut new_cam = unsafe { self.render_context().cameras.get_unchecked(0) }.clone();
+
+        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyA) {
+            new_cam.transform.position += delta * maths::Vec3::new(-K_MIN_MOVEMENT_SPEED, 0.0, 0.0);
+        }
+        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyD) {
+            new_cam.transform.position += delta * maths::Vec3::new(K_MIN_MOVEMENT_SPEED, 0.0, 0.0);
+        }
+        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyW) {
+            new_cam.transform.position += delta * maths::Vec3::new(0.0, 0.0, K_MIN_MOVEMENT_SPEED);
+        }
+        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyS) {
+            new_cam.transform.position += delta * maths::Vec3::new(0.0, 0.0, -K_MIN_MOVEMENT_SPEED);
+        }
+
+        self.render_context_mut().update_camera(0, |camera| {
+            *camera = new_cam.clone();
+        })?;
 
         // Hack to get window to stay up
         // SDL_Event e;
@@ -340,18 +353,25 @@ impl ApplicationHandler for App {
 
         self.window = Some(new_window.clone());
 
-        if let None = self.render_context {
+        if self.render_context.is_none() {
             // TODO: Replaces these unwraps with something else
             let renderer = VulkanRenderer::new(event_loop, &new_window).unwrap();
             self.render_context = Some(RenderContext::new(renderer).unwrap());
         }
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        self.input_helper.end_step();
         self.window.as_ref().unwrap().request_redraw();
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+    fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: winit::event::StartCause) {
+        self.input_helper.step();
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+        self.input_helper.process_window_event(&event);
+
         match event {
             WindowEvent::CloseRequested => {
                 println!("The close button was pressed; stopping");
@@ -359,7 +379,7 @@ impl ApplicationHandler for App {
             }
             WindowEvent::RedrawRequested => {
                 if let Err(e) = self.update_frame() {
-                    // eprintln!("Error drawing frame: {e}");
+                    eprintln!("Error drawing frame: {e}");
                 }
             }
             _ => (),

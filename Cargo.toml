@@ -10,3 +10,4 @@ gltf_writer = { path = "../gltf_writer" }
 vulkano = "0.35.2"
 vulkano-shaders = "0.35.0"
 winit = "0.30.12"
+winit_input_helper = "0.17.0"

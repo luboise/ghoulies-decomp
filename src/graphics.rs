@@ -188,4 +188,16 @@ impl RenderContext {
             .ok_or_else(|| format!("Failed to get camera {index} from camera list."))? = camera;
         Ok(())
     }
+
+    pub fn update_camera<F: FnMut(&mut Camera)>(
+        &mut self,
+        index: usize,
+        mut f: F,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        f(self
+            .cameras
+            .get_mut(index)
+            .ok_or_else(|| format!("Failed to get camera {index} from camera list."))?);
+        Ok(())
+    }
 }
