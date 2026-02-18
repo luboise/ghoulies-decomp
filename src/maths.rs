@@ -71,10 +71,9 @@ impl Transform {
     }
 
     pub fn rotation_matrix(&self) -> Mat3 {
-        rotation_matrix_y(self.rotation.y)
-            * rotation_matrix_x(self.rotation.x)
-            * rotation_matrix_z(self.rotation.z)
-            * Mat3::identity()
+        rotation_matrix_z(self.rotation.z)
+            * (rotation_matrix_x(self.rotation.x)
+                * (rotation_matrix_y(self.rotation.y) * Mat3::identity()))
     }
 
     pub fn scale_matrix(&self) -> Mat3 {
@@ -83,6 +82,31 @@ impl Transform {
         m[1][1] = self.scale.y;
         m[2][2] = self.scale.z;
         m
+    }
+
+    pub fn up(&self) -> Vec3 {
+        self.rotation_matrix() * Vec3::new(0.0, 1.0, 0.0)
+    }
+
+    #[inline]
+    pub fn down(&self) -> Vec3 {
+        -self.up()
+    }
+    pub fn left(&self) -> Vec3 {
+        self.rotation_matrix() * Vec3::new(-1.0, 0.0, 0.0)
+    }
+    #[inline]
+    pub fn right(&self) -> Vec3 {
+        -self.left()
+    }
+
+    pub fn forwards(&self) -> Vec3 {
+        self.rotation_matrix() * Vec3::new(0.0, 0.0, -1.0)
+    }
+
+    #[inline]
+    pub fn backwards(&self) -> Vec3 {
+        -self.forwards()
     }
 
     /*

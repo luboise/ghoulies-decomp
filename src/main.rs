@@ -221,11 +221,10 @@ impl App {
     }
 
     fn update_events(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        // static float movement_speed {1};
+        const MAX_MOVEMENT_SPEED: f32 = 100.0;
+        const MIN_MOVEMENT_SPEED: f32 = 0.2;
 
-        const K_MAX_MOVEMENT_SPEED: f32 = 100.0;
-        // const K_MIN_MOVEMENT_SPEED: f32 = 0.2;
-        const K_MIN_MOVEMENT_SPEED: f32 = 0.2;
+        const MOUSE_SENSITIVITY: f32 = 0.01;
 
         let delta = self
             .input_helper
@@ -233,20 +232,26 @@ impl App {
             .unwrap_or(std::time::Duration::from_micros(1_000_000 / 60))
             .as_secs_f64() as f32;
 
+        let t = delta * MIN_MOVEMENT_SPEED;
+
         let mut new_cam = unsafe { self.render_context().cameras.get_unchecked(0) }.clone();
 
         if self.input_helper.key_held(winit::keyboard::KeyCode::KeyA) {
-            new_cam.transform.position += delta * maths::Vec3::new(-K_MIN_MOVEMENT_SPEED, 0.0, 0.0);
+            new_cam.transform.position += t * new_cam.transform.left();
         }
         if self.input_helper.key_held(winit::keyboard::KeyCode::KeyD) {
-            new_cam.transform.position += delta * maths::Vec3::new(K_MIN_MOVEMENT_SPEED, 0.0, 0.0);
+            new_cam.transform.position += t * new_cam.transform.right();
         }
         if self.input_helper.key_held(winit::keyboard::KeyCode::KeyW) {
-            new_cam.transform.position += delta * maths::Vec3::new(0.0, 0.0, K_MIN_MOVEMENT_SPEED);
+            new_cam.transform.position += t * new_cam.transform.forwards();
         }
         if self.input_helper.key_held(winit::keyboard::KeyCode::KeyS) {
-            new_cam.transform.position += delta * maths::Vec3::new(0.0, 0.0, -K_MIN_MOVEMENT_SPEED);
+            new_cam.transform.position += t * new_cam.transform.backwards();
         }
+
+        let (x, y) = self.input_helper.mouse_diff();
+        new_cam.transform.rotation.x += MOUSE_SENSITIVITY * y;
+        new_cam.transform.rotation.y += MOUSE_SENSITIVITY * x;
 
         self.render_context_mut().update_camera(0, |camera| {
             *camera = new_cam.clone();
@@ -351,6 +356,11 @@ impl ApplicationHandler for App {
                 .unwrap(),
         );
 
+        // TODO: Implement this once actual controls are implemented
+        // new_window
+        //     .set_cursor_grab(winit::window::CursorGrabMode::Confined)
+        //     .expect("Unable to confine cursor");
+
         self.window = Some(new_window.clone());
 
         if self.render_context.is_none() {
@@ -367,6 +377,15 @@ impl ApplicationHandler for App {
 
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: winit::event::StartCause) {
         self.input_helper.step();
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        self.input_helper.process_device_event(&event);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
