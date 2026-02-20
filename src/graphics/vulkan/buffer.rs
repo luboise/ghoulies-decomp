@@ -10,6 +10,17 @@ use super::RenderError;
 pub struct VulkanBuffer<V> {
     pub buffer_type: BufferType,
     pub subbuffer: Subbuffer<[V]>,
+    pub length: usize,
+}
+
+impl<V> VulkanBuffer<V> {
+    pub fn len(&self) -> usize {
+        self.length
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl<V: crate::graphics::BufferValue> crate::graphics::Buffer<V> for VulkanBuffer<V> {

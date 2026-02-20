@@ -2,13 +2,17 @@ use vulkano::pipeline::graphics::vertex_input::Vertex;
 
 use crate::graphics::{RenderError, RendererOk};
 
-pub trait BufferValue: Vertex + Clone {}
+pub trait BufferValue: Vertex + Clone + Copy {}
 
 pub type Index = u32;
 
 pub trait Buffer<T> {
     /// Maximum number of T this buffer can hold
     fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     fn write_values(&mut self, values: &[T], start_index: usize) -> RendererOk;
 
     /// Number of bytes allocated to this buffer
@@ -17,13 +21,13 @@ pub trait Buffer<T> {
     }
 
     fn can_write(&self, data: &[T], start_index: usize) -> bool {
-        data.len() != 0
+        !data.is_empty()
             && start_index < self.len()
             && start_index.checked_add(data.len()).unwrap_or(usize::MAX) <= self.len()
     }
 }
 
-impl<V: vulkano::buffer::BufferContents + Clone> crate::graphics::Buffer<V>
+impl<V: vulkano::buffer::BufferContents + Copy> crate::graphics::Buffer<V>
     for vulkano::buffer::Subbuffer<[V]>
 {
     fn len(&self) -> usize {
@@ -42,10 +46,7 @@ impl<V: vulkano::buffer::BufferContents + Clone> crate::graphics::Buffer<V>
 
         let mut content = vulkano::buffer::Subbuffer::write(self)?;
 
-        values
-            .iter()
-            .enumerate()
-            .for_each(|(i, val)| content[start_index + i] = val.clone());
+        content[start_index..start_index + values.len()].copy_from_slice(values);
 
         Ok(())
     }

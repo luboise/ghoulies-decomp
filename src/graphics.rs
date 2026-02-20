@@ -88,7 +88,7 @@ pub trait Draw {
 // });
 // renderer.(self.shader_index);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DrawCall {
     pub num_indices: usize,
     pub start_offset: usize,

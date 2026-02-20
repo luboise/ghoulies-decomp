@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use bnl::asset::{AssetLike, model::nd::NdNode};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -93,6 +94,7 @@ struct App {
 
     vb: Option<Arc<graphics::VulkanBuffer<Vertex3D>>>,
     ib: Option<Arc<graphics::VulkanBuffer<graphics::Index>>>,
+    draw_calls: Vec<graphics::DrawCall>,
 }
 
 impl App {
@@ -126,6 +128,7 @@ impl App {
             input_helper: winit_input_helper::WinitInputHelper::new(),
             vb: None,
             ib: None,
+            draw_calls: Vec::default(),
         })
     }
 
@@ -139,47 +142,102 @@ impl App {
 
         self.render_context_mut().use_camera(0).unwrap();
 
-        if self.vb.is_none() {
-            let mut vb = self
-                .render_context()
-                .renderer
-                .create_buffer::<Vertex3D>(graphics::BufferType::Vertex, 3)
-                .unwrap();
-            vb.subbuffer
-                .write_values(
-                    &[
-                        Vertex3D {
-                            position: [0.0, 0.0, 0.0],
-                            colour: [1.0, 1.0, 1.0],
-                            ..Default::default()
-                        },
-                        Vertex3D {
-                            position: [1.0, 0.0, 0.0],
-                            colour: [1.0, 1.0, 1.0],
-                            ..Default::default()
-                        },
-                        Vertex3D {
-                            position: [0.0, 0.5, 0.0],
-                            colour: [1.0, 1.0, 1.0],
-                            ..Default::default()
-                        },
-                    ],
-                    0,
-                )
+        if self.vb.is_none() || self.ib.is_none() {
+            let model = self
+                .bnl
+                .get_asset::<bnl::asset::model::Model>("aid_model_ghoulies_powerups_cans_cookcan")
                 .map_err(|e| e.to_string())?;
 
-            self.vb = Some(vb.into());
-        }
+            let mesh = model
+                .asset()
+                .get_descriptor()
+                .mesh_descriptors()
+                .first()
+                .cloned()
+                .unwrap();
 
-        if self.ib.is_none() {
+            let model_vertex_buffer = mesh
+                .primitives()
+                .iter()
+                .find_map(|nd| {
+                    nd.children().find_map(|child| match child {
+                        bnl::asset::model::nd::Nd::VertexBuffer(nd_vertex_buffer) => {
+                            Some(nd_vertex_buffer)
+                        }
+                        _ => None,
+                    })
+                })
+                .expect("Failed to find can model");
+
+            let model_push_buffer = mesh
+                .primitives()
+                .iter()
+                .find_map(|nd| {
+                    nd.children().find_map(|child| {
+                        child.heirarchy().find_map(|inner_child| match inner_child {
+                            bnl::asset::model::nd::Nd::PushBuffer(nd_push_buffer) => {
+                                Some(nd_push_buffer)
+                            }
+                            _ => None,
+                        })
+                    })
+                })
+                .expect("Failed to get push buffer.");
+
+            let indices = model_push_buffer
+                .indices()
+                .into_iter()
+                .map(|index| index.into())
+                .collect::<Vec<u32>>();
+
+            self.draw_calls = model_push_buffer
+                .draw_calls()
+                .iter()
+                .map(|draw| graphics::DrawCall {
+                    num_indices: draw.num_vertices as usize,
+                    start_offset: (draw.data_ptr - model_push_buffer.push_buffer_base) as usize,
+                    primitive_type: draw.prim_type.clone().into(),
+                })
+                .collect();
+
             let mut ib = self
                 .render_context()
                 .renderer
-                .create_buffer::<graphics::Index>(graphics::BufferType::Index, 3)
+                .create_buffer::<graphics::Index>(graphics::BufferType::Index, indices.len())
                 .unwrap();
-            ib.subbuffer.write_values(&[0, 1, 2], 0).unwrap();
+            ib.subbuffer.write_values(&indices, 0).unwrap();
 
             self.ib = Some(ib.into());
+
+            let resource = model
+                .asset()
+                .get_resource_chunks()
+                .unwrap()
+                .iter()
+                .flatten()
+                .map(|v| v.to_owned())
+                .collect::<Vec<_>>();
+
+            let vertices = model_vertex_buffer
+                .get_positions(&resource)
+                .unwrap()
+                .into_iter()
+                .map(|position| Vertex3D {
+                    position,
+                    ..Default::default()
+                })
+                .collect::<Vec<_>>();
+
+            let mut vb = self
+                .render_context()
+                .renderer
+                .create_buffer::<Vertex3D>(graphics::BufferType::Vertex, vertices.len())
+                .unwrap();
+            vb.subbuffer
+                .write_values(&vertices, 0)
+                .map_err(|e| e.to_string())?;
+
+            self.vb = Some(vb.into());
         }
 
         let camera_descriptor_set = self
@@ -192,6 +250,8 @@ impl App {
         let vb = self.vb.clone().unwrap();
         let ib = self.ib.clone().unwrap();
 
+        let draw_calls = self.draw_calls.clone();
+
         // Draw everything
         self.render_context_mut()
             .renderer
@@ -202,11 +262,9 @@ impl App {
                 ctx.set_view_uniforms(camera_descriptor_set.clone())
                     .map_err(|e| graphics::RenderError::Draw(e.to_string()))?;
 
-                ctx.draw(graphics::DrawCall {
-                    num_indices: 3,
-                    start_offset: 0,
-                    primitive_type: graphics::types::PrimitiveType::LineStrip,
-                })?;
+                for draw_call in &draw_calls {
+                    ctx.draw(draw_call)?;
+                }
                 Ok(())
             })
             .map_err(|e| e.to_string())?;

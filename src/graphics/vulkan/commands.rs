@@ -67,9 +67,7 @@ impl VulkanCommandsCtx {
         Ok(())
     }
 
-    pub fn draw(&mut self, draw_call: DrawCall) -> RendererOk {
-        // println!("Drawing one thing.");
-
+    pub fn draw(&mut self, draw_call: &DrawCall) -> RendererOk {
         unsafe {
             self.builder
                 .draw_indexed(

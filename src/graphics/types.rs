@@ -10,7 +10,7 @@ pub type Mat2 = [Vec2; 2];
 pub type Mat3 = [Vec3; 3];
 pub type Mat4 = [Vec4; 4];
 
-#[derive(Debug, Clone, BufferContents, Vertex)]
+#[derive(Debug, Clone, Copy, BufferContents, Vertex)]
 #[repr(C, packed)]
 pub struct Vertex3D {
     #[name("a_position")]
@@ -42,7 +42,7 @@ impl Default for Vertex3D {
     fn default() -> Self {
         Self {
             position: [0f32, 0f32, 0f32],
-            colour: [0f32, 0f32, 0f32],
+            colour: [1f32, 1f32, 1f32],
             normal: Default::default(),
             tex_coords: Default::default(),
             skin_indices: [0, 0, 0, 0],
@@ -53,7 +53,7 @@ impl Default for Vertex3D {
 
 impl BufferValue for Vertex3D {}
 
-#[derive(Debug, Clone, BufferContents, Vertex)]
+#[derive(Debug, Clone, Copy, BufferContents, Vertex)]
 #[repr(C)]
 pub(crate) struct VertexTest {
     #[name("a_position")]
@@ -71,7 +71,7 @@ impl Default for VertexTest {
 
 impl BufferValue for VertexTest {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PrimitiveType {
     PointList = 0,
     LineList = 1,
@@ -86,4 +86,27 @@ pub enum PrimitiveType {
     TriangleListWithAdjacency = 8,
     TriangleStripWithAdjacency = 9,
     // PatchList = 10
+}
+
+impl From<bnl::D3DPrimitiveType> for PrimitiveType {
+    fn from(value: bnl::D3DPrimitiveType) -> Self {
+        use bnl::D3DPrimitiveType;
+
+        match value {
+            D3DPrimitiveType::None => todo!(),
+            D3DPrimitiveType::PointList => Self::PointList,
+            D3DPrimitiveType::LineList => Self::LineList,
+            D3DPrimitiveType::LineStrip => Self::LineStrip,
+            D3DPrimitiveType::TriangleList => Self::TriangleList,
+            D3DPrimitiveType::TriangleStrip => Self::TriangleStrip,
+            D3DPrimitiveType::TriangleFan => Self::TriangleFan,
+            // Unhandled/unsupported
+            D3DPrimitiveType::LineLoop
+            | D3DPrimitiveType::QuadList
+            | D3DPrimitiveType::QuadStrip
+            | D3DPrimitiveType::Polygon
+            | D3DPrimitiveType::Max
+            | D3DPrimitiveType::Invalid => Self::TriangleList,
+        }
+    }
 }

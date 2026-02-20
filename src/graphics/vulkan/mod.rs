@@ -131,7 +131,7 @@ mod vs_pbr {
         ty: "vertex",
         // path: "src/rendering/default_shaders/default_3d.vert"
         path: "resources/shaders/pbr.vert",
-        custom_derives: [Debug, Clone]
+        custom_derives: [Debug, Clone, Copy]
     }
 }
 
@@ -452,7 +452,7 @@ impl VulkanRenderer {
     pub fn create_buffer<V: vulkano::buffer::BufferContents>(
         &self,
         buffer_type: buffer::BufferType,
-        capacity: usize,
+        length: usize,
     ) -> RendererRes<buffer::VulkanBuffer<V>> {
         let subbuffer: Subbuffer<[V]> = vulkano::buffer::Buffer::new_slice::<V>(
             self.vk.memory_allocator.clone(),
@@ -465,12 +465,13 @@ impl VulkanRenderer {
                 memory_type_filter: buffer_type.memory_type_filter(),
                 ..Default::default()
             },
-            capacity as DeviceSize,
+            (length * size_of::<V>()) as DeviceSize,
         )?;
 
         Ok(buffer::VulkanBuffer {
             buffer_type,
             subbuffer,
+            length,
         })
     }
 
@@ -686,7 +687,11 @@ fn create_pipeline(
             stages: stages.into_iter().collect(),
             vertex_input_state: Some(pbr_vertex_input),
             // Can manually specify draw type
-            input_assembly_state: Some(InputAssemblyState::default()),
+            input_assembly_state: Some(InputAssemblyState {
+                topology:
+                    vulkano::pipeline::graphics::input_assembly::PrimitiveTopology::TriangleStrip,
+                ..Default::default()
+            }),
 
             viewport_state: Some(ViewportState {
                 viewports: [viewport].into_iter().collect(),
