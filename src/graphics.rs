@@ -130,10 +130,12 @@ impl Texture {
     }
 }
 
-const NUM_CAMERAS: usize = 10;
+const NUM_CAMERAS: usize = 4;
 
 pub struct RenderContext {
     pub renderer: VulkanRenderer,
+
+    current_camera: usize,
 
     pub cameras: [Camera; NUM_CAMERAS],
     camera_uniform_buffer: vulkan::buffer::VulkanBuffer<ViewUniforms>,
@@ -150,6 +152,7 @@ impl RenderContext {
 
         Ok(Self {
             renderer,
+            current_camera: 0,
             cameras: Default::default(),
             camera_uniform_buffer,
             camera_descriptor_set,
@@ -169,10 +172,12 @@ impl RenderContext {
                 view: camera.transform.model_matrix().into(),
                 projection: crate::maths::Mat4::identity().into(),
             }],
-            0,
+            index,
         )?;
 
         // TODO: Bind the descriptor set here
+
+        self.current_camera = index;
 
         Ok(())
     }

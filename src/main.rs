@@ -1,7 +1,3 @@
-// #include <iostream>
-
-// #include <SDL3/SDL_gpu.h>
-
 use std::sync::Arc;
 
 use bnl::asset::{AssetLike, model::nd::NdNode};
@@ -20,6 +16,7 @@ mod assets {
 // mod events;
 mod ghoulies;
 pub mod graphics;
+mod input;
 mod maths;
 
 pub struct Config {
@@ -90,6 +87,9 @@ struct App {
     game_files: ghoulies::GameFiles,
     bnl: bnl::BNLFile,
 
+    combined_gamepad: input::Gamepad,
+    gamepads: [Option<input::Gamepad>; 4],
+
     input_helper: winit_input_helper::WinitInputHelper,
 
     vb: Option<Arc<graphics::VulkanBuffer<Vertex3D>>>,
@@ -115,10 +115,48 @@ impl App {
                 .get(&bnl_file_path)
                 .ok_or_else(|| format!("Failed to find game asset {bnl_file_path}"))?,
         )
-        // TODO: Fix this error printing
+        // FIXME: Fix this error printing
         .map_err(|e| format!("{e:?}"))?;
 
-        let xbe = game_files.get_executable();
+        // TODO: Load locale
+
+        // TODO: Initialise renderer
+
+        // TODO: Disable controller rumbles
+
+        // TODO: Set game refresh rate (50hz pal, 60hz ntsc)
+
+        // TODO: Initialise gamepads from real gamepads
+        let gamepads = Default::default();
+
+        // TODO: Resource buffers  (default.xbe:0x00035a90)
+        // let resource_buffer = ResourceBuffer::new(32);
+        // let small_asset_buffer_1 = ResourceBuffer::new(2);
+        // let small_asset_buffer_2 = ResourceBuffer::new(2);
+
+        // TODO: Register attackdata, hitreaction, objparams, scripttable from xbe
+        // let xbe = game_files.get_executable();
+
+        // TODO: Load common.bnl into persistent memory
+        // let mut asset_database = AssetDatabase::new();
+        // let bnl_file = bnl::BNLFile::from_bytes(&game_files.get("bundles/common.bnl")?)?;
+        // asset_database.consume_bnl(bnl_file)
+
+        // TODO: Initialise audio system
+
+        // TODO: Load "aid_misc_ghoulies_audio_generalsettings" (originally from common.bnl)
+
+        // TODO: Initialise the 4 render cameras in the render context (default.xbe:0x000f5900)
+
+        // TODO: Initialise the logical cameras/camera slots
+
+        // TODO: Initialise scene order and save data (default.xbe@0x33400)
+
+        // TODO: Load "aid_misc_ghoulies_statsheet_actors" (originally from common.bnl?)
+
+        // TODO: Clear next playcam, cutscene delta and (default.xbe:0x35a80)
+
+        // TODO: Set next playcam to first one in the AID list
 
         Ok(Self {
             window: None,
@@ -129,6 +167,8 @@ impl App {
             vb: None,
             ib: None,
             draw_calls: Vec::default(),
+            combined_gamepad: input::Gamepad::default(),
+            gamepads,
         })
     }
 
