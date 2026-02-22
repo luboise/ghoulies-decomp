@@ -3,22 +3,22 @@
 #include <std/ptr>
 #include <std/string>
 
-struct LoctextKey
+struct LSBLEntry
 {
   u16 keyHash;
   u32 offset;
-  std::string::NullString16 string @(parent.wCharsStart + offset * sizeof(u16));
+  std::string::NullString16 string @(parent.bufStart + offset * sizeof(u16));
 };
 
-struct LoctextMapHeader
+struct LSBLValues
 {
-  u32 mapStart;
-  u32 numLoctexts;
+  u32 sectionSize;
+  u32 numValues;
 
-  u32 wCharsStart = $ + (6 * numLoctexts) + sizeof(u16) + sizeof(u32);
-  LoctextKey keys[numLoctexts];
+  u32 bufStart = $ + (6 * numValues) + sizeof(u16) + sizeof(u32);
+  LSBLEntry entries[numValues];
   u16 endSentinel;
-  u32 numChars;
+  u32 bufLength;
 };
 
 struct LoctextHashList
@@ -49,19 +49,28 @@ struct LSBLSection
 {
   u32 ptr_base = $;
   char lsbl[4];
-  u32 values_ptr;
+  u32 headerSize;
 
   u16 numSomethings;
+
   u16 idk2;
-  u32 idk1;
+
+  u32 valuesPtr;
+  if (valuesPtr != 0) {
+    LSBLValues values @ptr_base + valuesPtr;
+  }
 
   u32 keys_ptr;
-  u32 idk3;
-  u32 hashListPtr;
+  if (keys_ptr != 0) {
+    LoctextLocatorList keys @ptr_base + keys_ptr;
+  }
 
-  LoctextMapHeader values @ptr_base + values_ptr;
-  LoctextLocatorList keys @ptr_base + keys_ptr;
-  LoctextHashList hashes @ptr_base + hashListPtr;
+  u32 idk3;
+
+  u32 hashListPtr;
+  if (hashListPtr != 0) {
+    LoctextHashList hashes @ptr_base + hashListPtr;
+  }
 };
 
 struct LoctextDescriptor

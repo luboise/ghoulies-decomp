@@ -45,4 +45,3 @@ struct AssetChunkInfo
   u32 resource_view_ptr;
   u32 resource_size;
 };
-
