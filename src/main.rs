@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bnl::asset::{AssetLike, model::nd::NdNode};
+use bnl::asset::{AssetLike, aidlist::AidList, model::nd::NdNode};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -10,9 +10,8 @@ use winit::{
 
 use crate::graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D};
 
-mod assets {
-    mod texture;
-}
+mod assets;
+
 // mod events;
 mod ghoulies;
 pub mod graphics;
@@ -84,8 +83,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct App {
     window: Option<Arc<winit::window::Window>>,
     render_context: Option<RenderContext>,
+
     game_files: ghoulies::GameFiles,
-    bnl: bnl::BNLFile,
+    asset_database: assets::AssetDatabase,
+
+    /// The order of the game scripts
+    scene_order: Vec<String>,
+
+    next_playcam_aid: Option<String>,
 
     combined_gamepad: input::Gamepad,
     gamepads: [Option<input::Gamepad>; 4],
@@ -108,16 +113,6 @@ impl App {
         let config = Config::default();
         let game_files = ghoulies::GameFiles::new(config.game_directory)?;
 
-        let bnl_file_path = format!("bundles/aid_script/{}.bnl", args[1]);
-
-        let bnl_file = bnl::BNLFile::from_bytes(
-            &game_files
-                .get(&bnl_file_path)
-                .ok_or_else(|| format!("Failed to find game asset {bnl_file_path}"))?,
-        )
-        // FIXME: Fix this error printing
-        .map_err(|e| format!("{e:?}"))?;
-
         // TODO: Load locale
 
         // TODO: Initialise renderer
@@ -138,9 +133,26 @@ impl App {
         // let xbe = game_files.get_executable();
 
         // TODO: Load common.bnl into persistent memory
-        // let mut asset_database = AssetDatabase::new();
-        // let bnl_file = bnl::BNLFile::from_bytes(&game_files.get("bundles/common.bnl")?)?;
-        // asset_database.consume_bnl(bnl_file)
+        let mut asset_database = assets::AssetDatabase::default();
+
+        let common_bnl = bnl::BNLFile::from_bytes(
+            &game_files
+                .get("bundles/common.bnl")
+                .ok_or_else(|| "Unable to get common.bnl".to_owned())?,
+        )
+        .map_err(|e| e.to_string())?;
+        asset_database.add_bnl("common.bnl", common_bnl)?;
+
+        let user_bnl_name = format!("{}.bnl", args[1]);
+
+        let user_bnl = bnl::BNLFile::from_bytes(
+            &game_files
+                .get(format!("bundles/aid_script/{user_bnl_name}"))
+                .ok_or_else(|| format!("Unable to get {user_bnl_name}"))?,
+        )
+        .map_err(|e| e.to_string())?;
+
+        asset_database.add_bnl(&user_bnl_name, user_bnl)?;
 
         // TODO: Initialise audio system
 
@@ -150,26 +162,40 @@ impl App {
 
         // TODO: Initialise the logical cameras/camera slots
 
-        // TODO: Initialise scene order and save data (default.xbe@0x33400)
+        let scene_order = asset_database
+            .get_asset::<AidList>("aid_aidlist_ghoulies_sceneorder_game")
+            .ok_or("Failed to get scene order")?
+            .asset()
+            .asset_ids()
+            .clone();
+
+        // TODO: Initialise default save data (default.xbe@0x33400)
 
         // TODO: Load "aid_misc_ghoulies_statsheet_actors" (originally from common.bnl?)
 
         // TODO: Clear next playcam, cutscene delta and (default.xbe:0x35a80)
 
-        // TODO: Set next playcam to first one in the AID list
-
-        Ok(Self {
+        let initial_playcam = scene_order.first().expect("Empty scene order").clone();
+        let mut app = Self {
             window: None,
             game_files,
             render_context: None,
-            bnl: bnl_file,
+            asset_database,
+            scene_order,
+            next_playcam_aid: None,
             input_helper: winit_input_helper::WinitInputHelper::new(),
             vb: None,
             ib: None,
             draw_calls: Vec::default(),
             combined_gamepad: input::Gamepad::default(),
             gamepads,
-        })
+        };
+
+        app.set_next_playcam_aid(&initial_playcam)?;
+
+        // TODO: Look into __controlfp(_PC_24,0x30000);
+
+        Ok(app)
     }
 
     fn update_frame(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -184,9 +210,11 @@ impl App {
 
         if self.vb.is_none() || self.ib.is_none() {
             let model = self
-                .bnl
+                .asset_database
                 .get_asset::<bnl::asset::model::Model>("aid_model_ghoulies_powerups_cans_cookcan")
-                .map_err(|e| e.to_string())?;
+                .ok_or_else(|| {
+                    "Unable to get asset \"aid_model_ghoulies_powerups_cans_cookcan\"".to_string()
+                })?;
 
             let mesh = model
                 .asset()
@@ -440,6 +468,15 @@ impl App {
     fn render_context_mut(&mut self) -> &mut RenderContext {
         // TODO: Make this print an error message at the very least
         self.render_context.as_mut().unwrap()
+    }
+
+    /// default.xbe:0x11eb30
+    fn set_next_playcam_aid(
+        &mut self,
+        new_playcam_aid: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.next_playcam_aid = Some(new_playcam_aid.to_owned());
+        Ok(())
     }
 }
 
