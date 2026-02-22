@@ -17,6 +17,7 @@ mod ghoulies;
 pub mod graphics;
 mod input;
 mod maths;
+mod objects;
 
 pub struct Config {
     /// The directory which the game files are located in. If unspecified,
@@ -32,7 +33,10 @@ impl Default for Config {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+// TODO: Make this into custom error type later or use anyhow or something
+type Error = Box<dyn std::error::Error>;
+
+fn main() -> Result<(), Error> {
     let event_loop = EventLoop::new().unwrap();
 
     // ControlFlow::Poll continuously runs the event loop, even if the OS hasn't
@@ -80,22 +84,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[expect(unused, reason = "These will definitely be used later")]
 struct App {
     window: Option<Arc<winit::window::Window>>,
     render_context: Option<RenderContext>,
 
-    game_files: ghoulies::GameFiles,
-    asset_database: assets::AssetDatabase,
+    pub game_files: ghoulies::GameFiles,
+    pub asset_database: assets::AssetDatabase,
 
     /// The order of the game scripts
-    scene_order: Vec<String>,
-
-    next_playcam_aid: Option<String>,
+    pub scene_order: Vec<String>,
 
     combined_gamepad: input::Gamepad,
     gamepads: [Option<input::Gamepad>; 4],
 
-    input_helper: winit_input_helper::WinitInputHelper,
+    pub input_helper: winit_input_helper::WinitInputHelper,
+
+    pub game_state: ghoulies::GameState,
+
+    pub global_flags: u32,
 
     vb: Option<Arc<graphics::VulkanBuffer<Vertex3D>>>,
     ib: Option<Arc<graphics::VulkanBuffer<graphics::Index>>>,
@@ -103,7 +110,7 @@ struct App {
 }
 
 impl App {
-    fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    fn new() -> Result<Self, Error> {
         let args = std::env::args().collect::<Vec<_>>();
 
         if args.len() != 2 {
@@ -175,15 +182,17 @@ impl App {
 
         // TODO: Clear next playcam, cutscene delta and (default.xbe:0x35a80)
 
-        let initial_playcam = scene_order.first().expect("Empty scene order").clone();
+        let game_state = ghoulies::GameState::default();
+
         let mut app = Self {
             window: None,
             game_files,
             render_context: None,
             asset_database,
             scene_order,
-            next_playcam_aid: None,
             input_helper: winit_input_helper::WinitInputHelper::new(),
+            game_state,
+            global_flags: 0,
             vb: None,
             ib: None,
             draw_calls: Vec::default(),
@@ -191,14 +200,21 @@ impl App {
             gamepads,
         };
 
-        app.set_next_playcam_aid(&initial_playcam)?;
+        app.set_next_playcam_aid(&app.scene_order.first().expect("Empty scene order").clone())?;
+
+        // TODO: Move this into the actual function it came from (default.xbe:0x12c631)
+        // This needs to not be 0 for the game loop to actually run
+        app.global_flags = 0x1000;
+
+        // FIXME: Remove this value since its used for testing only
+        app.global_flags = 0x401ff;
 
         // TODO: Look into __controlfp(_PC_24,0x30000);
 
         Ok(app)
     }
 
-    fn update_frame(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_frame(&mut self) -> Result<(), Error> {
         self.update_events()?;
 
         {
@@ -346,7 +362,8 @@ impl App {
         Ok(())
     }
 
-    fn update_events(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_events(&mut self) -> Result<(), Error> {
+        #[expect(dead_code)]
         const MAX_MOVEMENT_SPEED: f32 = 100.0;
         const MIN_MOVEMENT_SPEED: f32 = 0.2;
 
@@ -471,11 +488,113 @@ impl App {
     }
 
     /// default.xbe:0x11eb30
-    fn set_next_playcam_aid(
-        &mut self,
-        new_playcam_aid: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        self.next_playcam_aid = Some(new_playcam_aid.to_owned());
+    fn set_next_playcam_aid(&mut self, new_playcam_aid: &str) -> Result<(), Error> {
+        self.game_state.new_script_aid = Some(new_playcam_aid.to_owned());
+        Ok(())
+    }
+
+    /// default.xbe:0x33b50
+    fn update(&mut self) -> Result<(), Error> {
+        self.update_events()?;
+
+        if self.global_flags & 0xff != 0 {
+            // Likely to be "If we need to update physics or anything on a fixed tick"
+            if self.global_flags & 0x40000 != 0 {
+                // default.xbe:0x11e4c0
+                self.update_game_state()?;
+
+                // runtime::UpdateStateLinkedLists(&CurrentChapterState);
+                /* Draw the UI and handle blocks related to the UI */
+                // HandleUIUpdate();
+                // PeriodicUpdateWithPi?();
+                /* No tangible difference?
+                 */
+                // FUN_00048f90();
+            }
+            // FUN_00033480();
+            // FUN_00032ab0();
+            // Graphics::Update();
+            // return;
+        }
+
+        self.update_frame()?;
+
+        Ok(())
+    }
+
+    #[expect(unused)]
+    fn set_load_state(&mut self, load_state: ghoulies::LoadState) -> Result<(), crate::Error> {
+        println!("TODO: Set the state");
+        Ok(())
+    }
+
+    fn update_game_state(&mut self) -> Result<(), Error> {
+        if !self.game_state.currently_loading && self.game_state.new_script_aid.is_some() {
+            self.set_load_state(ghoulies::LoadState::BeginLoading)?;
+
+            // if self.giant_loctext_struct != 1 && self.giant_loctext_struct != 2 {
+            // EventLoop::CreateTransitionCameraAndText();
+            // }
+        }
+
+        self.game_state.prev_load_state = self.game_state.load_state;
+
+        if let Some(new_load_state) = self.game_state.new_load_state {
+            if new_load_state != self.game_state.load_state && !self.game_state.currently_loading
+            // TODO: Implement global pause bool
+            // && g_paused? == 0
+            {
+                self.set_load_state(new_load_state)?;
+            }
+        }
+
+        // FUN_00109470(*(InputHandlerType4 **)((int)&state.loctext? + 1));
+        // UpdatePauseScreen();
+        // switch(state.globalState) {
+        // case State2?:
+        //    CurrentChapterState.newState = 0;
+        //    Events::UpdateEntities(state);
+        //    UpdateStorybook();
+        //    return;
+        // case BEGUN_LOADING_TRANSITION:
+        //                             /* Unable to run any cutscenes when skipped,
+        //                                - Music doesn't stop playing
+        //                                - Cutscene is permanently loading
+        //                                - Game fails to begin cutscene
+        //                                - Game fails to exit from cutscene
+        //
+        //                                NO impact when disabled mid cutscene */
+        //    if (state.loadedCutscene != 0) {
+        //       EventLoop::SetGameplayState(state,LOADING);
+        //    }
+        //    state.loadedCutscene = 1;
+        //    UpdateStorybook();
+        //    return;
+        // case LOADING:
+        //    Audio::Loading = 1;
+        //    iVar1 = Events::loadNewBNL(unaff_EDI);
+        //    if ((iVar1 == 0) &&
+        //         (CacheContext.utilityDriveError = 0, g_GiantLoctextStruct.g_someGlobalVar == 2)) {
+        //       FUN_0012c770();
+        //       state.preventStateChanges = 0;
+        //       EventLoop::RunPostLoadSetupScripts(state);
+        //       CurrentChapterState.newState = FINISHED_LOADING_TRANSITION;
+        //       UpdateStorybook();
+        //       return;
+        //    }
+        //    break;
+        // case FINISHED_LOADING_TRANSITION:
+        //    if (g_GiantLoctextStruct.g_someGlobalVar == 0) {
+        //       CurrentChapterState.newState = state.newChapterState;
+        //       UpdateStorybook();
+        //       return;
+        //    }
+        //    if (CurrentChapterState.currentChapter == 0) break;
+        // case NORMAL:
+        //    Events::UpdateEntities(state);
+        // }
+        // UpdateStorybook();
+
         Ok(())
     }
 }
@@ -532,7 +651,7 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                if let Err(e) = self.update_frame() {
+                if let Err(e) = self.update() {
                     eprintln!("Error drawing frame: {e}");
                 }
             }
