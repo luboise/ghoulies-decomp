@@ -8,7 +8,10 @@ use winit::{
     window::WindowId,
 };
 
-use crate::graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D};
+use crate::{
+    ghoulies::LoadState,
+    graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D},
+};
 
 mod assets;
 
@@ -400,80 +403,6 @@ impl App {
             *camera = new_cam.clone();
         })?;
 
-        // Hack to get window to stay up
-        // SDL_Event e;
-
-        // glm::vec2 player_rotation {0, 0};
-
-        /*
-        while (SDL_PollEvent(&e)) {
-          if (e.type == SDL_EVENT_KEY_DOWN) {
-            if (e.key.key == SDLK_F8) {
-              this->toggle_menu_ = true;
-            }
-          }
-
-          if (menu_active_) {
-            menu_->ProcessEvent(&e);
-          }
-
-          if (e.type == SDL_EVENT_QUIT) {
-            this->quit_ = true;
-          }
-
-          // Only handle these events if the menu isn't active
-          if (!menu_active_) {
-            // TODO: Move this into an event loop somewhere else
-            if (e.type == SDL_EVENT_MOUSE_MOTION) {
-              constexpr float kMouseSensitivity {0.3F};
-              player_rotation = {e.motion.yrel * kMouseSensitivity,
-                                 -e.motion.xrel * kMouseSensitivity};
-            }
-          }
-        }
-        */
-
-        /*
-        if (menu_active_) {
-          return;
-        }
-
-        if (game_context_.player == nullptr) {
-          return;
-        }
-        */
-
-        /*
-        auto& player_transform {game_context_.player->GetTransform()};
-        player_transform.RotateX(player_rotation.x);
-        player_transform.RotateY(player_rotation.y);
-        if (!menu_active_) {
-          if (key_states_[SDL_SCANCODE_EQUALS]) {
-            movement_speed = std::min(kMaxMovementSpeed, movement_speed * 1.03F);
-          }
-
-          if (key_states_[SDL_SCANCODE_MINUS]) {
-            movement_speed = std::max(kMinMovementSpeed, movement_speed / 1.03F);
-          }
-
-          if (key_states_[SDL_SCANCODE_0]) {
-            this->lighting_uniforms_.ambient_brightness =
-                std::min(1.0F, this->lighting_uniforms_.ambient_brightness + 0.005F);
-          } else if (key_states_[SDL_SCANCODE_9]) {
-            this->lighting_uniforms_.ambient_brightness =
-                std::max(0.1F, this->lighting_uniforms_.ambient_brightness - 0.005F);
-          }
-
-          if (key_states_[SDL_SCANCODE_B]) {
-            this->game_context_.draw_backgrounds = !key_states_[SDL_SCANCODE_LSHIFT];
-          }
-          if (key_states_[SDL_SCANCODE_C]) {
-            this->game_context_.draw_colliders = !key_states_[SDL_SCANCODE_LSHIFT];
-          }
-
-        }
-        */
-
         Ok(())
     }
 
@@ -522,15 +451,79 @@ impl App {
         Ok(())
     }
 
-    #[expect(unused)]
-    fn set_load_state(&mut self, load_state: ghoulies::LoadState) -> Result<(), crate::Error> {
-        println!("TODO: Set the state");
+    fn set_load_state(&mut self, load_state: LoadState) -> Result<(), crate::Error> {
+        let state = &mut self.game_state;
+
+        if state.load_state != load_state {
+            // Cleanup current load state
+            match state.load_state {
+                LoadState::Normal | LoadState::State2 => {
+
+                    // g_stateStack = g_stateStack + 1;
+                    // FUN_00106e90();
+                }
+                LoadState::Loading => {
+
+                    // Game::NotAllowedToPause = Game::NotAllowedToPause + -1;
+                    // GlobalCounter2 = GlobalCounter2 + -1;
+                }
+                LoadState::FinishedLoading => {
+
+                    // runtime::FinaliseLoad();
+                }
+                LoadState::Paused => {
+                    // UnpauseGame();
+                }
+                LoadState::Null | LoadState::BeginLoading => (),
+            }
+
+            match state.load_state {
+                LoadState::Normal | LoadState::State2 => {
+
+                    // g_stateStack = g_stateStack + -1;
+                    // if (g_stateStack < 0) {
+                    //   g_stateStack = 0;
+                    // }
+                    // UpdateDrawingData???();
+                }
+                LoadState::BeginLoading => {
+
+                    // state.preventLoading = 1;
+                    // state.field10_0x120 = 0;
+                    // state.loadedCutscene = 0;
+                }
+                LoadState::Loading => {
+                    // Game::EndScene(state);
+                    // Game::NotAllowedToPause = Game::NotAllowedToPause + 1;
+                    // GlobalCounter2 = GlobalCounter2 + 1;
+
+                    // Original game just writes anyway and stubs out the new aid
+                    state.current_script_aid = state.new_script_aid.take().unwrap_or_default();
+
+                    // Scripting::SetCurrentPlaycamScript();
+                    // *(undefined4 *)((int)&state.field79_0x22b + 1) = 4;
+                    // UpdateVolumes();
+                    // InitPlaycamScriptAndGlobals();
+                    // state.field10_0x120 = 1;
+                }
+                LoadState::Paused => {
+                    // UI::EnterPauseUI();
+                }
+                LoadState::Null | LoadState::FinishedLoading => (),
+            }
+
+            ///////////////////
+
+            println!("Setting load state to {load_state:?}");
+            state.load_state = load_state;
+        }
+
         Ok(())
     }
 
     fn update_game_state(&mut self) -> Result<(), Error> {
-        if !self.game_state.currently_loading && self.game_state.new_script_aid.is_some() {
-            self.set_load_state(ghoulies::LoadState::BeginLoading)?;
+        if !self.game_state.prevent_loading && self.game_state.new_script_aid.is_some() {
+            self.set_load_state(LoadState::BeginLoading)?;
 
             // if self.giant_loctext_struct != 1 && self.giant_loctext_struct != 2 {
             // EventLoop::CreateTransitionCameraAndText();
@@ -540,7 +533,7 @@ impl App {
         self.game_state.prev_load_state = self.game_state.load_state;
 
         if let Some(new_load_state) = self.game_state.new_load_state {
-            if new_load_state != self.game_state.load_state && !self.game_state.currently_loading
+            if new_load_state != self.game_state.load_state && !self.game_state.prevent_loading
             // TODO: Implement global pause bool
             // && g_paused? == 0
             {
@@ -548,51 +541,76 @@ impl App {
             }
         }
 
+        // Handle input
         // FUN_00109470(*(InputHandlerType4 **)((int)&state.loctext? + 1));
+
         // UpdatePauseScreen();
-        // switch(state.globalState) {
-        // case State2?:
-        //    CurrentChapterState.newState = 0;
-        //    Events::UpdateEntities(state);
-        //    UpdateStorybook();
-        //    return;
-        // case BEGUN_LOADING_TRANSITION:
-        //                             /* Unable to run any cutscenes when skipped,
-        //                                - Music doesn't stop playing
-        //                                - Cutscene is permanently loading
-        //                                - Game fails to begin cutscene
-        //                                - Game fails to exit from cutscene
-        //
-        //                                NO impact when disabled mid cutscene */
-        //    if (state.loadedCutscene != 0) {
-        //       EventLoop::SetGameplayState(state,LOADING);
-        //    }
-        //    state.loadedCutscene = 1;
-        //    UpdateStorybook();
-        //    return;
-        // case LOADING:
-        //    Audio::Loading = 1;
-        //    iVar1 = Events::loadNewBNL(unaff_EDI);
-        //    if ((iVar1 == 0) &&
-        //         (CacheContext.utilityDriveError = 0, g_GiantLoctextStruct.g_someGlobalVar == 2)) {
-        //       FUN_0012c770();
-        //       state.preventStateChanges = 0;
-        //       EventLoop::RunPostLoadSetupScripts(state);
-        //       CurrentChapterState.newState = FINISHED_LOADING_TRANSITION;
-        //       UpdateStorybook();
-        //       return;
-        //    }
-        //    break;
-        // case FINISHED_LOADING_TRANSITION:
-        //    if (g_GiantLoctextStruct.g_someGlobalVar == 0) {
-        //       CurrentChapterState.newState = state.newChapterState;
-        //       UpdateStorybook();
-        //       return;
-        //    }
-        //    if (CurrentChapterState.currentChapter == 0) break;
-        // case NORMAL:
-        //    Events::UpdateEntities(state);
-        // }
+
+        match self.game_state.load_state {
+            LoadState::State2 => {
+                // CurrentChapterState.newState = 0;
+                // Events::UpdateEntities(state);
+                // UpdateStorybook();
+                return Ok(());
+            }
+            LoadState::BeginLoading => {
+                if self.game_state.transition_finished {
+                    self.set_load_state(LoadState::Loading)?;
+                }
+                self.game_state.transition_finished = true;
+                // UpdateStorybook();
+                return Ok(());
+            }
+            LoadState::Loading => {
+                // Audio::Loading = 1;
+                let new_playcam = self
+                    .game_state
+                    .new_script_aid
+                    .clone()
+                    .expect("No new playcam ready");
+                println!("{new_playcam}");
+                //
+                // let bnl_bytes = self.game_files.get()
+                // let new_bnl = bnl::BNLFile::new();
+                // iVar1 = Events::loadNewBNL(unaff_EDI);
+                // if ((iVar1 == 0)
+                //     && (
+                //         CacheContext.utilityDriveError = 0,
+                //         g_GiantLoctextStruct.g_someGlobalVar == 2,
+                //     ))
+                // {
+                //     FUN_0012c770();
+                //     state.preventStateChanges = 0;
+                //     EventLoop::RunPostLoadSetupScripts(state);
+                //     CurrentChapterState.newState = FINISHED_LOADING_TRANSITION;
+                //     UpdateStorybook();
+                //     return;
+                // }
+                // UpdateStorybook();
+                return Ok(());
+            }
+            LoadState::FinishedLoading => {
+                // if (g_GiantLoctextStruct.g_someGlobalVar == 0) {
+                // self.game_state.new_load_state = self.game_state.new_chapter_state;
+                // UpdateStorybook();
+                //     return Ok(());
+                // }
+
+                // equivalent of break in original code
+                if self.game_state.current_chapter == 0 {
+                    // UpdateStorybook();
+                    return Ok(());
+                }
+
+                // Events::UpdateEntities(self.game_state);
+                // Events::UpdateStorybook(self.game_state);
+                return Ok(());
+            }
+            LoadState::Normal => {
+                // Events::UpdateEntities(self.game_state);
+            }
+            LoadState::Null | LoadState::Paused => (),
+        }
         // UpdateStorybook();
 
         Ok(())

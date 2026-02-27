@@ -54,10 +54,12 @@ impl GameFiles {
     }
 }
 
-#[derive(Default, PartialEq, Clone, Copy)]
+#[derive(Default, Debug, PartialEq, Clone, Copy)]
+#[repr(C)]
+#[expect(unused)]
 pub enum LoadState {
     #[default]
-    Startup = 0,
+    Null = 0,
     Normal = 1,
     State2 = 2,
     BeginLoading = 3,
@@ -74,8 +76,8 @@ pub struct GameState {
     pub load_state: LoadState,
     pub new_load_state: Option<LoadState>,
     pub prev_load_state: LoadState,
-    pub currently_loading: bool,
-    // loadedCutscene: i32,
+    pub prevent_loading: bool,
+    pub transition_finished: bool,
     // actor: std::cell::RefCell<crate::objects::actor::Actor>>,
     /*
     0x10c	0x4	int	prevState		int
@@ -84,7 +86,9 @@ pub struct GameState {
     0x118	0x4	actor *	actor		actor *
     0x11c	0x4	int			int
     0x120	0x4	int			int
-    0x124	0x4	int	currentChapter		int
+    */
+    pub current_chapter: u32,
+    /*
     0x128	0x4	int	currentScene		int
     0x12c	0x4	int			int
     0x130	0x4	int			int
@@ -221,10 +225,13 @@ impl Default for GameState {
             current_script_aid: String::default(),
             new_script_aid: None,
             new_script_state: Default::default(),
-            load_state: LoadState::Startup,
+            load_state: LoadState::Null,
             new_load_state: None,
             prev_load_state: LoadState::default(),
-            currently_loading: false,
+            prevent_loading: false,
+            transition_finished: false,
+            // TODO: Figure out default current chapter
+            current_chapter: 0,
         }
     }
 }
