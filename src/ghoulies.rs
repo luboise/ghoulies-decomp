@@ -68,6 +68,7 @@ pub enum LoadState {
     Paused = 6,
 }
 
+#[derive(Debug)]
 pub struct GameState {
     pub current_script_aid: String,
     pub new_script_aid: Option<String>,

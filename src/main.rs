@@ -451,12 +451,76 @@ impl App {
         Ok(())
     }
 
-    fn set_load_state(&mut self, load_state: LoadState) -> Result<(), crate::Error> {
-        let state = &mut self.game_state;
+    fn init_playcam_and_globals(&mut self) -> Result<(), crate::Error> {
+        // TODO: Figure out what these are and write them into the game state
 
-        if state.load_state != load_state {
+        // FLOAT_00509b2c = 1.0;
+        // vec3_00509b20.x = 1.0;
+        // vec3_00509b20.y = 1.0;
+        // vec3_00509b20.z = 1.0;
+        // FLOAT_00509b4c = 1.0;
+        //                           /* Starts at pi/9 (20deg) */
+        // UnknownAngle1 = 0.34906587;
+        // DAT_005462fc = 1;
+        //                           /* Starts at pi/4.5 (40deg) */
+        // UnknownAngle2 = 0.69813174;
+        // DAT_00509b58 = 1;
+        // DAT_00509b70 = 0;
+        // Game::UseMovementSmoothing = 1;
+        // AllocateGlobalShorts();
+        // DAT_00545d1c = 0;
+        // DAT_00545cc8 = 0;
+        // FUN_0013cbd0();
+        // FUN_00116e00();
+
+        // LoadPlayerModelAndParams (default.xbe:0x124420)
+
+        // TODO: Get playcam index in scene order
+
+        // TODO: Get the bundle which the script came from
+
+        // Remove the old player objparams from the last scene
+        let _ = self.asset_database.remove_bnl("player_objparams");
+
+        // TODO: Check if the script is a level script or menu
+        let script_is_regular = true;
+
+        if script_is_regular {
+            // TODO:  Get the player's objparams AIDS (eg. aid_objparams_ghoulies_actor_player_boy)
+            let player_objparams_aid = "aid_objparams_ghoulies_actor_player_boy";
+
+            let player_bnl = {
+                let bytes = self
+                    .game_files
+                    .get(format!("bundles/aid_objparams/{player_objparams_aid}.bnl"));
+
+                if let Some(bytes) = bytes {
+                    bnl::BNLFile::from_bytes(&bytes)
+                } else {
+                    Err(bnl::BNLError::DataReadError("No bytes".into()))
+                }
+            }
+            // FIXME: BNLError handling
+            .map_err(|e| e.to_string())?;
+
+            self.asset_database
+                .add_bnl("player_objparams", player_bnl)?;
+        }
+
+        // Events::loadNewBNL(param_1);
+        // setPlaycamScript(Game::GameState.currentSceneScript, *prevScriptBnlName);
+        // runtime::CacheContext.utilityDriveError = 1;
+        // return;
+
+        Ok(())
+    }
+
+    fn set_load_state(&mut self, load_state: LoadState) -> Result<(), crate::Error> {
+        // let state = &mut self.game_state;
+
+        if self.game_state.load_state != load_state {
             // Cleanup current load state
-            match state.load_state {
+            match self.game_state.load_state {
                 LoadState::Normal | LoadState::State2 => {
 
                     // g_stateStack = g_stateStack + 1;
@@ -477,7 +541,7 @@ impl App {
                 LoadState::Null | LoadState::BeginLoading => (),
             }
 
-            match state.load_state {
+            match self.game_state.load_state {
                 LoadState::Normal | LoadState::State2 => {
 
                     // g_stateStack = g_stateStack + -1;
@@ -488,23 +552,31 @@ impl App {
                 }
                 LoadState::BeginLoading => {
 
-                    // state.preventLoading = 1;
-                    // state.field10_0x120 = 0;
-                    // state.loadedCutscene = 0;
+                    // self.game_state.preventLoading = 1;
+                    // self.game_state.field10_0x120 = 0;
+                    // self.game_state.loadedCutscene = 0;
                 }
                 LoadState::Loading => {
+                    let new_playcam = self
+                        .game_state
+                        .new_script_aid
+                        .clone()
+                        .expect("No new playcam ready");
+                    println!("{new_playcam}");
+
                     // Game::EndScene(state);
                     // Game::NotAllowedToPause = Game::NotAllowedToPause + 1;
                     // GlobalCounter2 = GlobalCounter2 + 1;
 
                     // Original game just writes anyway and stubs out the new aid
-                    state.current_script_aid = state.new_script_aid.take().unwrap_or_default();
+                    self.game_state.current_script_aid =
+                        self.game_state.new_script_aid.take().unwrap_or_default();
 
-                    // Scripting::SetCurrentPlaycamScript();
-                    // *(undefined4 *)((int)&state.field79_0x22b + 1) = 4;
+                    // Scripting::SetCurrentPlaycamScriptHeader();
+                    // *(undefined4 *)((int)&self.game_state.field79_0x22b + 1) = 4;
                     // UpdateVolumes();
-                    // InitPlaycamScriptAndGlobals();
-                    // state.field10_0x120 = 1;
+                    self.init_playcam_and_globals()?;
+                    // self.game_state.field10_0x120 = 1;
                 }
                 LoadState::Paused => {
                     // UI::EnterPauseUI();
@@ -515,7 +587,7 @@ impl App {
             ///////////////////
 
             println!("Setting load state to {load_state:?}");
-            state.load_state = load_state;
+            self.game_state.load_state = load_state;
         }
 
         Ok(())
@@ -563,13 +635,7 @@ impl App {
             }
             LoadState::Loading => {
                 // Audio::Loading = 1;
-                let new_playcam = self
-                    .game_state
-                    .new_script_aid
-                    .clone()
-                    .expect("No new playcam ready");
-                println!("{new_playcam}");
-                //
+
                 // let bnl_bytes = self.game_files.get()
                 // let new_bnl = bnl::BNLFile::new();
                 // iVar1 = Events::loadNewBNL(unaff_EDI);

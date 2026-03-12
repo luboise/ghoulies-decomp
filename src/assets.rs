@@ -30,6 +30,7 @@ impl AssetDatabase {
             .find_map(|bnl| bnl.get_asset::<A>(name).ok())
     }
 
+    #[expect(unused)]
     pub fn loaded_bnl_files(&self) -> &std::collections::HashMap<String, bnl::BNLFile> {
         &self.loaded_bnl_files
     }
