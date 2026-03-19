@@ -1,3 +1,5 @@
+use bnl::asset::AssetName;
+
 mod xbe_reader;
 
 struct XBEResource {
@@ -6,9 +8,22 @@ struct XBEResource {
     type_hash: u32,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct XBEScriptHeader {
+    name: AssetName,
+    transition_index: i32,
+    unknown_val_1: i32,
+    pause_flags: i32,
+    unknown_val_2: i32,
+}
+
+#[derive(Debug)]
 pub struct GameFiles {
     // The directory which the game files are located in
     path: std::path::PathBuf,
+    script_headers: Vec<XBEScriptHeader>,
+    xbe: xbe_reader::XBEFile,
     /*
     std::vector<XBEResource> anim_tables;
     std::vector<XBEResource> attack_data;
@@ -30,12 +45,24 @@ pub struct GameFiles {
 
 impl GameFiles {
     pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self, Box<dyn std::error::Error>> {
-        if !path.as_ref().exists() {
-            return Err(format!("Game path {} does not exist.", path.as_ref().display()).into());
+        assert_eq!(size_of::<XBEScriptHeader>(), 0x90);
+
+        let path: std::path::PathBuf = path.as_ref().into();
+
+        if !path.exists() {
+            return Err(format!("Game path {} does not exist.", path.display()).into());
         }
 
+        let xbe_file = xbe_reader::XBEFile::new(path.join("default.xbe"))?;
+
+        let script_headers = xbe_file
+            .get::<[XBEScriptHeader; 168]>(0x42ac80u32)?
+            .to_vec();
+
         Ok(Self {
-            path: path.as_ref().into(),
+            path,
+            script_headers,
+            xbe: xbe_file,
         })
     }
 
@@ -44,13 +71,16 @@ impl GameFiles {
         std::fs::read(self.path.join(filepath.as_ref())).ok()
     }
 
-    pub fn get_executable(&self) -> Vec<u8> {
-        // TODO: Error handling here
-        std::fs::read(self.path.join("default.xbe")).unwrap()
-    }
-
     pub fn path(&self) -> &std::path::Path {
         &self.path
+    }
+
+    pub fn xbe(&self) -> &xbe_reader::XBEFile {
+        &self.xbe
+    }
+
+    pub fn script_headers(&self) -> &[XBEScriptHeader] {
+        &self.script_headers
     }
 }
 
