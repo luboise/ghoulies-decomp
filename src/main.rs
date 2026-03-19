@@ -9,6 +9,7 @@ use winit::{
 };
 
 use crate::{
+    assets::script::bnl_name_from_asset_name,
     ghoulies::LoadState,
     graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D},
 };
@@ -487,7 +488,7 @@ impl App {
 
         if script_is_regular {
             // TODO:  Get the player's objparams AIDS (eg. aid_objparams_ghoulies_actor_player_boy)
-            let player_objparams_aid = "aid_objparams_ghoulies_actor_player_boy";
+            let player_objparams_aid = "ghoulies_actor_player_boy";
 
             let player_bnl = {
                 let bytes = self
@@ -497,7 +498,9 @@ impl App {
                 if let Some(bytes) = bytes {
                     bnl::BNLFile::from_bytes(&bytes)
                 } else {
-                    Err(bnl::BNLError::DataReadError("No bytes".into()))
+                    Err(bnl::BNLError::DataReadError(format!(
+                        "Unable to construct bnl for objparams AID {player_objparams_aid}"
+                    )))
                 }
             }
             // FIXME: BNLError handling
@@ -532,7 +535,6 @@ impl App {
                     // GlobalCounter2 = GlobalCounter2 + -1;
                 }
                 LoadState::FinishedLoading => {
-
                     // runtime::FinaliseLoad();
                 }
                 LoadState::Paused => {
@@ -541,7 +543,7 @@ impl App {
                 LoadState::Null | LoadState::BeginLoading => (),
             }
 
-            match self.game_state.load_state {
+            match load_state {
                 LoadState::Normal | LoadState::State2 => {
 
                     // g_stateStack = g_stateStack + -1;
@@ -557,13 +559,6 @@ impl App {
                     // self.game_state.loadedCutscene = 0;
                 }
                 LoadState::Loading => {
-                    let new_playcam = self
-                        .game_state
-                        .new_script_aid
-                        .clone()
-                        .expect("No new playcam ready");
-                    println!("{new_playcam}");
-
                     // Game::EndScene(state);
                     // Game::NotAllowedToPause = Game::NotAllowedToPause + 1;
                     // GlobalCounter2 = GlobalCounter2 + 1;
@@ -571,6 +566,11 @@ impl App {
                     // Original game just writes anyway and stubs out the new aid
                     self.game_state.current_script_aid =
                         self.game_state.new_script_aid.take().unwrap_or_default();
+
+                    println!(
+                        "New playcam script: {}",
+                        &self.game_state.current_script_aid
+                    );
 
                     self.game_state.current_playcam_script_header = Some(
                         self.game_files
@@ -597,7 +597,8 @@ impl App {
                 LoadState::Paused => {
                     // UI::EnterPauseUI();
                 }
-                LoadState::Null | LoadState::FinishedLoading => (),
+                LoadState::FinishedLoading => (),
+                LoadState::Null => (),
             }
 
             ///////////////////
@@ -651,23 +652,34 @@ impl App {
             }
             LoadState::Loading => {
                 // Audio::Loading = 1;
+                let script_aid = bnl_name_from_asset_name(&self.game_state.current_script_aid)?;
 
-                // let bnl_bytes = self.game_files.get()
-                // let new_bnl = bnl::BNLFile::new();
-                // iVar1 = Events::loadNewBNL(unaff_EDI);
+                let bnl_path = format!("bundles/aid_script/{script_aid}");
+
+                let bnl_bytes = self
+                    .game_files
+                    .get(&bnl_path)
+                    .ok_or_else(|| format!("Failed to get bnl bytes for path {bnl_path}"))?;
+
+                let new_script_bnl =
+                    bnl::BNLFile::from_bytes(&bnl_bytes).map_err(|e| e.to_string())?;
+
+                self.asset_database.add_bnl(&script_aid, new_script_bnl)?;
+
                 // if ((iVar1 == 0)
                 //     && (
                 //         CacheContext.utilityDriveError = 0,
                 //         g_GiantLoctextStruct.g_someGlobalVar == 2,
                 //     ))
-                // {
-                //     FUN_0012c770();
-                //     state.preventStateChanges = 0;
-                //     EventLoop::RunPostLoadSetupScripts(state);
-                //     CurrentChapterState.newState = FINISHED_LOADING_TRANSITION;
-                //     UpdateStorybook();
-                //     return;
-                // }
+
+                {
+                    // FUN_0012c770();
+                    // state.preventStateChanges = 0;
+                    // EventLoop::RunPostLoadSetupScripts(state);
+                    self.game_state.new_load_state = Some(LoadState::FinishedLoading);
+                    // UpdateStorybook();
+                    // return;
+                }
                 // UpdateStorybook();
                 return Ok(());
             }
@@ -677,6 +689,10 @@ impl App {
                 // UpdateStorybook();
                 //     return Ok(());
                 // }
+
+                // TODO: Replace this with the actual logic here
+                self.game_state.new_load_state = Some(LoadState::Normal);
+                return Ok(());
 
                 // equivalent of break in original code
                 if self.game_state.current_chapter == 0 {
