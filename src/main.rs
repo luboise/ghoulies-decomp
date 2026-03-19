@@ -572,7 +572,23 @@ impl App {
                     self.game_state.current_script_aid =
                         self.game_state.new_script_aid.take().unwrap_or_default();
 
-                    // Scripting::SetCurrentPlaycamScriptHeader();
+                    self.game_state.current_playcam_script_header = Some(
+                        self.game_files
+                            .script_headers()
+                            .iter()
+                            .find(|header| {
+                                header
+                                    .name
+                                    .iter()
+                                    .take_while(|c| **c != 0)
+                                    .map(|c| *c as char)
+                                    .collect::<String>()
+                                    == self.game_state.current_script_aid
+                            })
+                            .cloned()
+                            .unwrap_or(self.game_files.script_headers().first().cloned().unwrap()),
+                    );
+
                     // *(undefined4 *)((int)&self.game_state.field79_0x22b + 1) = 4;
                     // UpdateVolumes();
                     self.init_playcam_and_globals()?;

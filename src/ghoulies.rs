@@ -11,11 +11,11 @@ struct XBEResource {
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct XBEScriptHeader {
-    name: AssetName,
-    transition_index: i32,
-    unknown_val_1: i32,
-    pause_flags: i32,
-    unknown_val_2: i32,
+    pub name: AssetName,
+    pub transition_index: i32,
+    pub unknown_val_1: i32,
+    pub pause_flags: i32,
+    pub unknown_val_2: i32,
 }
 
 #[derive(Debug)]
@@ -58,6 +58,8 @@ impl GameFiles {
         let script_headers = xbe_file
             .get::<[XBEScriptHeader; 168]>(0x42ac80u32)?
             .to_vec();
+
+        assert!(!script_headers.is_empty());
 
         Ok(Self {
             path,
@@ -248,6 +250,7 @@ pub struct GameState {
     0x304	0x1	undefined			??
     0x305	0x1	undefined			??
         */
+    pub current_playcam_script_header: Option<XBEScriptHeader>,
 }
 
 impl Default for GameState {
@@ -263,6 +266,7 @@ impl Default for GameState {
             transition_finished: false,
             // TODO: Figure out default current chapter
             current_chapter: 0,
+            current_playcam_script_header: None,
         }
     }
 }
