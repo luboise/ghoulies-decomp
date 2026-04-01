@@ -1,6 +1,7 @@
 #include "ghoulies/anim"
 #include "ghoulies/animevent"
 #include "ghoulies/asset"
+#include "ghoulies/cutscene"
 #include "ghoulies/font"
 #include "ghoulies/marker"
 #include "ghoulies/model"
