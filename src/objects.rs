@@ -1,11 +1,27 @@
 pub mod actor;
 
+pub mod scene_control_obj;
+pub use scene_control_obj::SceneControlObj;
+
+use crate::utility::Ptr;
+
 pub trait Params {
     type Params;
 }
 
 impl Params for ObjectData {
     type Params = ObjectParams;
+}
+
+#[derive(Debug, Default)]
+pub struct ObjectDatabase {
+    scene_controls: Vec<Ptr<SceneControlObj>>,
+}
+
+impl ObjectDatabase {
+    pub fn scene_controls(&self) -> &Vec<Ptr<SceneControlObj>> {
+        &self.scene_controls
+    }
 }
 
 /*

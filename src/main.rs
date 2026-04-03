@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use bnl::asset::{AssetLike, aidlist::AidList, model::nd::NdNode};
+use bnl::asset::{AssetLike, aidlist::AidList};
+use ghoulies::LoadState;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -10,7 +11,6 @@ use winit::{
 
 use crate::{
     assets::script::bnl_name_from_asset_name,
-    ghoulies::LoadState,
     graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D},
 };
 
@@ -22,6 +22,8 @@ pub mod graphics;
 mod input;
 mod maths;
 mod objects;
+
+pub(crate) mod utility;
 
 pub struct Config {
     /// The directory which the game files are located in. If unspecified,
@@ -95,6 +97,7 @@ struct App {
 
     pub game_files: ghoulies::GameFiles,
     pub asset_database: assets::AssetDatabase,
+    pub object_database: objects::ObjectDatabase,
 
     /// The order of the game scripts
     pub scene_order: Vec<String>,
@@ -202,6 +205,7 @@ impl App {
             draw_calls: Vec::default(),
             combined_gamepad: input::Gamepad::default(),
             gamepads,
+            object_database: objects::ObjectDatabase::default(),
         };
 
         app.set_next_playcam_aid(&app.scene_order.first().expect("Empty scene order").clone())?;
@@ -239,8 +243,7 @@ impl App {
             let mesh = model
                 .asset()
                 .get_descriptor()
-                .mesh_descriptors()
-                .first()
+                .model_subresource()
                 .cloned()
                 .unwrap();
 
@@ -248,9 +251,9 @@ impl App {
                 .primitives()
                 .iter()
                 .find_map(|nd| {
-                    nd.children().find_map(|child| match child {
-                        bnl::asset::model::nd::Nd::VertexBuffer(nd_vertex_buffer) => {
-                            Some(nd_vertex_buffer)
+                    nd.children().find_map(|child| match &*child.data {
+                        bnl::asset::model::nd::NdData::VertexBuffer { resource_views, .. } => {
+                            Some(resource_views.clone())
                         }
                         _ => None,
                     })
@@ -262,12 +265,14 @@ impl App {
                 .iter()
                 .find_map(|nd| {
                     nd.children().find_map(|child| {
-                        child.heirarchy().find_map(|inner_child| match inner_child {
-                            bnl::asset::model::nd::Nd::PushBuffer(nd_push_buffer) => {
-                                Some(nd_push_buffer)
-                            }
-                            _ => None,
-                        })
+                        child
+                            .heirarchy()
+                            .find_map(|inner_child| match &*inner_child.data {
+                                bnl::asset::model::nd::NdData::PushBuffer(nd_push_buffer) => {
+                                    Some(nd_push_buffer)
+                                }
+                                _ => None,
+                            })
                     })
                 })
                 .expect("Failed to get push buffer.");
@@ -279,7 +284,7 @@ impl App {
                 .collect::<Vec<u32>>();
 
             self.draw_calls = model_push_buffer
-                .draw_calls()
+                .draw_calls
                 .iter()
                 .map(|draw| graphics::DrawCall {
                     num_indices: draw.num_vertices as usize,
@@ -306,15 +311,15 @@ impl App {
                 .map(|v| v.to_owned())
                 .collect::<Vec<_>>();
 
-            let vertices = model_vertex_buffer
-                .get_positions(&resource)
-                .unwrap()
-                .into_iter()
-                .map(|position| Vertex3D {
-                    position,
-                    ..Default::default()
-                })
-                .collect::<Vec<_>>();
+            let vertices =
+                bnl::asset::model::nd::get_vertex_positions(&resource, &model_vertex_buffer)
+                    .unwrap()
+                    .into_iter()
+                    .map(|position| Vertex3D {
+                        position,
+                        ..Default::default()
+                    })
+                    .collect::<Vec<_>>();
 
             let mut vb = self
                 .render_context()
@@ -705,7 +710,95 @@ impl App {
                 return Ok(());
             }
             LoadState::Normal => {
-                // Events::UpdateEntities(self.game_state);
+                {
+                    //  if (state->someLoadedVar != 0) {
+                    //   uVar3 = state->someLoadedVar - 1;
+                    //   state->someLoadedVar = uVar3;
+                    //   if (uVar3 == 2) {
+                    //     Audio::Loading = 0;
+                    //   }
+                    //                   /* If done loading, unmute the game */
+                    //   UpdateGameVolumes();
+                    // }
+
+                    // if ((0.0 < runtime::dx_timer) &&
+                    //    (runtime::dx_timer = runtime::dx_timer - runtime::DeltaTime * runtime::TimeScale,
+                    //    runtime::dx_timer <= 0.0)) {
+                    //   runtime::dx_timer = 0.0;
+                    // }
+                    // TODO: Use real delta time
+                    let delta = std::time::Duration::from_secs_f32(1.0 / 60.0);
+                    // g_ticksToRun = (int)delta;
+                    // g_totalTicksUpdated = delta - (float)g_ticksToRun;
+
+                    // UpdateCutsceneProgress();
+                    // UpdateCutsceneAndDraws();
+
+                    // UpdateDialogEvents();
+                    // /* If in dialogs */
+                    // if (Game::UpdateActionType == 3) {
+                    //   FUN_0013ffd0();
+                    // }
+
+                    // CheckLevelExitTriggers();
+                    // RunChallengeSetupTriggers();
+                    // RunEndOfScaryShockEvents();
+                    // CheckLevelExitTriggers();
+                    // puVar2 = Game::SceneControls.next;
+                    // if (Game::InGhoulyIntro == 1) {
+                    //   EventLoop::ExecuteGhoulieIntro();
+                    //   puVar2 = Game::SceneControls.next;
+                    // }
+                    //                   /* Update scene controls */
+                    // while (puVar2 != NULL) {
+                    //   puVar1 = *(sceneControlObj@0x8 *)(puVar2 + 4);
+                    //                   /* Skipping this breaks
+                    //                      - music in level
+                    //                      - menu completely
+                    //                      - menu input if menu already loaded
+                    //                      - but not dialog? */
+                    //   (**(code **)&(*(sceneControlObj **)(puVar2 + -8))->field_0x10)(puVar2 + -8);
+                    //   puVar2 = puVar1;
+                    // }
+                    //                   /* 0x511b18 = scene tree?
+                    //                      - set to 0 when entering level */
+                    // avatar::updateRecursive((avatar@0x918)Game::SceneInfo.sceneTree.head);
+                    //                   /* Draw Background */
+                    // Background::updateViews();
+                    // UpdatePerSecondTimers();
+                    // UpdateGhoulyBoxes();
+                    // Scripting::RunScriptConditionsCallback2();
+                    // ExecuteGhoulieIntroLoctext();
+                    // UpdateActionsAndDialog();
+                    // delta = 0.0;
+                    // if ((runtime::dx_timer <= 0.0) &&
+                    //    (delta = runtime::DeltaTime * runtime::TimeScale, 0.016666668 < delta)) {
+                    //   delta = 0.016666668;
+                    // }
+                    // UpdateTextureMaybeSomethings(delta * 7.2);
+                    // Graphics::CleanupResources?();
+                    // if ((DAT_00510580 != 0) && (DAT_00510650 == 0)) {
+                    //   DAT_00510648 = DAT_00510648 + 0.002;
+                    //   DAT_0051064c = DAT_0051064c + 0.002;
+                    //   Graphics::InitialiseScreenSpaceQuads();
+                    // }
+                    // UpdateDeltaAngles();
+                    // FUN_001185e0();
+                    // FUN_000fdda0();
+                    // Graphics::UpdateFog?();
+                    //                   /* Run input handlers */
+                    // if ((((((int)Input::InputHandlers->tail - (int)Input::InputHandlers->head) /
+                    //        (int)(uint)Input::InputHandlers->valueSize != 0) &&
+                    //      (piVar2 = *(Buffer<> **)
+                    //                 (Input::InputHandlers->head->handlerName +
+                    //                 (Input::NumInputHandlers - 1) * (uint)Input::InputHandlers->valueSize + -4),
+                    //      piVar2 != NULL)) &&
+                    //     (matches = Input::ContextHasButton(START,(InputHandlerType3 *)piVar2), matches != 0)) &&
+                    //    (Game::NotAllowedToPause == 0)) {
+                    //   Game::GameState.new_load_state =
+                    //        (-(uint)(g_paused? != 0) & 0b11111111111111111111111111111011) + Paused;
+                    // }
+                }
             }
             LoadState::Null | LoadState::Paused => (),
         }
