@@ -1,7 +1,9 @@
 pub mod actor;
 
 pub mod scene_control_obj;
+
 pub use scene_control_obj::SceneControlObj;
+use std::collections::VecDeque;
 
 use crate::utility::Ptr;
 
@@ -15,13 +17,10 @@ impl Params for ObjectData {
 
 #[derive(Debug, Default)]
 pub struct ObjectDatabase {
-    scene_controls: Vec<Ptr<SceneControlObj>>,
-}
-
-impl ObjectDatabase {
-    pub fn scene_controls(&self) -> &Vec<Ptr<SceneControlObj>> {
-        &self.scene_controls
-    }
+    pub new_scene_controls: VecDeque<Ptr<SceneControlObj>>,
+    pub scene_controls: VecDeque<Ptr<SceneControlObj>>,
+    pub new_avatars: VecDeque<Ptr<AvatarData>>,
+    pub avatars: VecDeque<Ptr<AvatarData>>,
 }
 
 /*
@@ -68,11 +67,11 @@ impl ObjectLike for Object {
 
 pub trait Object {
     fn ctor() -> Result<Box<Self>, crate::Error>;
-    fn dtor(self) -> Result<Box<Self>, crate::Error>;
+    fn dtor(self) -> Result<(), crate::Error>;
 }
 
 pub trait Avatar: Object {
-    fn a(&self);
+    fn on_message(&mut self, message: &mut crate::events::Message);
 }
 
 #[derive(Debug)]

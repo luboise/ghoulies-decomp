@@ -1,13 +1,19 @@
-use crate::objects::ObjectData;
+use crate::{objects::ObjectData, utility::EmbeddedNode};
 
 #[derive(Debug)]
 pub struct SceneControlObj {
     object: ObjectData,
-    node: crate::utility::EmbeddedNode<Self>,
+    node: EmbeddedNode<Self>,
     // TODO: Figure out unknown 8 bytes here
     pad: [u8; 8],
-    node_2: crate::utility::EmbeddedNode<Self>,
+    node_2: EmbeddedNode<Self>,
     time_elapsed: f32,
+}
+
+impl SceneControlObj {
+    pub fn node_mut(&mut self) -> &mut EmbeddedNode<SceneControlObj> {
+        &mut self.node
+    }
 }
 
 impl AsRef<ObjectData> for SceneControlObj {

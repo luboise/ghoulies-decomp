@@ -14,9 +14,11 @@ use crate::{
     graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D},
 };
 
+use clap::Parser;
+
 mod assets;
 
-// mod events;
+mod events;
 mod ghoulies;
 pub mod graphics;
 mod input;
@@ -25,16 +27,21 @@ mod objects;
 
 pub(crate) mod utility;
 
+#[derive(clap::Parser)]
 pub struct Config {
     /// The directory which the game files are located in. If unspecified,
     /// cwd/gbtg will be used. eg. ghoulies_launcher/gbtg/bundles/whatever.bnl
-    pub game_directory: std::path::PathBuf,
+    pub game_directory: Option<std::path::PathBuf>,
+
+    #[clap(short = 'i', long = "index", default_value_t = 0)]
+    pub aid_index: usize,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
-            game_directory: std::env::current_dir().unwrap().join("gbtg"),
+            game_directory: Some(std::env::current_dir().unwrap().join("gbtg")),
+            aid_index: 0,
         }
     }
 }
@@ -118,14 +125,13 @@ struct App {
 
 impl App {
     fn new() -> Result<Self, Error> {
-        let args = std::env::args().collect::<Vec<_>>();
-
-        if args.len() != 2 {
-            return Err("Expected playcam script in CLI args. eg. ghoulies_launcher ghoulies_chapter2a_scene2_1playcam".into());
-        }
-
-        let config = Config::default();
-        let game_files = ghoulies::GameFiles::new(config.game_directory)?;
+        let Config {
+            game_directory,
+            aid_index,
+        } = Config::parse();
+        let game_files = ghoulies::GameFiles::new(
+            game_directory.unwrap_or_else(|| std::env::current_dir().unwrap().join("gbtg")),
+        )?;
 
         // TODO: Load locale
 
@@ -157,6 +163,7 @@ impl App {
         .map_err(|e| e.to_string())?;
         asset_database.add_bnl("common.bnl", common_bnl)?;
 
+        /*
         let user_bnl_name = format!("{}.bnl", args[1]);
 
         let user_bnl = bnl::BNLFile::from_bytes(
@@ -165,8 +172,9 @@ impl App {
                 .ok_or_else(|| format!("Unable to get {user_bnl_name}"))?,
         )
         .map_err(|e| e.to_string())?;
+        */
 
-        asset_database.add_bnl(&user_bnl_name, user_bnl)?;
+        // asset_database.add_bnl(&user_bnl_name, user_bnl)?;
 
         // TODO: Initialise audio system
 
@@ -208,7 +216,17 @@ impl App {
             object_database: objects::ObjectDatabase::default(),
         };
 
-        app.set_next_playcam_aid(&app.scene_order.first().expect("Empty scene order").clone())?;
+        app.set_next_playcam_aid(
+            &app.scene_order
+                .get(aid_index)
+                .ok_or_else(|| {
+                    format!(
+                        "unable to get aid index {aid_index} from scene order of size {}",
+                        app.scene_order.len()
+                    )
+                })?
+                .clone(),
+        )?;
 
         // TODO: Move this into the actual function it came from (default.xbe:0x12c631)
         // This needs to not be 0 for the game loop to actually run
@@ -437,6 +455,7 @@ impl App {
             if self.global_flags & 0x40000 != 0 {
                 // default.xbe:0x11e4c0
                 self.update_game_state()?;
+                self.update_new_entities()?;
 
                 // runtime::UpdateStateLinkedLists(&CurrentChapterState);
                 /* Draw the UI and handle blocks related to the UI */
@@ -479,7 +498,7 @@ impl App {
         // FUN_0013cbd0();
         // FUN_00116e00();
 
-        // LoadPlayerModelAndParams (default.xbe:0x124420)
+        // InitPlaycamStuff (default.xbe:0x124420)
 
         // TODO: Get playcam index in scene order
 
@@ -514,11 +533,7 @@ impl App {
             self.asset_database
                 .add_bnl("player_objparams", player_bnl)?;
         }
-
-        // Events::loadNewBNL(param_1);
-        // setPlaycamScript(Game::GameState.currentSceneScript, *prevScriptBnlName);
-        // runtime::CacheContext.utilityDriveError = 1;
-        // return;
+        let _ = self.load_bnl_from_script_aid(&self.game_state.current_script_aid.clone());
 
         Ok(())
     }
@@ -805,6 +820,80 @@ impl App {
         // UpdateStorybook();
 
         Ok(())
+    }
+
+    fn update_new_entities(&mut self) -> Result<(), Error> {
+        self.process_new_scene_controls()?;
+
+        /*
+                          /* Add new avatars and scene controls to global lists */
+        avatar::processNew();
+                          /* Tell the new ones that the scene has begun */
+        sceneControlObj::BeginScene();
+        avatar::BeginScene();
+                          /* Update them once (this would be at the end of the event loop) */
+        sceneControlObj::updateAndDepleteList();
+        avatar::updateAndDepleteList();
+                          /* If normal or state 2
+
+                             If we're in a normal state, update fx and timers */
+        if ((0 < (int)param_1->load_state) && ((int)param_1->load_state < 3)) {
+          UpdatePowerups();
+          UpdateFX();
+          UpdateGlobalTimers();
+        }
+        UpdateAvatarAudio();
+        sceneControlObj::destroyStaleControls();
+        avatar::destroyStaleAvatars();
+        EntitiesNeedUpdating = 0;
+        avatar::updateShadows();
+        */
+
+        Ok(())
+    }
+
+    fn process_new_scene_controls(&mut self) -> Result<(), Error> {
+        while let Some(new_scene_control) = self.object_database.new_scene_controls.pop_front() {
+            self.object_database
+                .scene_controls
+                .push_back(new_scene_control);
+        }
+
+        self.object_database
+            .scene_controls
+            .extend(std::mem::take(&mut self.object_database.new_scene_controls));
+
+        Ok(())
+    }
+
+    fn process_new_avatars(&mut self) -> Result<(), Error> {
+        while let Some(new_avatar) = self.object_database.new_avatars.pop_front() {
+            self.object_database.avatars.push_back(new_avatar);
+        }
+
+        self.object_database
+            .avatars
+            .extend(std::mem::take(&mut self.object_database.new_avatars));
+
+        Ok(())
+    }
+
+    // Default.xbe: 0x00341e0
+    #[must_use]
+    fn load_bnl_from_script_aid(&mut self, aid: &str) -> bool {
+        // TODO: Remove loaded bnl files before loading the new one like the original game does
+
+        let Some(bytes) = self.game_files.get(format!("bundles/aid_script/{aid}")) else {
+            return false;
+        };
+
+        let Ok(bnl) = bnl::BNLFile::from_bytes(&bytes) else {
+            return false;
+        };
+
+        self.asset_database.add_bnl(aid, bnl);
+
+        true
     }
 }
 
