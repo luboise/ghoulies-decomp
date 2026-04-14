@@ -1,5 +1,6 @@
 #pragma once
 #include "ghoulies/nd/all"
+#include "ghoulies/collision"
 
 enum ModelSubresourceType : u32
 {
@@ -13,6 +14,37 @@ enum ModelSubresourceType : u32
   BoneIndexSubres = 0x9,
   VertexBufferSubres = 0x12
 };
+
+struct Subres0x4Value
+{
+  s128 start = $;
+
+  CollisionObjectType setType;
+  u8 size;
+  u16 blendTargetIndex;
+
+  CollisionMask collisionMask;
+  u16 short1;
+  u16 short2;
+
+  u32 padZero;
+  float f1;
+  vec3 v;
+  u32 group;
+
+  s128 end = $;
+
+  padding[std::math::max(0, 36 - (end - start))];
+};
+
+struct Subres0x4
+{
+  u32 numValues;
+  u32 idk1;
+  Subres0x4Value values[numValues];
+};
+
+
 
 struct Mesh
 {
@@ -88,6 +120,21 @@ struct TexturesSubresource
   }
 };
 
+
+struct CollidersSubres
+{
+  u32 numObjects;
+  u16 minFlagMaybe;
+  u16 maxFlagMaybe;
+  u32 numVertices;
+  u32 verticesPtr;
+  CollisionObject objects[numObjects];
+
+  if (numVertices > 0 && verticesPtr != 0) {
+  	vec3 vertices[numVertices] @ verticesPtr;
+  }
+};
+
 struct BoneIndexSubres
 {
   u8 indices[32];
@@ -111,9 +158,9 @@ struct ModelFooterEntry
       TexturesSubresource subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::BoneIndexSubres) {
       BoneIndexSubres subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::CollidersSubres) {
+      CollidersSubres subres @parent.start + offset;
     }
-
-    // Other subresources here
   }
 };
 

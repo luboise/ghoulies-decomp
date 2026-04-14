@@ -47,6 +47,45 @@ struct TEXTURE_HEADER
   u8 bruh[12];
 };
 
+bitfield CollisionMask
+{
+  bool mask01 : 1;
+  bool mask02 : 1;
+  bool Wall : 1;
+  bool Ground : 1;
+  bool mask0x10 : 1;
+  bool mask0x20 : 1;
+  bool mask0x40 : 1;
+  bool mask0x80 : 1;
+
+  bool mask0x100 : 1;
+  bool mask0x200 : 1;
+  bool mask0x400 : 1;
+  bool mask0x800 : 1;
+  bool mask0x1000 : 1;
+  bool mask0x2000 : 1;
+  bool mask0x4000 : 1;
+  bool mask0x8000 : 1;
+
+  bool mask0x10000 : 1;
+  bool mask0x20000 : 1;
+  bool mask0x40000 : 1;
+  bool mask0x80000 : 1;
+  bool mask0x100000 : 1;
+  bool mask0x200000 : 1;
+  bool mask0x400000 : 1;
+  bool mask0x800000 : 1;
+
+  bool mask0x1000000 : 1;
+  bool mask0x2000000 : 1;
+  bool mask0x4000000 : 1;
+  bool mask0x8000000 : 1;
+  bool mask0x10000000 : 1;
+  bool mask0x20000000 : 1;
+  bool mask0x40000000 : 1;
+  bool mask0x80000000 : 1;
+};
+
 struct DataSpan<T>
 {
   u32 numItems;
@@ -313,138 +352,6 @@ struct ModelSubresource0xe
   // 0x40
   float someFloat;
   SamplerAssignment* samplerAssignments[numSamplerAssignments] : u32;
-};
-
-enum ColliderType : u8
-{
-  Sphere = 0,
-  Cylinder = 1,
-  Box = 2,
-  PartSphere = 3
-};
-
-struct Collider0x14
-{
-  u32 idk1;
-  u32 idk2;
-  u32 idk3;
-  u32 idk4;
-  u32 pad;
-};
-
-struct ColliderEntry
-{
-  u32 numColliders;
-  Collider0x14* Collider[numColliders] : u32;
-};
-
-bitfield CollisionMask
-{
-  bool mask01 : 1;
-  bool mask02 : 1;
-  bool Wall : 1;
-  bool Ground : 1;
-  bool mask0x10 : 1;
-  bool mask0x20 : 1;
-  bool mask0x40 : 1;
-  bool mask0x80 : 1;
-
-  bool mask0x100 : 1;
-  bool mask0x200 : 1;
-  bool mask0x400 : 1;
-  bool mask0x800 : 1;
-  bool mask0x1000 : 1;
-  bool mask0x2000 : 1;
-  bool mask0x4000 : 1;
-  bool mask0x8000 : 1;
-
-  bool mask0x10000 : 1;
-  bool mask0x20000 : 1;
-  bool mask0x40000 : 1;
-  bool mask0x80000 : 1;
-  bool mask0x100000 : 1;
-  bool mask0x200000 : 1;
-  bool mask0x400000 : 1;
-  bool mask0x800000 : 1;
-
-  bool mask0x1000000 : 1;
-  bool mask0x2000000 : 1;
-  bool mask0x4000000 : 1;
-  bool mask0x8000000 : 1;
-  bool mask0x10000000 : 1;
-  bool mask0x20000000 : 1;
-  bool mask0x40000000 : 1;
-  bool mask0x80000000 : 1;
-};
-
-struct ColliderSet
-{
-  ColliderType type;
-  u8 idk1;
-  u8 idk2;
-  u8 idk3;
-  CollisionMask collisionMask;
-  u32 size;
-  u32 idk4;
-  s16 maxX;
-  s16 maxY;
-  s128 start = $;
-  s16 maxZ;
-  u16 count1;
-  u16 count2;
-  u16 count3;
-  u16 count5;
-  u16 count6;
-  u16 numEntries;
-  u16 gridDivisions;
-  s16 minX;
-  s16 minY;
-  s16 minZ;
-  u16 idk5;
-
-  ColliderEntry entries[numEntries];
-
-  s128 end = $;
-
-  u8 data[size - (end - start)];
-};
-
-struct ColliderSetDescriptor
-{
-  u32 numColliders;
-  u32 idk1;
-  u32 idk2;
-  mat4* matrix : u32;
-  ColliderSet colliderSets[numColliders];
-};
-
-struct Subres0x4Value
-{
-  s128 start = $;
-
-  ColliderType colliderType;
-  u8 size;
-  u16 blendTargetIndex;
-
-  CollisionMask collisionMask;
-  u16 short1;
-  u16 short2;
-
-  u32 padZero;
-  float f1;
-  vec3 v;
-  u32 group;
-
-  s128 end = $;
-
-  padding[std::math::max(0, 36 - (end - start))];
-};
-
-struct Subres0x4
-{
-  u32 numValues;
-  u32 idk1;
-  Subres0x4Value values[numValues];
 };
 
 bitfield ModelBitfield

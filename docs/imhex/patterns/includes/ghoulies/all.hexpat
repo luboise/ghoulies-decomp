@@ -8,6 +8,7 @@
 #include "ghoulies/script"
 #include "ghoulies/statetable"
 #include "ghoulies/types"
+#include "ghoulies/collision"
 
 struct AssetFile {
 	AssetChunkInfo metadata;
