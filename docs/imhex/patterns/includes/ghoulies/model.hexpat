@@ -12,6 +12,7 @@ enum ModelSubresourceType : u32
   CollidersSubres = 0x6,
   TexturesSubres = 0x7,
   BoneIndexSubres = 0x9,
+  Subresource0x11 = 0x11,
   VertexBufferSubres = 0x12
 };
 
@@ -44,7 +45,23 @@ struct Subres0x4
   Subres0x4Value values[numValues];
 };
 
+struct VerticesEntry {
+    u32 numVertices;
+    vec3* vertices[numVertices] : u32;
+};
 
+struct Subresource0x11 {
+    u8 a;
+    u8 count;
+    u8 c;
+    u8 d;
+    
+    u32 z;
+    
+    VerticesEntry* some_pt[count]: u32;
+    u32 somePtr;
+    u32* ptrsList[count]: u32;
+};
 
 struct Mesh
 {
@@ -160,7 +177,10 @@ struct ModelFooterEntry
       BoneIndexSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::CollidersSubres) {
       CollidersSubres subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::Subresource0x11) {
+      Subresource0x11 subres @parent.start + offset;
     }
+
   }
 };
 
