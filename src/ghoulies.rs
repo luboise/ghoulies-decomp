@@ -1,4 +1,8 @@
+use std::collections::HashMap;
+
 use bnl::asset::AssetName;
+
+use crate::objects::avatar::PowerupParams;
 
 mod xbe_reader;
 
@@ -6,6 +10,22 @@ struct XBEResource {
     name: String,
     data: Vec<u8>,
     type_hash: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct RawAssetHeader {
+    pub aid: AssetName,
+    pub data_ptr: u32,
+    pub data_size: u32,
+    pub asset_type_hash: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct AssetHeader<T> {
+    pub aid: AssetName,
+    pub data: T,
 }
 
 #[repr(C)]
@@ -21,9 +41,10 @@ pub struct XBEScriptHeader {
 #[derive(Debug)]
 pub struct GameFiles {
     // The directory which the game files are located in
-    path: std::path::PathBuf,
-    script_headers: Vec<XBEScriptHeader>,
-    xbe: xbe_reader::XBEFile,
+    pub path: std::path::PathBuf,
+    pub script_headers: Vec<XBEScriptHeader>,
+    pub powerup_objparams: HashMap<String, PowerupParams>,
+    pub xbe: xbe_reader::XBEFile,
     /*
     std::vector<XBEResource> anim_tables;
     std::vector<XBEResource> attack_data;
@@ -32,14 +53,6 @@ pub struct GameFiles {
     std::vector<XBEResource> script_tables;
     std::vector<XBEResource> move_state_objparams;
     std::vector<XBEResource> state_tables;
-
-    static std::expected<GhouliesExecutableData, std::string> FromXBEStream(
-        utils::file::XBEStream& stream, const XBEConfig& config);
-
-    [[nodiscard]] const XBEResource* GetResource(
-        std::string_view objparams_aid) const;
-
-    std::expected<GhouliesExecutableData, std::string> GetExecutable();
       */
 }
 
@@ -61,28 +74,39 @@ impl GameFiles {
 
         assert!(!script_headers.is_empty());
 
+        let powerup_objparams = {
+            let mut map = HashMap::new();
+
+            let powerup_headers: [RawAssetHeader; 129] = xbe_file.get(0x3de7a0)?;
+
+            for header in powerup_headers {
+                if header.data_size as usize != size_of::<PowerupParams>() {
+                    eprintln!("bad powerup params size: {}", header.data_size);
+                    continue;
+                }
+
+                map.insert(
+                    String::from_utf8_lossy(&header.aid)
+                        .trim_matches('\0')
+                        .into(),
+                    xbe_file.get(header.data_ptr)?,
+                );
+            }
+
+            map
+        };
+
         Ok(Self {
             path,
             script_headers,
             xbe: xbe_file,
+            powerup_objparams,
         })
     }
 
     /// Get a file from the game by its full path
-    pub fn get(&self, filepath: impl AsRef<std::path::Path>) -> Option<Vec<u8>> {
+    pub fn get_file(&self, filepath: impl AsRef<std::path::Path>) -> Option<Vec<u8>> {
         std::fs::read(self.path.join(filepath.as_ref())).ok()
-    }
-
-    pub fn path(&self) -> &std::path::Path {
-        &self.path
-    }
-
-    pub fn xbe(&self) -> &xbe_reader::XBEFile {
-        &self.xbe
-    }
-
-    pub fn script_headers(&self) -> &[XBEScriptHeader] {
-        &self.script_headers
     }
 }
 

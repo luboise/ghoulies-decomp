@@ -1,17 +1,17 @@
 pub mod actor;
-
+pub mod avatar;
 pub mod scene_control_obj;
 
 pub use scene_control_obj::SceneControlObj;
 use std::collections::VecDeque;
 
-use crate::utility::Ptr;
+use crate::{objects::avatar::Avatar, utility::Ptr};
 
 pub trait Params {
     type Params;
 }
 
-impl Params for ObjectData {
+impl Params for Object {
     type Params = ObjectParams;
 }
 
@@ -19,8 +19,8 @@ impl Params for ObjectData {
 pub struct ObjectDatabase {
     pub new_scene_controls: VecDeque<Ptr<SceneControlObj>>,
     pub scene_controls: VecDeque<Ptr<SceneControlObj>>,
-    pub new_avatars: VecDeque<Ptr<AvatarData>>,
-    pub avatars: VecDeque<Ptr<AvatarData>>,
+    pub new_avatars: VecDeque<Ptr<Avatar>>,
+    pub avatars: VecDeque<Ptr<Avatar>>,
 }
 
 /*
@@ -31,22 +31,6 @@ pub trait ObjectLike {
     fn new(params: &Self::Params) -> Result<Self, crate::Error>;
 }
 */
-
-#[repr(C)]
-pub struct ObjectParams {
-    size: u16,
-    obj_init_value: u16,
-    type_index: u16,
-    some_u16: u16,
-}
-
-#[derive(Debug)]
-pub struct ObjectData {
-    size: u16,
-    obj_init_value: u16,
-    type_index: u16,
-    some_u16: u16,
-}
 
 /*
 impl ObjectLike for Object {
@@ -65,27 +49,51 @@ impl ObjectLike for Object {
 }
 */
 
-pub trait Object {
-    fn ctor() -> Result<Box<Self>, crate::Error>;
+pub struct ObjectCreateContext {}
+pub trait ObjectLike: Sized {
+    type Params;
+
+    fn ctor(
+        create_ctx: &mut ObjectCreateContext,
+        params: &Self::Params,
+    ) -> Result<Self, crate::Error>;
     fn dtor(self) -> Result<(), crate::Error>;
 }
 
-pub trait Avatar: Object {
-    fn on_message(&mut self, message: &mut crate::events::Message);
+const _: () = assert!(size_of::<ObjectParams>() == 8);
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct ObjectParams {
+    size: u16,
+    obj_init_value: u16,
+    type_index: u16,
+    some_u16: u16,
+}
+
+impl ObjectLike for Object {
+    type Params = ObjectParams;
+
+    fn ctor(
+        create_ctx: &mut ObjectCreateContext,
+        params: &Self::Params,
+    ) -> Result<Self, crate::Error> {
+        Ok(Self {
+            size: params.size,
+            obj_init_value: params.obj_init_value,
+            type_index: params.type_index,
+            some_u16: params.some_u16,
+        })
+    }
+
+    fn dtor(self) -> Result<(), crate::Error> {
+        todo!()
+    }
 }
 
 #[derive(Debug)]
-pub struct AvatarData {
-    obj: ObjectData,
-}
-
-impl AsRef<ObjectData> for AvatarData {
-    fn as_ref(&self) -> &ObjectData {
-        &self.obj
-    }
-}
-impl AsMut<ObjectData> for AvatarData {
-    fn as_mut(&mut self) -> &mut ObjectData {
-        &mut self.obj
-    }
+pub struct Object {
+    size: u16,
+    obj_init_value: u16,
+    type_index: u16,
+    some_u16: u16,
 }

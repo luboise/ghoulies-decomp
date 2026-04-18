@@ -1,8 +1,8 @@
-use crate::{objects::ObjectData, utility::EmbeddedNode};
+use crate::{objects::Object, utility::EmbeddedNode};
 
 #[derive(Debug)]
 pub struct SceneControlObj {
-    object: ObjectData,
+    object: Object,
     node: EmbeddedNode<Self>,
     // TODO: Figure out unknown 8 bytes here
     pad: [u8; 8],
@@ -16,14 +16,14 @@ impl SceneControlObj {
     }
 }
 
-impl AsRef<ObjectData> for SceneControlObj {
-    fn as_ref(&self) -> &ObjectData {
+impl AsRef<Object> for SceneControlObj {
+    fn as_ref(&self) -> &Object {
         &self.object
     }
 }
 
-impl AsMut<ObjectData> for SceneControlObj {
-    fn as_mut(&mut self) -> &mut ObjectData {
+impl AsMut<Object> for SceneControlObj {
+    fn as_mut(&mut self) -> &mut Object {
         &mut self.object
     }
 }

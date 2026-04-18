@@ -157,7 +157,7 @@ impl App {
 
         let common_bnl = bnl::BNLFile::from_bytes(
             &game_files
-                .get("bundles/common.bnl")
+                .get_file("bundles/common.bnl")
                 .ok_or_else(|| "Unable to get common.bnl".to_owned())?,
         )
         .map_err(|e| e.to_string())?;
@@ -517,7 +517,7 @@ impl App {
             let player_bnl = {
                 let bytes = self
                     .game_files
-                    .get(format!("bundles/aid_objparams/{player_objparams_aid}.bnl"));
+                    .get_file(format!("bundles/aid_objparams/{player_objparams_aid}.bnl"));
 
                 if let Some(bytes) = bytes {
                     bnl::BNLFile::from_bytes(&bytes)
@@ -594,7 +594,7 @@ impl App {
 
                     self.game_state.current_playcam_script_header = Some(
                         self.game_files
-                            .script_headers()
+                            .script_headers
                             .iter()
                             .find(|header| {
                                 header
@@ -606,7 +606,7 @@ impl App {
                                     == self.game_state.current_script_aid
                             })
                             .cloned()
-                            .unwrap_or(self.game_files.script_headers().first().cloned().unwrap()),
+                            .unwrap_or(self.game_files.script_headers.first().cloned().unwrap()),
                     );
 
                     // *(undefined4 *)((int)&self.game_state.field79_0x22b + 1) = 4;
@@ -678,7 +678,7 @@ impl App {
 
                 let bnl_bytes = self
                     .game_files
-                    .get(&bnl_path)
+                    .get_file(&bnl_path)
                     .ok_or_else(|| format!("Failed to get bnl bytes for path {bnl_path}"))?;
 
                 let new_script_bnl =
@@ -883,7 +883,10 @@ impl App {
     fn load_bnl_from_script_aid(&mut self, aid: &str) -> bool {
         // TODO: Remove loaded bnl files before loading the new one like the original game does
 
-        let Some(bytes) = self.game_files.get(format!("bundles/aid_script/{aid}")) else {
+        let Some(bytes) = self
+            .game_files
+            .get_file(format!("bundles/aid_script/{aid}"))
+        else {
             return false;
         };
 

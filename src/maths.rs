@@ -4,11 +4,20 @@ pub type Vec2 = cgmath::Vector2<f32>;
 pub type Vec3 = cgmath::Vector3<f32>;
 pub type Vec4 = cgmath::Vector4<f32>;
 
+const _: () = assert!(size_of::<Vec2>() == 8);
+const _: () = assert!(size_of::<Vec3>() == 12);
+const _: () = assert!(size_of::<Vec4>() == 16);
+
 pub type Mat2 = cgmath::Matrix2<f32>;
 pub type Mat3 = cgmath::Matrix3<f32>;
 pub type Mat4 = cgmath::Matrix4<f32>;
 
+const _: () = assert!(size_of::<Mat2>() == 4 * 4);
+const _: () = assert!(size_of::<Mat3>() == 9 * 4);
+const _: () = assert!(size_of::<Mat4>() == 16 * 4);
+
 pub type Quat = cgmath::Quaternion<f32>;
+const _: () = assert!(size_of::<Quat>() == 16);
 
 #[derive(Debug, Clone)]
 pub struct Transform {
