@@ -20,6 +20,29 @@ pub type Quat = cgmath::Quaternion<f32>;
 const _: () = assert!(size_of::<Quat>() == 16);
 
 #[derive(Debug, Clone)]
+pub struct AffineTransform {
+    r1: Vec4,
+    r2: Vec4,
+    r3: Vec4,
+}
+
+impl Default for AffineTransform {
+    fn default() -> Self {
+        Self {
+            r1: Vec4::new(1.0, 0.0, 0.0, 0.0),
+            r2: Vec4::new(0.0, 1.0, 0.0, 0.0),
+            r3: Vec4::new(0.0, 0.0, 1.0, 0.0),
+        }
+    }
+}
+
+impl From<AffineTransform> for Mat4 {
+    fn from(value: AffineTransform) -> Self {
+        Mat4::from_cols(value.r1, value.r2, value.r3, [0.0, 0.0, 0.0, 1.0].into())
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Transform {
     pub position: Vec3,
     pub rotation: Vec3,

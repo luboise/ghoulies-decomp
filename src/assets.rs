@@ -25,6 +25,12 @@ impl AssetDatabase {
             })
     }
 
+    pub fn get_raw_asset(&self, name: &str) -> Option<bnl::RawAsset> {
+        self.loaded_bnl_files
+            .values()
+            .find_map(|bnl| bnl.get_raw_asset(name).cloned())
+    }
+
     pub fn get_asset<A: bnl::asset::AssetLike>(&self, name: &str) -> Option<bnl::asset::Asset<A>> {
         self.loaded_bnl_files
             .values()

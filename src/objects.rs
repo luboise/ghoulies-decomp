@@ -49,14 +49,15 @@ impl ObjectLike for Object {
 }
 */
 
-pub struct ObjectCreateContext {}
+type ObjectCreateContext = crate::App;
+// pub struct ObjectCreateContext {
+//     asset_database: &crate::assets::AssetDatabase
+// }
+
 pub trait ObjectLike: Sized {
     type Params;
 
-    fn ctor(
-        create_ctx: &mut ObjectCreateContext,
-        params: &Self::Params,
-    ) -> Result<Self, crate::Error>;
+    fn ctor(ctx: &mut ObjectCreateContext, params: &Self::Params) -> Result<Self, crate::Error>;
     fn dtor(self) -> Result<(), crate::Error>;
 }
 
@@ -73,10 +74,7 @@ pub struct ObjectParams {
 impl ObjectLike for Object {
     type Params = ObjectParams;
 
-    fn ctor(
-        create_ctx: &mut ObjectCreateContext,
-        params: &Self::Params,
-    ) -> Result<Self, crate::Error> {
+    fn ctor(ctx: &mut ObjectCreateContext, params: &Self::Params) -> Result<Self, crate::Error> {
         Ok(Self {
             size: params.size,
             obj_init_value: params.obj_init_value,

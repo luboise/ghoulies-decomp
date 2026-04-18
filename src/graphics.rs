@@ -13,6 +13,9 @@ pub use pipeline::*;
 
 pub mod camera;
 
+pub mod model;
+pub use model::Model;
+
 /*
 mod registry;
 pub use registry::RenderRegistry;
@@ -31,6 +34,8 @@ use PrimitiveType;
 
 pub use buffer::{Buffer, BufferValue, Index};
 pub use camera::Camera;
+
+use crate::maths::AffineTransform;
 
 pub type RenderIndex = usize;
 
@@ -77,7 +82,7 @@ impl From<CreationError> for RenderError {
 pub type RendererRes<T> = Result<T, RenderError>;
 pub type RendererOk = RendererRes<()>;
 
-pub trait Draw {
+pub trait Render {
     fn draw(&self, renderer: &mut VulkanRenderer) -> RendererOk;
 }
 
@@ -140,6 +145,8 @@ pub struct RenderContext {
     pub cameras: [Camera; NUM_CAMERAS],
     camera_uniform_buffer: vulkan::buffer::VulkanBuffer<ViewUniforms>,
     pub camera_descriptor_set: Arc<vulkano::descriptor_set::DescriptorSet>,
+
+    pub draw_affine: AffineTransform,
 }
 
 impl RenderContext {
@@ -156,6 +163,7 @@ impl RenderContext {
             cameras: Default::default(),
             camera_uniform_buffer,
             camera_descriptor_set,
+            draw_affine: AffineTransform::default(),
         })
     }
 
@@ -205,4 +213,8 @@ impl RenderContext {
             .ok_or_else(|| format!("Failed to get camera {index} from camera list."))?);
         Ok(())
     }
+}
+
+pub trait Draw {
+    fn draw(&self, ctx: &mut crate::graphics::RenderContext) -> Result<(), crate::Error>;
 }

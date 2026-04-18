@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bnl::asset::{AssetLike, aidlist::AidList};
+use bnl::asset::aidlist::AidList;
 use ghoulies::LoadState;
 use winit::{
     application::ApplicationHandler,
@@ -11,7 +11,8 @@ use winit::{
 
 use crate::{
     assets::script::bnl_name_from_asset_name,
-    graphics::{Buffer as _, RenderContext, VulkanRenderer, types::Vertex3D},
+    graphics::{Draw, RenderContext, VulkanRenderer},
+    objects::ObjectLike,
 };
 
 use clap::Parser;
@@ -118,9 +119,7 @@ struct App {
 
     pub global_flags: u32,
 
-    vb: Option<Arc<graphics::VulkanBuffer<Vertex3D>>>,
-    ib: Option<Arc<graphics::VulkanBuffer<graphics::Index>>>,
-    draw_calls: Vec<graphics::DrawCall>,
+    pub powerup: Option<objects::avatar::Powerup>,
 }
 
 impl App {
@@ -163,19 +162,6 @@ impl App {
         .map_err(|e| e.to_string())?;
         asset_database.add_bnl("common.bnl", common_bnl)?;
 
-        /*
-        let user_bnl_name = format!("{}.bnl", args[1]);
-
-        let user_bnl = bnl::BNLFile::from_bytes(
-            &game_files
-                .get(format!("bundles/aid_script/{user_bnl_name}"))
-                .ok_or_else(|| format!("Unable to get {user_bnl_name}"))?,
-        )
-        .map_err(|e| e.to_string())?;
-        */
-
-        // asset_database.add_bnl(&user_bnl_name, user_bnl)?;
-
         // TODO: Initialise audio system
 
         // TODO: Load "aid_misc_ghoulies_audio_generalsettings" (originally from common.bnl)
@@ -208,12 +194,12 @@ impl App {
             input_helper: winit_input_helper::WinitInputHelper::new(),
             game_state,
             global_flags: 0,
-            vb: None,
-            ib: None,
-            draw_calls: Vec::default(),
+
             combined_gamepad: input::Gamepad::default(),
             gamepads,
             object_database: objects::ObjectDatabase::default(),
+
+            powerup: None,
         };
 
         app.set_next_playcam_aid(
@@ -250,107 +236,6 @@ impl App {
 
         self.render_context_mut().use_camera(0).unwrap();
 
-        if self.vb.is_none() || self.ib.is_none() {
-            let model = self
-                .asset_database
-                .get_asset::<bnl::asset::model::Model>("aid_model_ghoulies_powerups_cans_cookcan")
-                .ok_or_else(|| {
-                    "Unable to get asset \"aid_model_ghoulies_powerups_cans_cookcan\"".to_string()
-                })?;
-
-            let mesh = model
-                .asset()
-                .get_descriptor()
-                .model_subresource()
-                .cloned()
-                .unwrap();
-
-            let model_vertex_buffer = mesh
-                .primitives()
-                .iter()
-                .find_map(|nd| {
-                    nd.children().find_map(|child| match &*child.data {
-                        bnl::asset::model::nd::NdData::VertexBuffer { resource_views, .. } => {
-                            Some(resource_views.clone())
-                        }
-                        _ => None,
-                    })
-                })
-                .expect("Failed to find can model");
-
-            let model_push_buffer = mesh
-                .primitives()
-                .iter()
-                .find_map(|nd| {
-                    nd.children().find_map(|child| {
-                        child
-                            .heirarchy()
-                            .find_map(|inner_child| match &*inner_child.data {
-                                bnl::asset::model::nd::NdData::PushBuffer(nd_push_buffer) => {
-                                    Some(nd_push_buffer)
-                                }
-                                _ => None,
-                            })
-                    })
-                })
-                .expect("Failed to get push buffer.");
-
-            let indices = model_push_buffer
-                .indices()
-                .into_iter()
-                .map(|index| index.into())
-                .collect::<Vec<u32>>();
-
-            self.draw_calls = model_push_buffer
-                .draw_calls
-                .iter()
-                .map(|draw| graphics::DrawCall {
-                    num_indices: draw.num_vertices as usize,
-                    start_offset: (draw.data_ptr - model_push_buffer.push_buffer_base) as usize,
-                    primitive_type: draw.prim_type.clone().into(),
-                })
-                .collect();
-
-            let mut ib = self
-                .render_context()
-                .renderer
-                .create_buffer::<graphics::Index>(graphics::BufferType::Index, indices.len())
-                .unwrap();
-            ib.subbuffer.write_values(&indices, 0).unwrap();
-
-            self.ib = Some(ib.into());
-
-            let resource = model
-                .asset()
-                .get_resource_chunks()
-                .unwrap()
-                .iter()
-                .flatten()
-                .map(|v| v.to_owned())
-                .collect::<Vec<_>>();
-
-            let vertices =
-                bnl::asset::model::nd::get_vertex_positions(&resource, &model_vertex_buffer)
-                    .unwrap()
-                    .into_iter()
-                    .map(|position| Vertex3D {
-                        position,
-                        ..Default::default()
-                    })
-                    .collect::<Vec<_>>();
-
-            let mut vb = self
-                .render_context()
-                .renderer
-                .create_buffer::<Vertex3D>(graphics::BufferType::Vertex, vertices.len())
-                .unwrap();
-            vb.subbuffer
-                .write_values(&vertices, 0)
-                .map_err(|e| e.to_string())?;
-
-            self.vb = Some(vb.into());
-        }
-
         let camera_descriptor_set = self
             .render_context
             .as_ref()
@@ -358,33 +243,16 @@ impl App {
             .camera_descriptor_set
             .clone();
 
-        let vb = self.vb.clone().unwrap();
-        let ib = self.ib.clone().unwrap();
-
-        let draw_calls = self.draw_calls.clone();
-
-        // Draw everything
-        self.render_context_mut()
-            .renderer
-            .run_commands(|ctx| {
-                ctx.set_vertex_buffer(&vb)?;
-                ctx.set_index_buffer(&ib)?;
-
-                ctx.set_view_uniforms(camera_descriptor_set.clone())
-                    .map_err(|e| graphics::RenderError::Draw(e.to_string()))?;
-
-                for draw_call in &draw_calls {
-                    ctx.draw(draw_call)?;
-                }
-                Ok(())
-            })
-            .map_err(|e| e.to_string())?;
+        if let Some(powerup) = &self.powerup {
+            powerup.draw(self.render_context.as_mut().unwrap())?;
+        } else {
+            eprintln!("No powerup.");
+        }
 
         self.render_context_mut()
             .renderer
             .end_frame()
             .map_err(|e| e.to_string())?;
-        // println!("Updating frame.");
 
         Ok(())
     }
@@ -573,7 +441,6 @@ impl App {
                     // UpdateDrawingData???();
                 }
                 LoadState::BeginLoading => {
-
                     // self.game_state.preventLoading = 1;
                     // self.game_state.field10_0x120 = 0;
                     // self.game_state.loadedCutscene = 0;
@@ -725,6 +592,23 @@ impl App {
                 return Ok(());
             }
             LoadState::Normal => {
+                if self.powerup.is_none() {
+                    let params = self
+                        .game_files
+                        .powerup_objparams
+                        .get("aid_objparams_ghoulies_powerup_knockdownmania")
+                        .cloned()
+                        .expect("unable to find base PowerupParams");
+
+                    match objects::avatar::Powerup::ctor(self, &params) {
+                        Ok(v) => self.powerup = Some(v),
+                        Err(e) => {
+                            eprintln!("{e}");
+                            panic!();
+                        }
+                    }
+                }
+
                 {
                     //  if (state->someLoadedVar != 0) {
                     //   uVar3 = state->someLoadedVar - 1;
