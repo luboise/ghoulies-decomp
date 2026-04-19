@@ -180,7 +180,6 @@ struct ModelFooterEntry
     } else if (subres_type == ModelSubresourceType::Subresource0x11) {
       Subresource0x11 subres @parent.start + offset;
     }
-
   }
 };
 

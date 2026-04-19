@@ -23,7 +23,9 @@ struct GhoulyBox {
     u32 someValDiv100;
 };
 
-struct RawMarker {
+struct Marker {
+	s128 start = $;
+
     u32 size; 
     MarkerType markerType;
     u16 markerId;
@@ -31,6 +33,7 @@ struct RawMarker {
     vec3 pos;
     vec3 rotEuler;
     float scale;
+
     if (markerType == MarkerType::BgBreak) {
         u32 someU32;
         char ghoulyBoxAID[128];
@@ -38,9 +41,22 @@ struct RawMarker {
         u16 someCount;
         u16 pad16;
         u32 someValDiv100;
+    }
+	else if (markerType == MarkerType::Powerup) {
+		char objParamsAID[128];
+	}
+	else if (markerType == MarkerType::GhoulyBoxGhouly) {
+		char objParamsAID[128];
+		char someAID1[128];
+		char someAID2[128];
+		char actorAttribsAID[128];
+	}
+	else if (markerType == MarkerType::FxEmitter) {
+		char fxEmitterAID[128];
+	}
 
-    }
-    else {
-        u8 data[size-40];
-    }
+	s128 end = $;
+	if (end - start < size) {
+		u8 data[size - (end - start)];
+	}
 };
