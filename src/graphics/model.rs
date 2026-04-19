@@ -1,6 +1,6 @@
 use bnl::asset::model::{
     ModelDescriptor,
-    nd::{NdType, get_vertex_positions, res_view::VertexBufferViewType},
+    nd::{NdType, get_vertex_positions},
 };
 
 use crate::graphics::{Buffer, types::Vertex3D};

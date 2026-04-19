@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bnl::asset::AssetName;
 
-use crate::objects::avatar::PowerupParams;
+use crate::objects::avatar::{ActorParams, PowerupParams};
 
 mod xbe_reader;
 
@@ -44,6 +44,7 @@ pub struct GameFiles {
     pub path: std::path::PathBuf,
     pub script_headers: Vec<XBEScriptHeader>,
     pub powerup_objparams: HashMap<String, PowerupParams>,
+    pub actor_objparams: HashMap<String, ActorParams>,
     pub xbe: xbe_reader::XBEFile,
     /*
     std::vector<XBEResource> anim_tables;
@@ -96,11 +97,36 @@ impl GameFiles {
             map
         };
 
+        let actor_objparams = {
+            let mut map = HashMap::new();
+
+            let actor_headers: [RawAssetHeader; 61] = xbe_file.get(0x3d7928)?;
+
+            for header in actor_headers {
+                if header.data_size as usize != size_of::<ActorParams>() {
+                    eprintln!("bad ActorParams size: {}", header.data_size);
+                    continue;
+                }
+
+                map.insert(
+                    String::from_utf8_lossy(&header.aid)
+                        .trim_matches('\0')
+                        .into(),
+                    xbe_file.get(header.data_ptr)?,
+                );
+            }
+
+            map
+        };
+
+        dbg!(actor_objparams.keys());
+
         Ok(Self {
             path,
             script_headers,
             xbe: xbe_file,
             powerup_objparams,
+            actor_objparams,
         })
     }
 

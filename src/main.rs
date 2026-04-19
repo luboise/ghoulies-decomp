@@ -120,6 +120,7 @@ struct App {
     pub global_flags: u32,
 
     pub powerup: Option<std::sync::Arc<std::sync::Mutex<objects::avatar::Powerup>>>,
+    pub player: Option<std::sync::Arc<std::sync::Mutex<objects::avatar::Actor>>>,
 }
 
 impl App {
@@ -200,6 +201,7 @@ impl App {
             object_database: objects::ObjectDatabase::default(),
 
             powerup: None,
+            player: None,
         };
 
         app.set_next_playcam_aid(
@@ -238,16 +240,26 @@ impl App {
 
         let camera_descriptor_set = self.render_context().camera_descriptor_set.clone();
 
+        let powerup = self.powerup.clone();
+        let player = self.player.clone();
+
         // FIXME: Stop this camera from being cloned twice
         if let Some(powerup) = self.powerup.clone() {
-            self.render_context_mut().renderer.run_commands(|ctx| {
-                ctx.set_view_uniforms(camera_descriptor_set.clone())?;
-                powerup.lock().unwrap().draw(ctx)?;
-                Ok(())
-            })?;
         } else {
             eprintln!("no powerup");
         }
+
+        self.render_context_mut().renderer.run_commands(|ctx| {
+            ctx.set_view_uniforms(camera_descriptor_set.clone())?;
+            if let Some(powerup) = powerup.clone() {
+                powerup.lock().unwrap().draw(ctx)?;
+            }
+            if let Some(player) = player.clone() {
+                player.lock().unwrap().draw(ctx)?;
+            }
+
+            Ok(())
+        })?;
 
         self.render_context_mut()
             .renderer
@@ -602,6 +614,23 @@ impl App {
 
                     match objects::avatar::Powerup::ctor(self, &params) {
                         Ok(v) => self.powerup = Some(std::sync::Arc::new(v.into())),
+                        Err(e) => {
+                            eprintln!("{e}");
+                            panic!();
+                        }
+                    }
+                }
+
+                if self.player.is_none() {
+                    let params = self
+                        .game_files
+                        .actor_objparams
+                        .get("aid_objparams_ghoulies_actor_player_boy")
+                        .cloned()
+                        .expect("unable to find player objparams");
+
+                    match objects::avatar::Actor::ctor(self, &params) {
+                        Ok(v) => self.player = Some(std::sync::Arc::new(v.into())),
                         Err(e) => {
                             eprintln!("{e}");
                             panic!();

@@ -55,7 +55,7 @@ type ObjectCreateContext = crate::App;
 // }
 
 pub trait ObjectLike: Sized {
-    type Params;
+    type Params: Clone + Sized;
 
     fn ctor(ctx: &mut ObjectCreateContext, params: &Self::Params) -> Result<Self, crate::Error>;
     fn dtor(self) -> Result<(), crate::Error>;

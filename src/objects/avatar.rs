@@ -205,109 +205,6 @@ impl super::ObjectLike for Powerup {
         ctx: &mut super::ObjectCreateContext,
         params: &Self::Params,
     ) -> Result<Self, crate::Error> {
-        let model = {
-            /*
-            let model = self
-                .asset_database
-                .get_asset::<bnl::asset::model::Model>("aid_model_ghoulies_powerups_cans_cookcan")
-                .ok_or_else(|| {
-                    "Unable to get asset \"aid_model_ghoulies_powerups_cans_cookcan\"".to_string()
-                })?;
-
-            let mesh = model
-                .asset()
-                .get_descriptor()
-                .model_subresource()
-                .cloned()
-                .unwrap();
-
-            let model_vertex_buffer = mesh
-                .primitives()
-                .iter()
-                .find_map(|nd| {
-                    nd.children().find_map(|child| match &*child.data {
-                        bnl::asset::model::nd::NdData::VertexBuffer { resource_views, .. } => {
-                            Some(resource_views.clone())
-                        }
-                        _ => None,
-                    })
-                })
-                .expect("Failed to find can model");
-
-            let model_push_buffer = mesh
-                .primitives()
-                .iter()
-                .find_map(|nd| {
-                    nd.children().find_map(|child| {
-                        child
-                            .heirarchy()
-                            .find_map(|inner_child| match &*inner_child.data {
-                                bnl::asset::model::nd::NdData::PushBuffer(nd_push_buffer) => {
-                                    Some(nd_push_buffer)
-                                }
-                                _ => None,
-                            })
-                    })
-                })
-                .expect("Failed to get push buffer.");
-
-            let indices = model_push_buffer
-                .indices()
-                .into_iter()
-                .map(|index| index.into())
-                .collect::<Vec<u32>>();
-
-            self.draw_calls = model_push_buffer
-                .draw_calls
-                .iter()
-                .map(|draw| graphics::DrawCall {
-                    num_indices: draw.num_vertices as usize,
-                    start_offset: (draw.data_ptr - model_push_buffer.push_buffer_base) as usize,
-                    primitive_type: draw.prim_type.clone().into(),
-                })
-                .collect();
-
-            let mut ib = self
-                .render_context()
-                .renderer
-                .create_buffer::<graphics::Index>(graphics::BufferType::Index, indices.len())
-                .unwrap();
-            ib.subbuffer.write_values(&indices, 0).unwrap();
-
-            self.ib = Some(ib.into());
-
-            let resource = model
-                .asset()
-                .get_resource_chunks()
-                .unwrap()
-                .iter()
-                .flatten()
-                .map(|v| v.to_owned())
-                .collect::<Vec<_>>();
-
-            let vertices =
-                bnl::asset::model::nd::get_vertex_positions(&resource, &model_vertex_buffer)
-                    .unwrap()
-                    .into_iter()
-                    .map(|position| Vertex3D {
-                        position,
-                        ..Default::default()
-                    })
-                    .collect::<Vec<_>>();
-
-            let mut vb = self
-                .render_context()
-                .renderer
-                .create_buffer::<Vertex3D>(graphics::BufferType::Vertex, vertices.len())
-                .unwrap();
-            vb.subbuffer
-                .write_values(&vertices, 0)
-                .map_err(|e| e.to_string())?;
-
-            self.vb = Some(vb.into());
-            */
-        };
-
         Ok(Self {
             avatar: Avatar::ctor(ctx, &params.avatar_params)?,
         })
@@ -319,6 +216,49 @@ impl super::ObjectLike for Powerup {
 }
 
 impl crate::graphics::Draw for Powerup {
+    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+        self.avatar.draw(ctx)?;
+
+        // TODO: Draw and update the texture here
+
+        Ok(())
+    }
+}
+
+const _: () = assert!(size_of::<ActorParams>() == 0x63c);
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct ActorParams {
+    avatar_params: AvatarParams,
+    unknown_i16_1: i16,
+    unknown_u16_1: u16,
+    unknown_u16_2: u16,
+    strategy_objparams_aid: AssetName,
+    ai_mind_objectparams_aid: AssetName,
+    body_objparams_aid: AssetName,
+    starting_weapon_aid: AssetName,
+    ghoulybox_aid: AssetName,
+    actor_attribs_aid: AssetName,
+    unknown_u16_3: u16,
+}
+pub struct Actor {
+    avatar: Avatar,
+}
+
+impl super::ObjectLike for Actor {
+    type Params = ActorParams;
+
+    fn ctor(ctx: &mut ObjectCreateContext, params: &Self::Params) -> Result<Self, crate::Error> {
+        let avatar = Avatar::ctor(ctx, &params.avatar_params)?;
+        Ok(Self { avatar })
+    }
+
+    fn dtor(self) -> Result<(), crate::Error> {
+        todo!()
+    }
+}
+
+impl crate::graphics::Draw for Actor {
     fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
         self.avatar.draw(ctx)?;
 
