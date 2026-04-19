@@ -15,7 +15,7 @@ impl Params for Object {
     type Params = ObjectParams;
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ObjectDatabase {
     pub new_scene_controls: VecDeque<Ptr<SceneControlObj>>,
     pub scene_controls: VecDeque<Ptr<SceneControlObj>>,

@@ -119,7 +119,7 @@ struct App {
 
     pub global_flags: u32,
 
-    pub powerup: Option<objects::avatar::Powerup>,
+    pub powerup: Option<std::sync::Arc<std::sync::Mutex<objects::avatar::Powerup>>>,
 }
 
 impl App {
@@ -236,17 +236,17 @@ impl App {
 
         self.render_context_mut().use_camera(0).unwrap();
 
-        let camera_descriptor_set = self
-            .render_context
-            .as_ref()
-            .unwrap()
-            .camera_descriptor_set
-            .clone();
+        let camera_descriptor_set = self.render_context().camera_descriptor_set.clone();
 
-        if let Some(powerup) = &self.powerup {
-            powerup.draw(self.render_context.as_mut().unwrap())?;
+        // FIXME: Stop this camera from being cloned twice
+        if let Some(powerup) = self.powerup.clone() {
+            self.render_context_mut().renderer.run_commands(|ctx| {
+                ctx.set_view_uniforms(camera_descriptor_set.clone())?;
+                powerup.lock().unwrap().draw(ctx)?;
+                Ok(())
+            })?;
         } else {
-            eprintln!("No powerup.");
+            eprintln!("no powerup");
         }
 
         self.render_context_mut()
@@ -601,7 +601,7 @@ impl App {
                         .expect("unable to find base PowerupParams");
 
                     match objects::avatar::Powerup::ctor(self, &params) {
-                        Ok(v) => self.powerup = Some(v),
+                        Ok(v) => self.powerup = Some(std::sync::Arc::new(v.into())),
                         Err(e) => {
                             eprintln!("{e}");
                             panic!();

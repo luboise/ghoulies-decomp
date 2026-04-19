@@ -1,15 +1,25 @@
-use bnl::asset::model::ModelDescriptor;
+use bnl::asset::model::{
+    ModelDescriptor,
+    nd::{NdType, get_vertex_positions, res_view::VertexBufferViewType},
+};
 
-#[derive(Debug)]
+use crate::graphics::{Buffer, types::Vertex3D};
+
+use super::{BufferType, VulkanCommandsCtx};
+
 pub struct Model {
     descriptor: ModelDescriptor,
+    resource: Vec<u8>,
+
+    vertex_buffer: super::VulkanBuffer<Vertex3D>,
+    index_buffer: super::VulkanBuffer<super::Index>,
     // TODO: skeleton2: Skeleton,
     // TODO: skeleton: Skeleton,
     // TODO: bone_indices: [u32; 20],
 }
 
 impl super::Draw for Model {
-    fn draw(&self, ctx: &mut crate::graphics::RenderContext) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
         /*
         vec3 translation;
 
@@ -38,20 +48,91 @@ impl super::Draw for Model {
 
 impl Model {
     pub fn new(
+        ctx: &mut crate::graphics::RenderContext,
         descriptor: &ModelDescriptor,
+        resource: &[u8],
         has_skeleton: bool,
         has_0x3: bool,
     ) -> Result<Self, crate::Error> {
-        // TODO: Create the model
-        Ok(Self {
-            descriptor: descriptor.clone(),
-        })
+        let model = descriptor
+            .model_subresource
+            .as_ref()
+            .ok_or_else(|| "CAN'T DRAW MODEL WITHOUT DESCRIPTOR MODELS".to_owned())?;
+
+        #[expect(clippy::never_loop)]
+        // TODO: Refactor this garbage
+        // (buffers just for testing, need proper node traversal)
+        for node in model.primitives() {
+            let vb_node = node
+                .heirarchy()
+                .find(|nd| nd.nd_type() == NdType::VertexBuffer)
+                .ok_or("no ndVertexBuffer")?;
+
+            let vertex_buffer = {
+                match &*vb_node.data {
+                    bnl::asset::model::nd::NdData::VertexBuffer {
+                        resource_views_ptr: _,
+                        num_resource_views: _,
+                        resource_views,
+                    } => {
+                        // TODO: Make this safer (i am lazy)
+                        let vertices = get_vertex_positions(resource, resource_views)
+                            .ok_or_else(|| "no vertex positions available".to_owned())?
+                            .into_iter()
+                            .map(|position| Vertex3D {
+                                position,
+                                ..Default::default()
+                            })
+                            .collect::<Vec<_>>();
+
+                        let mut buf = ctx.renderer.create_buffer::<super::types::Vertex3D>(
+                            BufferType::Vertex,
+                            vertices.len(),
+                        )?;
+
+                        buf.write_values(&vertices, 0)?;
+                        buf
+                    }
+                    _ => return Err("ndVertexBuffer did not match nd type".into()),
+                }
+            };
+
+            let indices = vb_node
+                .heirarchy()
+                .filter_map(|nd| match &*nd.data {
+                    bnl::asset::model::nd::NdData::PushBuffer(nd_push_buffer_data) => Some({
+                        nd_push_buffer_data
+                            .indices()
+                            .into_iter()
+                            .map(u32::from)
+                            .collect::<Vec<_>>()
+                    }),
+                    _ => None,
+                })
+                .flatten()
+                .collect::<Vec<_>>();
+
+            let index_buffer = {
+                let mut buf = ctx
+                    .renderer
+                    .create_buffer::<crate::graphics::Index>(BufferType::Index, indices.len())?;
+
+                buf.subbuffer.write_values(&indices, 0)?;
+                buf
+            };
+
+            return Ok(Self {
+                descriptor: descriptor.clone(),
+                resource: resource.to_owned(),
+                vertex_buffer,
+                index_buffer,
+            });
+        }
+
+        return Err("unable to get buffers from primitives".into());
     }
 
-    fn draw_with_affine(
-        &self,
-        ctx: &mut crate::graphics::RenderContext,
-    ) -> Result<(), crate::Error> {
+    fn draw_with_affine(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
         /* TODO: Bind skeleton
           Skeleton *skeleton_instance;
           Graphics::SomeModelContext = param_3;
@@ -87,6 +168,14 @@ impl Model {
 
         // ??? Forgor what this is
         // DAT_005079e4 = 0;
+
+        ctx.set_vertex_buffer(&self.vertex_buffer)?;
+        ctx.set_index_buffer(&self.index_buffer)?;
+        ctx.draw(&super::DrawCall {
+            num_indices: self.index_buffer.len(),
+            start_offset: 0,
+            primitive_type: super::types::PrimitiveType::TriangleStrip,
+        })?;
 
         Ok(())
     }

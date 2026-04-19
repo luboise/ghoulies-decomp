@@ -38,7 +38,7 @@ use vulkano::{
 };
 
 use crate::graphics::RendererRes;
-use crate::graphics::vulkan::commands::VulkanCommandsCtx;
+pub use crate::graphics::vulkan::commands::VulkanCommandsCtx;
 
 use super::{CreationError, RenderError, RenderIndex, RendererOk, types::Vertex3D};
 
@@ -486,9 +486,9 @@ impl VulkanRenderer {
         self.default_texture
     }
 
-    pub fn run_commands<F>(&mut self, mut f: F) -> RendererOk
+    pub fn run_commands<F>(&mut self, mut f: F) -> Result<(), crate::Error>
     where
-        F: FnMut(&mut VulkanCommandsCtx) -> RendererOk,
+        F: FnMut(&mut VulkanCommandsCtx) -> Result<(), crate::Error>,
     {
         let current_pipeline = self
             .current_pipeline()
@@ -506,7 +506,7 @@ impl VulkanRenderer {
                     surface_ctx.recreate_swapchain = true;
                     return Ok(());
                 }
-                Err(e) => return Err(RenderError::Draw(format!("Unexpected error: {e}"))),
+                Err(e) => return Err(RenderError::Draw(format!("Unexpected error: {e}")).into()),
             };
 
         // dbg!("Current swapchain index: {}", image_index);

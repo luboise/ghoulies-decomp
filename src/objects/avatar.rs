@@ -2,6 +2,7 @@ use bnl::asset::{AssetDescriptor, AssetName};
 use cgmath::Zero;
 
 use crate::{
+    graphics::VulkanCommandsCtx,
     maths::{AffineTransform, Quat, Vec3},
     objects::{Object, ObjectCreateContext, ObjectLike, ObjectParams},
 };
@@ -31,7 +32,6 @@ pub struct AvatarParams {
     shadow_model_aid: AssetName,
 }
 
-#[derive(Debug)]
 pub struct Avatar {
     object: Object,
     position: Vec3,
@@ -81,7 +81,19 @@ impl ObjectLike for Avatar {
             let descriptor =
                 bnl::asset::model::ModelDescriptor::from_bytes(raw_asset.descriptor_bytes())?;
 
-            Some(crate::graphics::Model::new(&descriptor, false, false)?)
+            Some(crate::graphics::Model::new(
+                ctx.render_context_mut(),
+                &descriptor,
+                &raw_asset
+                    .resource_chunks()
+                    .cloned()
+                    .expect("no resource chunks")
+                    .into_iter()
+                    .flatten()
+                    .collect::<Vec<_>>(),
+                false,
+                false,
+            )?)
         } else {
             None
         };
@@ -109,9 +121,10 @@ impl ObjectLike for Avatar {
 }
 
 impl crate::graphics::Draw for Avatar {
-    fn draw(&self, ctx: &mut crate::graphics::RenderContext) -> Result<(), crate::Error> {
-        ctx.draw_affine = self.draw_affine.clone();
+    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+        // ctx.draw_affine = self.draw_affine.clone();
         let Some(model) = &self.model else {
+            // Original game allows for failure
             return Ok(());
         };
 
@@ -181,7 +194,6 @@ pub struct PowerupParams {
     unknown_u32_3: u32,
 }
 
-#[derive(Debug)]
 pub struct Powerup {
     avatar: Avatar,
 }
@@ -307,7 +319,7 @@ impl super::ObjectLike for Powerup {
 }
 
 impl crate::graphics::Draw for Powerup {
-    fn draw(&self, ctx: &mut crate::graphics::RenderContext) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
         self.avatar.draw(ctx)?;
 
         // TODO: Draw and update the texture here

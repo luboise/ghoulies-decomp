@@ -47,6 +47,8 @@ pub enum RenderError {
     Draw(String),
 }
 
+impl std::error::Error for RenderError {}
+
 impl Display for RenderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -216,5 +218,5 @@ impl RenderContext {
 }
 
 pub trait Draw {
-    fn draw(&self, ctx: &mut crate::graphics::RenderContext) -> Result<(), crate::Error>;
+    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error>;
 }
