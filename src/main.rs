@@ -11,7 +11,7 @@ use winit::{
 
 use crate::{
     assets::script::bnl_name_from_asset_name,
-    graphics::{Draw, RenderContext, VulkanRenderer},
+    graphics::{Draw, RenderContext, WgpuRenderer},
     objects::ObjectLike,
 };
 
@@ -238,7 +238,7 @@ impl App {
 
         self.render_context_mut().use_camera(0).unwrap();
 
-        let camera_descriptor_set = self.render_context().camera_descriptor_set.clone();
+        // let camera_descriptor_set = self.render_context().camera_descriptor_set.clone();
 
         let powerup = self.powerup.clone();
         let player = self.player.clone();
@@ -250,7 +250,7 @@ impl App {
         }
 
         self.render_context_mut().renderer.run_commands(|ctx| {
-            ctx.set_view_uniforms(camera_descriptor_set.clone())?;
+            // ctx.set_view_uniforms(camera_descriptor_set.clone())?;
             if let Some(powerup) = powerup.clone() {
                 powerup.lock().unwrap().draw(ctx)?;
             }
@@ -796,20 +796,11 @@ impl App {
     fn load_bnl_from_script_aid(&mut self, aid: &str) -> bool {
         // TODO: Remove loaded bnl files before loading the new one like the original game does
 
-        let Some(bytes) = self
-            .game_files
+        self.game_files
             .get_file(format!("bundles/aid_script/{aid}"))
-        else {
-            return false;
-        };
-
-        let Ok(bnl) = bnl::BNLFile::from_bytes(&bytes) else {
-            return false;
-        };
-
-        self.asset_database.add_bnl(aid, bnl);
-
-        true
+            .and_then(|file| bnl::BNLFile::from_bytes(&file).ok())
+            .and_then(|bnl| self.asset_database.add_bnl(aid, bnl).ok())
+            .is_some()
     }
 }
 
@@ -833,7 +824,8 @@ impl ApplicationHandler for App {
 
         if self.render_context.is_none() {
             // TODO: Replaces these unwraps with something else
-            let renderer = VulkanRenderer::new(event_loop, &new_window).unwrap();
+            let renderer =
+                smol::block_on(WgpuRenderer::new(&new_window)).expect("failed to create renderer");
             self.render_context = Some(RenderContext::new(renderer).unwrap());
         }
     }

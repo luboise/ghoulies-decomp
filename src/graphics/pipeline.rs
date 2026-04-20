@@ -1,18 +1,22 @@
-use crate::graphics::{RenderIndex, RendererOk, ViewUniforms};
+use crate::graphics::{RenderIndex, ViewUniforms};
 
 #[derive(Debug)]
 pub struct Pipeline {}
 
 impl Pipeline {
-    pub fn set<T: ShaderConstant>(&mut self, index: RenderIndex, value: T) -> RendererOk {
+    pub fn set<T: ShaderConstant>(
+        &mut self,
+        index: RenderIndex,
+        value: T,
+    ) -> Result<(), crate::Error> {
         todo!();
     }
 
-    pub fn set_texture(&mut self, index: RenderIndex, value: &[u8]) -> RendererOk {
+    pub fn set_texture(&mut self, index: RenderIndex, value: &[u8]) -> Result<(), crate::Error> {
         todo!();
     }
 
-    pub fn set_sampler(&mut self, index: RenderIndex, value: &[u8]) -> RendererOk {
+    pub fn set_sampler(&mut self, index: RenderIndex, value: &[u8]) -> Result<(), crate::Error> {
         todo!();
     }
 

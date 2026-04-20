@@ -1,8 +1,16 @@
-mod vulkan;
+// mod vulkan;
+// pub use vulkan::*;
+
 use std::{error::Error, fmt::Display, sync::Arc};
 
 use cgmath::SquareMatrix as _;
-pub use vulkan::*;
+
+pub use types::BufferType;
+
+mod wgpu;
+pub use wgpu::*;
+
+pub use wgpu::WgpuCommandsCtx as CommandsCtx;
 
 pub mod types;
 
@@ -82,10 +90,9 @@ impl From<CreationError> for RenderError {
 }
 
 pub type RendererRes<T> = Result<T, RenderError>;
-pub type RendererOk = RendererRes<()>;
 
 pub trait Render {
-    fn draw(&self, renderer: &mut VulkanRenderer) -> RendererOk;
+    fn draw(&self, renderer: &mut WgpuRenderer) -> Result<(), crate::Error>;
 }
 
 // renderer.set_shader(self.shader_index);
@@ -119,20 +126,24 @@ pub struct Texture {
 
     // TODO: Implement colour formats and such things
     // tex_type: TextureType,
-    pub(crate) image_handle: Arc<crate::graphics::texture::ImageHandle>,
+    pub(crate) image_handle: ::wgpu::Texture,
 }
 
 impl Texture {
     pub fn from_image_params<IP: Into<ImageParams>>(
-        renderer: &mut VulkanRenderer,
+        renderer: &mut WgpuRenderer,
         params: IP,
-    ) -> RendererRes<Self> {
-        let img = renderer.create_image(params.into());
+    ) -> Result<Self, crate::Error> {
+        let params = params.into();
+        let width = params.width;
+        let height = params.width;
+
+        let image_handle = renderer.create_image(params)?;
 
         Ok(Self {
-            width: img.width(),
-            height: img.height(),
-            image_handle: img,
+            width,
+            height,
+            image_handle,
         })
     }
 }
@@ -140,42 +151,43 @@ impl Texture {
 const NUM_CAMERAS: usize = 4;
 
 pub struct RenderContext {
-    pub renderer: VulkanRenderer,
+    pub renderer: WgpuRenderer,
 
     current_camera: usize,
 
     pub cameras: [Camera; NUM_CAMERAS],
-    camera_uniform_buffer: vulkan::buffer::VulkanBuffer<ViewUniforms>,
-    pub camera_descriptor_set: Arc<vulkano::descriptor_set::DescriptorSet>,
+    camera_uniform_buffer: wgpu::buffer::WgpuBuffer<ViewUniforms>,
 
     pub draw_affine: AffineTransform,
 }
 
 impl RenderContext {
-    pub fn new(renderer: VulkanRenderer) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(renderer: WgpuRenderer) -> Result<Self, Box<dyn std::error::Error>> {
         let camera_uniform_buffer = renderer
-            .create_buffer(vulkan::buffer::BufferType::Uniform, 1)
+            .create_static_buffer(BufferType::Uniform, &[ViewUniforms::default()])
             .map_err(|e| e.to_string())?;
 
-        let camera_descriptor_set = renderer.create_descriptor_set(&camera_uniform_buffer, 1, 0)?;
+        // let camera_descriptor_set = renderer.create_descriptor_set(&camera_uniform_buffer, 1, 0)?;
 
         Ok(Self {
             renderer,
             current_camera: 0,
             cameras: Default::default(),
             camera_uniform_buffer,
-            camera_descriptor_set,
             draw_affine: AffineTransform::default(),
         })
     }
 
-    pub fn use_camera(&mut self, index: usize) -> RendererOk {
+    pub fn use_camera(&mut self, index: usize) -> Result<(), crate::Error> {
         let camera = self
             .cameras
             .get(index)
             .ok_or_else(|| RenderError::Memory(format!("Invalid camera index: {index}")))?
             .clone();
 
+        todo!();
+
+        /*
         // TODO: Make it so this doesn't need access to the subbuffer
         self.camera_uniform_buffer.subbuffer.write_values(
             &[ViewUniforms {
@@ -190,6 +202,7 @@ impl RenderContext {
         self.current_camera = index;
 
         Ok(())
+        */
     }
 
     pub fn set_camera(
@@ -218,5 +231,5 @@ impl RenderContext {
 }
 
 pub trait Draw {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error>;
+    fn draw(&self, ctx: &mut WgpuCommandsCtx) -> Result<(), crate::Error>;
 }

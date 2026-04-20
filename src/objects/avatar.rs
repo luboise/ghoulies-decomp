@@ -2,7 +2,6 @@ use bnl::asset::{AssetDescriptor, AssetName};
 use cgmath::Zero;
 
 use crate::{
-    graphics::VulkanCommandsCtx,
     maths::{AffineTransform, Quat, Vec3},
     objects::{Object, ObjectCreateContext, ObjectLike, ObjectParams},
 };
@@ -121,7 +120,7 @@ impl ObjectLike for Avatar {
 }
 
 impl crate::graphics::Draw for Avatar {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut crate::graphics::CommandsCtx) -> Result<(), crate::Error> {
         // ctx.draw_affine = self.draw_affine.clone();
         let Some(model) = &self.model else {
             // Original game allows for failure
@@ -216,7 +215,7 @@ impl super::ObjectLike for Powerup {
 }
 
 impl crate::graphics::Draw for Powerup {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut crate::graphics::CommandsCtx) -> Result<(), crate::Error> {
         self.avatar.draw(ctx)?;
 
         // TODO: Draw and update the texture here
@@ -259,7 +258,7 @@ impl super::ObjectLike for Actor {
 }
 
 impl crate::graphics::Draw for Actor {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut crate::graphics::CommandsCtx) -> Result<(), crate::Error> {
         self.avatar.draw(ctx)?;
 
         // TODO: Draw and update the texture here

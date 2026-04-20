@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use vulkano::{
     DeviceSize, Validated, ValidationError, VulkanError, VulkanLibrary,
-    buffer::{BufferCreateInfo, Subbuffer},
+    buffer::{BufferCreateInfo, BufferUsage, Subbuffer},
     command_buffer::{
-        AutoCommandBufferBuilder, CommandBufferUsage, RenderPassBeginInfo, SubpassBeginInfo,
-        SubpassContents, SubpassEndInfo,
+        AutoCommandBufferBuilder, CommandBufferUsage, CopyBufferToImageInfo, RenderPassBeginInfo,
+        SubpassBeginInfo, SubpassContents, SubpassEndInfo,
         allocator::{StandardCommandBufferAllocator, StandardCommandBufferAllocatorCreateInfo},
     },
     descriptor_set::{WriteDescriptorSet, allocator::StandardDescriptorSetAllocator},
@@ -16,7 +16,8 @@ use vulkano::{
     image::{ImageUsage, view::ImageView},
     instance::{Instance, InstanceCreateInfo, InstanceExtensions},
     memory::allocator::{
-        AllocationCreateInfo, FreeListAllocator, GenericMemoryAllocator, StandardMemoryAllocator,
+        AllocationCreateInfo, FreeListAllocator, GenericMemoryAllocator, MemoryAllocator,
+        MemoryTypeFilter, StandardMemoryAllocator,
     },
     pipeline::{
         GraphicsPipeline, Pipeline, PipelineLayout, PipelineShaderStageCreateInfo,
@@ -475,11 +476,64 @@ impl VulkanRenderer {
         })
     }
 
+    // This should return a result
     pub fn create_image(
         &mut self,
         params: super::ImageParams,
-    ) -> Arc<crate::graphics::texture::ImageHandle> {
-        todo!()
+    ) -> Result<Arc<vulkano::image::Image>, crate::Error> {
+        use vulkano::image::*;
+
+        let image = Image::new(
+            self.vk.memory_allocator.clone(),
+            ImageCreateInfo {
+                image_type: ImageType::Dim2d,
+                format: match params.colour_format {
+                    crate::graphics::ColourFormat::RGB => {
+                        vulkano::format::Format::BC1_RGB_SRGB_BLOCK
+                    }
+                    crate::graphics::ColourFormat::RGBA => {
+                        vulkano::format::Format::BC1_RGBA_SRGB_BLOCK
+                    }
+                },
+                extent: [params.width as u32, params.height as u32, 1],
+                usage: ImageUsage::TRANSFER_DST,
+                ..Default::default()
+            },
+            AllocationCreateInfo {
+                memory_type_filter: MemoryTypeFilter::PREFER_DEVICE,
+                ..Default::default()
+            },
+        )?;
+
+        self.write_image(image.clone(), &params.data)?;
+
+        Ok(image)
+    }
+
+    pub fn write_image(
+        &self,
+        image: Arc<vulkano::image::Image>,
+        data: &[u8],
+    ) -> Result<(), crate::Error> {
+        let staging_buffer = create_staging_buffer(self.vk.memory_allocator.clone(), data)?;
+
+        let mut builder = AutoCommandBufferBuilder::primary(
+            self.vk.command_buffer_allocator.clone(),
+            self.vk.graphics_queue.queue_family_index(),
+            CommandBufferUsage::OneTimeSubmit,
+        )
+        .map_err(|_| RenderError::Draw("Failed to create command buffer.".into()))?;
+
+        builder.copy_buffer_to_image(CopyBufferToImageInfo::buffer_image(staging_buffer, image))?;
+        let command_buffer = builder.build()?;
+
+        let future = sync::now(self.vk.device.clone())
+            .then_execute(self.vk.graphics_queue.clone(), command_buffer)?
+            .then_signal_fence_and_flush()?;
+
+        future.wait(None);
+
+        Ok(())
     }
 
     pub fn default_texture(&self) -> RenderIndex {
@@ -733,6 +787,27 @@ fn get_render_pass(
         },
     )
     .map_err(|_| RenderError::Creation("Failed to create render pass.".into()))
+}
+
+fn create_staging_buffer(
+    allocator: Arc<impl MemoryAllocator>,
+    data: &[u8],
+) -> Result<Subbuffer<[u8]>, crate::Error> {
+    let buffer = vulkano::buffer::Buffer::from_iter(
+        allocator.clone(),
+        BufferCreateInfo {
+            usage: BufferUsage::TRANSFER_SRC,
+            ..Default::default()
+        },
+        AllocationCreateInfo {
+            memory_type_filter: MemoryTypeFilter::PREFER_HOST
+                | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE,
+            ..Default::default()
+        },
+        data.to_vec().into_iter(),
+    )?;
+
+    Ok(buffer)
 }
 
 fn get_framebuffers(
