@@ -1,5 +1,3 @@
-use super::buffer::BufferValue;
-
 #[derive(Debug, Clone, Copy)]
 pub enum BufferType {
     Vertex,
@@ -57,8 +55,6 @@ impl Default for Vertex3D {
     }
 }
 
-impl BufferValue for Vertex3D {}
-
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 pub(crate) struct VertexTest {
@@ -74,8 +70,6 @@ impl Default for VertexTest {
         }
     }
 }
-
-impl BufferValue for VertexTest {}
 
 #[derive(Debug, Clone)]
 pub enum PrimitiveType {

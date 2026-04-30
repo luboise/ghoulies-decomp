@@ -11,7 +11,7 @@ use winit::{
 
 use crate::{
     assets::script::bnl_name_from_asset_name,
-    graphics::{Draw, RenderContext, WgpuRenderer},
+    graphics::{Draw, RenderContext, RenderPassType, WgpuRenderer},
     objects::ObjectLike,
 };
 
@@ -228,39 +228,38 @@ impl App {
         Ok(app)
     }
 
-    fn update_frame(&mut self) -> Result<(), Error> {
+    fn render_frame(&mut self) -> Result<(), Error> {
         self.update_events()?;
 
         {
-            let renderer = &mut self.render_context_mut().renderer;
-            renderer.begin_frame().map_err(|e| e.to_string())?;
+            self.render_context_mut()
+                .renderer
+                .begin_frame()
+                .map_err(|e| e.to_string())?;
         }
-
-        self.render_context_mut().use_camera(0).unwrap();
-
-        // let camera_descriptor_set = self.render_context().camera_descriptor_set.clone();
 
         let powerup = self.powerup.clone();
         let player = self.player.clone();
 
-        // FIXME: Stop this camera from being cloned twice
-        if let Some(powerup) = self.powerup.clone() {
-        } else {
-            eprintln!("no powerup");
-        }
+        self.render_context_mut()
+            .run_commands(RenderPassType::PBR, |ctx, render_pass| {
+                ctx.use_camera(render_pass, 0)?;
 
-        self.render_context_mut().renderer.run_commands(|ctx| {
-            // ctx.set_view_uniforms(camera_descriptor_set.clone())?;
-            if let Some(powerup) = powerup.clone() {
-                powerup.lock().unwrap().draw(ctx)?;
-            }
-            if let Some(player) = player.clone() {
-                player.lock().unwrap().draw(ctx)?;
-            }
+                if let Some(powerup) = powerup.clone() {
+                    powerup.lock().unwrap().draw(render_pass)?;
+                } else {
+                    eprintln!("no powerup");
+                }
 
-            Ok(())
-        })?;
+                if let Some(player) = player.clone() {
+                    player.lock().unwrap().draw(render_pass)?;
+                }
 
+                Ok(())
+            })?;
+
+        // let camera_descriptor_set = self.render_context().camera_descriptor_set.clone();
+        //
         self.render_context_mut()
             .renderer
             .end_frame()
@@ -350,8 +349,6 @@ impl App {
             // Graphics::Update();
             // return;
         }
-
-        self.update_frame()?;
 
         Ok(())
     }
@@ -858,8 +855,20 @@ impl ApplicationHandler for App {
             }
             WindowEvent::RedrawRequested => {
                 if let Err(e) = self.update() {
-                    eprintln!("Error drawing frame: {e}");
+                    eprintln!("failed to update game: {e}");
+                    return;
                 }
+
+                if let Err(e) = self.render_frame() {
+                    eprintln!("failed to render frame: {e}");
+                }
+            }
+            WindowEvent::Resized(winit::dpi::PhysicalSize { width, height }) => {
+                self.render_context_mut()
+                    .renderer
+                    .resize(width, height)
+                    // TODO: Remove this expect and do something better here
+                    .expect("failed to resize window");
             }
             _ => (),
         }

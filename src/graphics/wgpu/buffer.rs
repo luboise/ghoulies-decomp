@@ -7,7 +7,7 @@ use crate::graphics::types::BufferType;
 
 use super::RenderError;
 
-pub struct WgpuBuffer<V> {
+pub struct WgpuBuffer<V: bytemuck::Pod + bytemuck::Zeroable> {
     pub buffer_type: BufferType,
     pub buffer: wgpu::Buffer,
     pub length: usize,
@@ -16,7 +16,7 @@ pub struct WgpuBuffer<V> {
     pub marker: std::marker::PhantomData<V>,
 }
 
-impl<V> WgpuBuffer<V> {
+impl<V: bytemuck::Pod + bytemuck::Zeroable> WgpuBuffer<V> {
     pub fn len(&self) -> usize {
         self.length
     }
@@ -24,9 +24,13 @@ impl<V> WgpuBuffer<V> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    pub fn write(&self, queue: &::wgpu::Queue, v: V) {
+        queue.write_buffer(&self.buffer, 0, bytemuck::bytes_of(&v));
+    }
 }
 
-impl<V: crate::graphics::BufferValue> crate::graphics::Buffer<V> for WgpuBuffer<V> {
+impl<V: bytemuck::Pod + bytemuck::Zeroable> crate::graphics::Buffer<V> for WgpuBuffer<V> {
     fn len(&self) -> usize {
         self.length
     }
@@ -46,7 +50,7 @@ impl From<BufferType> for wgpu::BufferUsages {
         match value {
             BufferType::Vertex => wgpu::BufferUsages::VERTEX,
             BufferType::Index => wgpu::BufferUsages::INDEX,
-            BufferType::Uniform => wgpu::BufferUsages::UNIFORM,
+            BufferType::Uniform => wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         }
     }
 }

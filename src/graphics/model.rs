@@ -3,9 +3,9 @@ use bnl::asset::model::{
     nd::{NdType, get_vertex_positions},
 };
 
-use crate::graphics::{Buffer, types::Vertex3D};
+use crate::graphics::types::Vertex3D;
 
-use super::{BufferType, CommandsCtx};
+use super::BufferType;
 
 pub struct Model {
     descriptor: ModelDescriptor,
@@ -20,7 +20,7 @@ pub struct Model {
 }
 
 impl super::Draw for Model {
-    fn draw(&self, ctx: &mut CommandsCtx) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut crate::graphics::RenderPass) -> Result<(), crate::Error> {
         /*
         vec3 translation;
 
@@ -63,7 +63,8 @@ impl Model {
         let textures = descriptor
             .texture_subresource
             .iter()
-            .map(|descriptor| {
+            .enumerate()
+            .map(|(i, descriptor)| {
                 let start = descriptor.texture_offset() as usize;
                 let end = start + descriptor.texture_size() as usize;
                 let data = resource[start..end].to_vec();
@@ -71,12 +72,14 @@ impl Model {
                 let image_params = super::ImageParams {
                     width: descriptor.width().into(),
                     height: descriptor.height().into(),
-                    colour_format: descriptor.format().try_into().map_err(|e| {
-                        super::RenderError::Creation(format!(
-                            "unrecognised texture format {format:?}: {e}",
-                            format = descriptor.format(),
-                        ))
-                    })?,
+                    colour_format: super::d3d_to_wgpu_texformat(descriptor.format()).ok_or_else(
+                        || {
+                            format!(
+                                "texture {i}: unrecognised texture format {format:?}",
+                                format = descriptor.format(),
+                            )
+                        },
+                    )?,
                     data,
                 };
 
@@ -84,7 +87,7 @@ impl Model {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        println!("{} textures", textures.len());
+        println!("loaded {} textures", textures.len());
 
         #[expect(clippy::never_loop)]
         // TODO: Refactor this garbage
@@ -112,15 +115,11 @@ impl Model {
                             })
                             .collect::<Vec<_>>();
 
-                        let mut buf = ctx
-                            .renderer
+                        ctx.renderer
                             .create_static_buffer::<super::types::Vertex3D>(
                                 BufferType::Vertex,
                                 &vertices,
-                            )?;
-
-                        buf.write_values(&vertices, 0)?;
-                        buf
+                            )?
                     }
                     _ => return Err("ndVertexBuffer did not match nd type".into()),
                 }
@@ -154,10 +153,10 @@ impl Model {
             });
         }
 
-        return Err("unable to get buffers from primitives".into());
+        Err("unable to get buffers from primitives".into())
     }
 
-    fn draw_with_affine(&self, ctx: &mut super::CommandsCtx) -> Result<(), crate::Error> {
+    fn draw_with_affine(&self, render_pass: &mut ::wgpu::RenderPass) -> Result<(), crate::Error> {
         /* TODO: Bind skeleton
           Skeleton *skeleton_instance;
           Graphics::SomeModelContext = param_3;
@@ -202,13 +201,32 @@ impl Model {
             ));
         }
         */
-        ctx.set_vertex_buffer(&self.vertex_buffer)?;
-        ctx.set_index_buffer(&self.index_buffer)?;
-        ctx.draw(&super::DrawCall {
+
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.buffer.slice(..));
+        render_pass.set_index_buffer(
+            self.index_buffer.buffer.slice(..),
+            match size_of::<super::Index>() {
+                2 => wgpu::IndexFormat::Uint16,
+                4 => wgpu::IndexFormat::Uint32,
+                _ => panic!(
+                    "unknown index format of size {} bytes",
+                    size_of::<super::Index>()
+                ),
+            },
+        );
+
+        let draw_call = super::DrawCall {
             num_indices: self.index_buffer.len(),
             start_offset: 0,
             primitive_type: super::types::PrimitiveType::TriangleStrip,
-        })?;
+        };
+
+        const BASE_VERTEX: i32 = 0;
+
+        let first_idx = draw_call.start_offset.try_into()?;
+        let last_idx = first_idx + draw_call.num_indices as u32;
+
+        render_pass.draw_indexed(first_idx..last_idx, BASE_VERTEX, 0..1);
 
         Ok(())
     }
