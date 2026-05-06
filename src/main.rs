@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bnl::asset::aidlist::AidList;
+use cgmath::{InnerSpace, Rotation3};
 use ghoulies::LoadState;
 use winit::{
     application::ApplicationHandler,
@@ -298,9 +299,13 @@ impl App {
             new_cam.transform.position += t * new_cam.transform.backwards();
         }
 
-        let (x, y) = self.input_helper.mouse_diff();
-        new_cam.transform.rotation.x += MOUSE_SENSITIVITY * y;
-        new_cam.transform.rotation.y += MOUSE_SENSITIVITY * x;
+        let (mouse_x, mouse_y) = self.input_helper.mouse_diff();
+
+        new_cam.transform.rotation =
+            (crate::maths::Quat::from_angle_x(cgmath::Rad(MOUSE_SENSITIVITY * mouse_y))
+                * crate::maths::Quat::from_angle_y(cgmath::Rad(MOUSE_SENSITIVITY * mouse_x))
+                * new_cam.transform.rotation)
+                .normalize();
 
         self.render_context_mut().update_camera(0, |camera| {
             *camera = new_cam.clone();
