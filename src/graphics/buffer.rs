@@ -1,8 +1,4 @@
-use vulkano::pipeline::graphics::vertex_input::Vertex;
-
-use crate::graphics::{RenderError, RendererOk};
-
-pub trait BufferValue: Vertex + Clone + Copy {}
+pub trait BufferValue: bytemuck::Pod + bytemuck::Zeroable {}
 
 pub type Index = u32;
 
@@ -13,7 +9,7 @@ pub trait Buffer<T> {
         self.len() == 0
     }
 
-    fn write_values(&mut self, values: &[T], start_index: usize) -> RendererOk;
+    fn write_values(&mut self, values: &[T], start_index: usize) -> Result<(), crate::Error>;
 
     /// Number of bytes allocated to this buffer
     fn capacity_bytes(&self) -> usize {
@@ -27,14 +23,13 @@ pub trait Buffer<T> {
     }
 }
 
-impl<V: vulkano::buffer::BufferContents + Copy> crate::graphics::Buffer<V>
-    for vulkano::buffer::Subbuffer<[V]>
-{
+/*
+impl<V: BufferValue> crate::graphics::Buffer<V> for vulkano::buffer::Subbuffer<[V]> {
     fn len(&self) -> usize {
         self.len() as usize
     }
 
-    fn write_values(&mut self, values: &[V], start_index: usize) -> super::RendererOk {
+    fn write_values(&mut self, values: &[V], start_index: usize) -> Result<(), crate::Error> {
         if !self.can_write(values, start_index) {
             return Err(RenderError::Memory(format!(
                 "Invalid write attempted to range [{}, {}] to buffer with length {}.",
@@ -51,3 +46,4 @@ impl<V: vulkano::buffer::BufferContents + Copy> crate::graphics::Buffer<V>
         Ok(())
     }
 }
+*/

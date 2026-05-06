@@ -1,6 +1,9 @@
-use vulkano::{buffer::BufferContents, pipeline::graphics::vertex_input::Vertex};
-
-use super::buffer::BufferValue;
+#[derive(Debug, Clone, Copy)]
+pub enum BufferType {
+    Vertex,
+    Index,
+    Uniform,
+}
 
 pub type Vec2 = [f32; 2];
 pub type Vec3 = [f32; 3];
@@ -10,31 +13,32 @@ pub type Mat2 = [Vec2; 2];
 pub type Mat3 = [Vec3; 3];
 pub type Mat4 = [Vec4; 4];
 
-#[derive(Debug, Clone, Copy, BufferContents, Vertex)]
+// #[derive(Debug, Clone, Copy, BufferContents, Vertex)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C, packed)]
 pub struct Vertex3D {
-    #[name("a_position")]
-    #[format(R32G32B32_SFLOAT)]
+    // #[name("a_position")]
+    // #[format(R32G32B32_SFLOAT)]
     pub position: Vec3,
 
-    #[name("a_colour")]
-    #[format(R32G32B32_SFLOAT)]
+    // #[name("a_colour")]
+    // #[format(R32G32B32_SFLOAT)]
     pub colour: Vec3,
 
-    #[name("a_normal")]
-    #[format(R32G32B32_SFLOAT)]
+    // #[name("a_normal")]
+    // #[format(R32G32B32_SFLOAT)]
     pub normal: Vec3,
 
-    #[name("a_texcoords")]
-    #[format(R32G32_SFLOAT)]
+    // #[name("a_texcoords")]
+    // #[format(R32G32_SFLOAT)]
     pub tex_coords: Vec2,
 
-    #[name("a_skin_indices")]
-    #[format(R32G32B32A32_UINT)]
+    // #[name("a_skin_indices")]
+    // #[format(R32G32B32A32_UINT)]
     pub skin_indices: [u32; 4],
 
-    #[name("a_skin_weights")]
-    #[format(R32G32B32A32_SFLOAT)]
+    // #[name("a_skin_weights")]
+    // #[format(R32G32B32A32_SFLOAT)]
     pub skin_weights: Vec4,
 }
 
@@ -51,13 +55,11 @@ impl Default for Vertex3D {
     }
 }
 
-impl BufferValue for Vertex3D {}
-
-#[derive(Debug, Clone, Copy, BufferContents, Vertex)]
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 pub(crate) struct VertexTest {
-    #[name("a_position")]
-    #[format(R32G32B32_SFLOAT)]
+    // #[name("a_position")]
+    // #[format(R32G32B32_SFLOAT)]
     pub position: Vec3,
 }
 
@@ -68,8 +70,6 @@ impl Default for VertexTest {
         }
     }
 }
-
-impl BufferValue for VertexTest {}
 
 #[derive(Debug, Clone)]
 pub enum PrimitiveType {

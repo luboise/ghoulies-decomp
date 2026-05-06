@@ -3,23 +3,24 @@ use bnl::asset::model::{
     nd::{NdType, get_vertex_positions},
 };
 
-use crate::graphics::{Buffer, types::Vertex3D};
+use crate::graphics::types::Vertex3D;
 
-use super::{BufferType, VulkanCommandsCtx};
+use super::BufferType;
 
 pub struct Model {
     descriptor: ModelDescriptor,
     resource: Vec<u8>,
 
-    vertex_buffer: super::VulkanBuffer<Vertex3D>,
-    index_buffer: super::VulkanBuffer<super::Index>,
+    vertex_buffer: super::WgpuBuffer<Vertex3D>,
+    index_buffer: super::WgpuBuffer<super::Index>,
+    textures: Vec<super::Texture>,
     // TODO: skeleton2: Skeleton,
     // TODO: skeleton: Skeleton,
     // TODO: bone_indices: [u32; 20],
 }
 
 impl super::Draw for Model {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut crate::graphics::RenderPass) -> Result<(), crate::Error> {
         /*
         vec3 translation;
 
@@ -51,13 +52,42 @@ impl Model {
         ctx: &mut crate::graphics::RenderContext,
         descriptor: &ModelDescriptor,
         resource: &[u8],
-        has_skeleton: bool,
-        has_0x3: bool,
+        _has_skeleton: bool,
+        _has_0x3: bool,
     ) -> Result<Self, crate::Error> {
         let model = descriptor
             .model_subresource
             .as_ref()
             .ok_or_else(|| "CAN'T DRAW MODEL WITHOUT DESCRIPTOR MODELS".to_owned())?;
+
+        let textures = descriptor
+            .texture_subresource
+            .iter()
+            .enumerate()
+            .map(|(i, descriptor)| {
+                let start = descriptor.texture_offset() as usize;
+                let end = start + descriptor.texture_size() as usize;
+                let data = resource[start..end].to_vec();
+
+                let image_params = super::ImageParams {
+                    width: descriptor.width().into(),
+                    height: descriptor.height().into(),
+                    colour_format: super::d3d_to_wgpu_texformat(descriptor.format()).ok_or_else(
+                        || {
+                            format!(
+                                "texture {i}: unrecognised texture format {format:?}",
+                                format = descriptor.format(),
+                            )
+                        },
+                    )?,
+                    data,
+                };
+
+                super::Texture::from_image_params(&mut ctx.renderer, image_params)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        println!("loaded {} textures", textures.len());
 
         #[expect(clippy::never_loop)]
         // TODO: Refactor this garbage
@@ -85,13 +115,11 @@ impl Model {
                             })
                             .collect::<Vec<_>>();
 
-                        let mut buf = ctx.renderer.create_buffer::<super::types::Vertex3D>(
-                            BufferType::Vertex,
-                            vertices.len(),
-                        )?;
-
-                        buf.write_values(&vertices, 0)?;
-                        buf
+                        ctx.renderer
+                            .create_static_buffer::<super::types::Vertex3D>(
+                                BufferType::Vertex,
+                                &vertices,
+                            )?
                     }
                     _ => return Err("ndVertexBuffer did not match nd type".into()),
                 }
@@ -112,27 +140,23 @@ impl Model {
                 .flatten()
                 .collect::<Vec<_>>();
 
-            let index_buffer = {
-                let mut buf = ctx
-                    .renderer
-                    .create_buffer::<crate::graphics::Index>(BufferType::Index, indices.len())?;
-
-                buf.subbuffer.write_values(&indices, 0)?;
-                buf
-            };
+            let index_buffer = ctx
+                .renderer
+                .create_static_buffer::<crate::graphics::Index>(BufferType::Index, &indices)?;
 
             return Ok(Self {
                 descriptor: descriptor.clone(),
                 resource: resource.to_owned(),
                 vertex_buffer,
                 index_buffer,
+                textures,
             });
         }
 
-        return Err("unable to get buffers from primitives".into());
+        Err("unable to get buffers from primitives".into())
     }
 
-    fn draw_with_affine(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+    fn draw_with_affine(&self, render_pass: &mut ::wgpu::RenderPass) -> Result<(), crate::Error> {
         /* TODO: Bind skeleton
           Skeleton *skeleton_instance;
           Graphics::SomeModelContext = param_3;
@@ -169,13 +193,40 @@ impl Model {
         // ??? Forgor what this is
         // DAT_005079e4 = 0;
 
-        ctx.set_vertex_buffer(&self.vertex_buffer)?;
-        ctx.set_index_buffer(&self.index_buffer)?;
-        ctx.draw(&super::DrawCall {
+        /*
+        if self.textures.len() >= 2 {
+            ctx.set_textures(Some(
+                self.textures.first().unwrap().image_handle.clone(),
+                self.textures.iter().nth(1).unwrap().clone(),
+            ));
+        }
+        */
+
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.buffer.slice(..));
+        render_pass.set_index_buffer(
+            self.index_buffer.buffer.slice(..),
+            match size_of::<super::Index>() {
+                2 => wgpu::IndexFormat::Uint16,
+                4 => wgpu::IndexFormat::Uint32,
+                _ => panic!(
+                    "unknown index format of size {} bytes",
+                    size_of::<super::Index>()
+                ),
+            },
+        );
+
+        let draw_call = super::DrawCall {
             num_indices: self.index_buffer.len(),
             start_offset: 0,
             primitive_type: super::types::PrimitiveType::TriangleStrip,
-        })?;
+        };
+
+        const BASE_VERTEX: i32 = 0;
+
+        let first_idx = draw_call.start_offset.try_into()?;
+        let last_idx = first_idx + draw_call.num_indices as u32;
+
+        render_pass.draw_indexed(first_idx..last_idx, BASE_VERTEX, 0..1);
 
         Ok(())
     }

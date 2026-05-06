@@ -1,13 +1,11 @@
 use cgmath::SquareMatrix as _;
 
-use crate::graphics::ViewUniforms;
-
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Camera {
     pub transform: crate::maths::Transform,
 }
 
-impl From<Camera> for ViewUniforms {
+impl From<Camera> for super::ViewUniforms {
     fn from(value: Camera) -> Self {
         let flip_m = {
             let mut m = crate::maths::Mat4::identity();

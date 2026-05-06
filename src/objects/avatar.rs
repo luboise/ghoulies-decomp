@@ -2,7 +2,6 @@ use bnl::asset::{AssetDescriptor, AssetName};
 use cgmath::Zero;
 
 use crate::{
-    graphics::VulkanCommandsCtx,
     maths::{AffineTransform, Quat, Vec3},
     objects::{Object, ObjectCreateContext, ObjectLike, ObjectParams},
 };
@@ -68,19 +67,21 @@ impl ObjectLike for Avatar {
 
     fn ctor(ctx: &mut ObjectCreateContext, params: &Self::Params) -> Result<Self, crate::Error> {
         let model: Option<crate::graphics::Model> = if params.model_aid[0] != 0 {
-            let raw_asset = ctx
-                .asset_database
-                .get_raw_asset(String::from_utf8_lossy(&params.model_aid).trim_matches('\0'))
-                .ok_or_else(|| {
-                    format!(
-                        "unable to get {}",
-                        String::from_utf8_lossy(&params.model_aid).trim_matches('\0')
-                    )
-                })?;
+            let aid = String::from_utf8_lossy(&params.model_aid)
+                .trim_matches('\0')
+                .to_owned();
+
+            let raw_asset = ctx.asset_database.get_raw_asset(&aid).ok_or_else(|| {
+                format!(
+                    "unable to get {}",
+                    String::from_utf8_lossy(&params.model_aid).trim_matches('\0')
+                )
+            })?;
 
             let descriptor =
                 bnl::asset::model::ModelDescriptor::from_bytes(raw_asset.descriptor_bytes())?;
 
+            println!("loading avatar model {aid}");
             Some(crate::graphics::Model::new(
                 ctx.render_context_mut(),
                 &descriptor,
@@ -121,7 +122,7 @@ impl ObjectLike for Avatar {
 }
 
 impl crate::graphics::Draw for Avatar {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut crate::graphics::RenderPass) -> Result<(), crate::Error> {
         // ctx.draw_affine = self.draw_affine.clone();
         let Some(model) = &self.model else {
             // Original game allows for failure
@@ -216,7 +217,7 @@ impl super::ObjectLike for Powerup {
 }
 
 impl crate::graphics::Draw for Powerup {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
+    fn draw(&self, ctx: &mut crate::graphics::RenderPass) -> Result<(), crate::Error> {
         self.avatar.draw(ctx)?;
 
         // TODO: Draw and update the texture here
@@ -259,8 +260,8 @@ impl super::ObjectLike for Actor {
 }
 
 impl crate::graphics::Draw for Actor {
-    fn draw(&self, ctx: &mut VulkanCommandsCtx) -> Result<(), crate::Error> {
-        self.avatar.draw(ctx)?;
+    fn draw(&self, render_pass: &mut crate::graphics::RenderPass) -> Result<(), crate::Error> {
+        self.avatar.draw(render_pass)?;
 
         // TODO: Draw and update the texture here
 

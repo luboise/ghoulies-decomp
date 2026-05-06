@@ -34,17 +34,25 @@ SubresDef subresdef_at_0x5750 @ 0x5750;
 
 struct TEXTURE_HEADER
 {
+  s128 start = $;
+
   u32 format;
   u32 headerSize;  // 28
   u16 width;
   u16 height;
-  u32 flags;  // 0x00000001
+  u8 flag1;
+  u8 flag2;
+  u8 flag3;
+  u8 num_mip_levels;
   u32 unknown_3a;
-  u32 tileCount;
   u32 texture_offset;
   u32 dataSize;
 
-  u8 bruh[12];
+  s128 end = $;
+
+  if ((end - start) < headerSize) {
+  	u8 rest[headerSize - (end - start)];
+  }
 };
 
 bitfield CollisionMask
