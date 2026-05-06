@@ -1,6 +1,3 @@
-// mod vulkan;
-// pub use vulkan::*;
-
 use std::{error::Error, fmt::Display};
 
 use cgmath::SquareMatrix;
@@ -22,13 +19,6 @@ pub mod camera;
 
 pub mod model;
 pub use model::Model;
-
-/*
-mod registry;
-pub use registry::RenderRegistry;
-*/
-
-pub use vulkano::pipeline::graphics::vertex_input::Vertex;
 
 pub mod buffer;
 

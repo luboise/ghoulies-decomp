@@ -1,11 +1,4 @@
-use vulkano::{
-    Validated, buffer::AllocateBufferError, memory::allocator::MemoryTypeFilter,
-    sync::HostAccessError,
-};
-
 use crate::graphics::types::BufferType;
-
-use super::RenderError;
 
 pub struct WgpuBuffer<V: bytemuck::Pod + bytemuck::Zeroable> {
     pub buffer_type: BufferType,
@@ -52,39 +45,5 @@ impl From<BufferType> for wgpu::BufferUsages {
             BufferType::Index => wgpu::BufferUsages::INDEX,
             BufferType::Uniform => wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         }
-    }
-}
-
-impl BufferType {
-    pub fn memory_type_filter(&self) -> MemoryTypeFilter {
-        match self {
-            BufferType::Vertex => {
-                MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
-            }
-            BufferType::Index => {
-                MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
-            }
-            BufferType::Uniform => {
-                MemoryTypeFilter::PREFER_HOST | MemoryTypeFilter::HOST_SEQUENTIAL_WRITE
-            }
-        }
-    }
-}
-
-impl From<HostAccessError> for RenderError {
-    fn from(value: HostAccessError) -> Self {
-        RenderError::Memory(value.to_string())
-    }
-}
-
-impl From<AllocateBufferError> for RenderError {
-    fn from(value: AllocateBufferError) -> Self {
-        RenderError::Memory(value.to_string())
-    }
-}
-
-impl<E: Into<RenderError>> From<Validated<E>> for RenderError {
-    fn from(value: Validated<E>) -> Self {
-        value.unwrap().into()
     }
 }

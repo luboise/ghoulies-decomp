@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 
 use crate::graphics::types::Vertex3D;
 
-use super::{RenderError, RenderIndex};
+use super::RenderIndex;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
@@ -39,8 +39,6 @@ impl Default for BindGroup0 {
         }
     }
 }
-
-pub use buffer::WgpuBuffer;
 
 pub mod buffer;
 
