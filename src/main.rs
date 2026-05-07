@@ -12,6 +12,7 @@ use winit::{
 use crate::{
     assets::script::bnl_name_from_asset_name,
     graphics::{Draw, RenderContext, RenderPassType, WgpuRenderer},
+    maths::VecDirections,
     objects::ObjectLike,
 };
 
@@ -246,7 +247,7 @@ impl App {
                 ctx.use_camera(render_pass, 0)?;
 
                 if let Some(powerup) = powerup.clone() {
-                    powerup.lock().unwrap().draw(render_pass)?;
+                    // powerup.lock().unwrap().draw(render_pass)?;
                 } else {
                     eprintln!("no powerup");
                 }
@@ -271,9 +272,10 @@ impl App {
     fn update_events(&mut self) -> Result<(), Error> {
         #[expect(dead_code)]
         const MAX_MOVEMENT_SPEED: f32 = 100.0;
-        const MIN_MOVEMENT_SPEED: f32 = 0.2;
+        // const MIN_MOVEMENT_SPEED: f32 = 0.2;
+        const MIN_MOVEMENT_SPEED: f32 = 1.0;
 
-        const MOUSE_SENSITIVITY: f32 = 0.01;
+        const MOUSE_SENSITIVITY: f32 = 0.01 / 2.0;
 
         let delta = self
             .input_helper
@@ -285,25 +287,41 @@ impl App {
 
         let mut new_cam = unsafe { self.render_context().cameras.get_unchecked(0) }.clone();
 
-        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyA) {
-            new_cam.transform.position += t * new_cam.transform.left();
-        }
-        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyD) {
-            new_cam.transform.position += t * new_cam.transform.right();
-        }
-        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyW) {
-            new_cam.transform.position += t * new_cam.transform.forwards();
-        }
-        if self.input_helper.key_held(winit::keyboard::KeyCode::KeyS) {
-            new_cam.transform.position += t * new_cam.transform.backwards();
+        for (key, direction) in [
+            (winit::keyboard::KeyCode::KeyA, new_cam.left()),
+            (winit::keyboard::KeyCode::KeyD, new_cam.right()),
+            (winit::keyboard::KeyCode::KeyW, new_cam.forwards()),
+            (winit::keyboard::KeyCode::KeyS, new_cam.backwards()),
+            (winit::keyboard::KeyCode::Space, new_cam.up()),
+            (winit::keyboard::KeyCode::ControlLeft, new_cam.down()),
+        ] {
+            if self.input_helper.key_held(key) {
+                println!("Moving in {direction:?}");
+
+                new_cam.position += t * direction;
+            }
         }
 
-        let (x, y) = self.input_helper.mouse_diff();
-        new_cam.transform.rotation.x += MOUSE_SENSITIVITY * y;
-        new_cam.transform.rotation.y += MOUSE_SENSITIVITY * x;
+        let (mouse_x, mouse_y) = self.input_helper.mouse_diff();
+        new_cam.yaw += cgmath::Rad(MOUSE_SENSITIVITY * mouse_x);
+        // new_cam.pitch += cgmath::Rad(MOUSE_SENSITIVITY * -mouse_y);
 
         self.render_context_mut().update_camera(0, |camera| {
             *camera = new_cam.clone();
+
+            use cgmath::Rad;
+
+            const HALF_PI: f32 = std::f32::consts::PI / 2.0;
+
+            if camera.pitch < -Rad(HALF_PI) {
+                camera.pitch = -Rad(HALF_PI);
+            } else if camera.pitch > Rad(HALF_PI) {
+                camera.pitch = Rad(HALF_PI);
+            }
+
+            println!("{:?}", camera.position);
+
+            println!("{:.1} degrees", cgmath::Deg::from(camera.yaw).0);
         })?;
 
         Ok(())

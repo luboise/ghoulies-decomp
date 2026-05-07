@@ -42,6 +42,25 @@ impl From<AffineTransform> for Mat4 {
     }
 }
 
+pub trait VecDirections {
+    fn forwards(&self) -> Vec3;
+    fn right(&self) -> Vec3;
+    fn up(&self) -> Vec3;
+
+    #[inline]
+    fn down(&self) -> Vec3 {
+        -self.up()
+    }
+    #[inline]
+    fn left(&self) -> Vec3 {
+        -self.right()
+    }
+    #[inline]
+    fn backwards(&self) -> Vec3 {
+        -self.forwards()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Transform {
     pub position: Vec3,
@@ -89,17 +108,15 @@ impl Transform {
     }
 
     pub fn model_matrix(&self) -> Mat4 {
-        let mut mat: Mat4 = self.rotation_matrix().into();
+        let rot = Mat4::from(self.rotation_matrix());
 
-        mat.w[0] = self.position.x;
-        mat.w[1] = self.position.y;
-        mat.w[2] = self.position.z;
+        let translation = Mat4::from_translation(self.position);
 
-        Mat4::from(self.scale_matrix()) * mat
+        translation * rot * Mat4::from(self.scale_matrix())
     }
 
     pub fn view_matrix(&self) -> Mat4 {
-        self.model_matrix().transpose()
+        self.model_matrix().invert().unwrap()
     }
 
     pub fn rotation_matrix(&self) -> Mat3 {
@@ -114,31 +131,6 @@ impl Transform {
         m[1][1] = self.scale.y;
         m[2][2] = self.scale.z;
         m
-    }
-
-    pub fn up(&self) -> Vec3 {
-        self.rotation_matrix() * Vec3::new(0.0, 1.0, 0.0)
-    }
-
-    #[inline]
-    pub fn down(&self) -> Vec3 {
-        -self.up()
-    }
-    pub fn left(&self) -> Vec3 {
-        self.rotation_matrix() * Vec3::new(-1.0, 0.0, 0.0)
-    }
-    #[inline]
-    pub fn right(&self) -> Vec3 {
-        -self.left()
-    }
-
-    pub fn forwards(&self) -> Vec3 {
-        self.rotation_matrix() * Vec3::new(0.0, 0.0, -1.0)
-    }
-
-    #[inline]
-    pub fn backwards(&self) -> Vec3 {
-        -self.forwards()
     }
 
     /*
@@ -158,6 +150,18 @@ impl Transform {
     */
 }
 
+impl VecDirections for Transform {
+    fn up(&self) -> Vec3 {
+        self.rotation_matrix() * Vec3::new(0.0, 1.0, 0.0)
+    }
+    fn right(&self) -> Vec3 {
+        self.rotation_matrix() * Vec3::new(1.0, 0.0, 0.0)
+    }
+    fn forwards(&self) -> Vec3 {
+        self.rotation_matrix() * Vec3::new(0.0, 0.0, -1.0)
+    }
+}
+
 pub fn rotation_matrix_x(radians: f32) -> Mat3 {
     let st = radians.sin();
     let ct = radians.cos();
@@ -168,7 +172,6 @@ pub fn rotation_matrix_x(radians: f32) -> Mat3 {
         y: Vec3::new(0.0, ct, -st),
         z: Vec3::new(0.0, st, ct),
     }
-    .transpose()
 }
 
 pub fn rotation_matrix_y(radians: f32) -> Mat3 {
@@ -181,7 +184,6 @@ pub fn rotation_matrix_y(radians: f32) -> Mat3 {
         y: Vec3::new(0.0, 1.0, 0.0),
         z: Vec3::new(-st, 0.0, ct),
     }
-    .transpose()
 }
 
 pub fn rotation_matrix_z(radians: f32) -> Mat3 {
@@ -194,5 +196,4 @@ pub fn rotation_matrix_z(radians: f32) -> Mat3 {
         y: Vec3::new(st, ct, 0.0),
         z: Vec3::new(0.0, 0.0, 1.0),
     }
-    .transpose()
 }
