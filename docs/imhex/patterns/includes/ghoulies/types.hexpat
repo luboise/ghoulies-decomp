@@ -1,10 +1,13 @@
 #pragma once
 
-struct vec3 {
-    float x;
-    float y;
-    float z;
+struct Vec3<T> {
+	T x;
+	T y;
+	T z;
 };
+
+using vec3 = Vec3<float>;
+using u8vec3 = Vec3<u8>;
 
 struct vec4
 {

@@ -1,4 +1,5 @@
 #pragma once
+#pragma array_limit 900000
 
 import std.array;
 
@@ -14,6 +15,7 @@ enum ModelSubresourceType : u32
   MatrixSubres = 0x5,
   CollidersSubres = 0x6,
   TexturesSubres = 0x7,
+  GridSubres = 0x8,
   BoneIndexSubres = 0x9,
   Unknown0xa = 0xa,
   Unknown0xf = 0xf,
@@ -55,22 +57,16 @@ struct VerticesEntry {
     vec3* vertices[numVertices] : u32;
 };
 
-
 struct Some0x11Inner {
 	char bytes[80];
 };
 
-struct uvec3 {
-	u32 x;
-	u32 y;
-	u32 z;
-};
-
 struct IndexList32 {
 	u32 count;
-	uvec3* items[count]: u32; 
+	Vec3<u32>* items[count]: u32; 
 };
 
+/*
 struct Subresource0x11 {
     u8 a;
     u8 count;
@@ -86,6 +82,7 @@ struct Subresource0x11 {
     IndexList32* indexLists[count]: u32;
     u32* ptrsList[count]: u32;
 };
+*/
 
 struct Mesh
 {
@@ -244,6 +241,21 @@ struct TilesSubresource {
     Tile* Tile[numTiles]: u32;
 };
 
+struct GridSubresource {
+    float baseX;
+    float baseZ;
+    float floats[4];
+    float scaleX;
+    float scaleY;
+    float scaleZ;
+    u16 numX;
+    u16 numY;
+    u16 numZ;
+    u16 unused;
+    
+    Vec3<u8> positions[numX * numY * numZ];
+};
+
 struct ModelFooterEntry
 {
   s128 start = parent.start;
@@ -274,6 +286,8 @@ struct ModelFooterEntry
       CollidersSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TexturesSubres) {
       TexturesSubresource subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::GridSubres) {
+      GridSubresource subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::BoneIndexSubres) {
       BoneIndexSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::Unknown0xa) {
@@ -281,7 +295,7 @@ struct ModelFooterEntry
     } else if (subres_type == ModelSubresourceType::Unknown0xf) {
       Subresource0xf subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::Unknown0x11) {
-      Subresource0x11 subres @parent.start + offset;
+      // Subresource0x11 subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TilesSubres) {
 	  TilesSubresource subres @parent.start + offset;
 	} else {
