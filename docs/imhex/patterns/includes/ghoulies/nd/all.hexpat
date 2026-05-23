@@ -11,6 +11,11 @@
 #include "ghoulies/nd/vertex_buffer"
 #include "ghoulies/types"
 
+fn section1innersptr(u32 offset) {
+    return 0x40;
+};
+
+
 struct SubresHeader
 {
   u32 dataSize;
@@ -147,47 +152,6 @@ enum NdType : u16
 
 using NdHeader;
 
-struct NdHeader
-{
-  s128 model_root = parent.model_root;
-
-  u32 name_ptr;
-  NdType nd_type;
-  u16 idk1b;
-  u32 unknown_ptr_1;
-  u32 unknown_ptr_2;
-  u32 unknown_u32_1;
-  u32 children_ptr;
-  u32 right_sibling_ptr;
-  u32 prev_node_ptr;
-
-  if (name_ptr != 0) {
-    std::string::NullString name @model_root + name_ptr;
-  }
-
-  if (children_ptr != 0) {
-    NdHeader first_child @model_root + children_ptr;
-  }
-
-  if (right_sibling_ptr != 0) {
-    NdHeader next_sibling @model_root + right_sibling_ptr;
-  }
-
-  match(nd_type)
-  {
-    (NdType::ndVertexBuffer)
-        : NdVertexBufferDetails;
-    (NdType::ndPushBuffer)
-        : NdPushBufferDetails;
-    (NdType::ndBGPushBuffer)
-        : NdBGPushBufferDetails;
-    (NdType::ndSkeleton)
-        : NdSkeletonDetails;
-    (NdType::ndRigidSkinIdx)
-        : NdRigidSkinIdxDetails;
-  }
-};
-
 struct ndMtxSomething
 {
   u32 something1;
@@ -220,11 +184,14 @@ struct ndPushBufferDescriptor
   u32 idk2;
   u32 idk3;
   // Pointer lists
-  u32* pushDataPtrs : u32 [[pointer_base("section1innersptr")]];
-  u32* primitiveTypes : u32 [[pointer_base("section1innersptr")]];
-  u32* vertexCounts : u32 [[pointer_base("section1innersptr")]];
+  u32* pushDataPtrs[numDraws]: u32 [[pointer_base("section1innersptr")]];
+  u32* primitiveTypes[numDraws]: u32 [[pointer_base("section1innersptr")]];
+  u32* vertexCounts[numDraws]: u32 [[pointer_base("section1innersptr")]];
   u8 doNotCull;  // Bool
   u8 pad[3];
+
+
+    u8 pushData[while((subres.right_sibling_ptr == 0 || $ < subres.right_sibling_ptr + 0x40) && (subres.next_node_ptr == 0 || $ < subres.next_node_ptr + 0x40))] @ 0x40 + pushDataPtrs;
 };
 
 struct ndSkeleton
@@ -296,10 +263,8 @@ struct ndShaderParam2Assignment
   u32 someVal3;
 };
 
-struct ndShaderParam2
+struct NdShaderParam2Details
 {
-  NdHeader header;
-
   // 0x20
   ndShaderParam2Payload* payload1 : u32 [[pointer_base("section1innersptr")]];
 
@@ -383,3 +348,48 @@ struct NdHeaderPtr
     NdHeader header @model_root + nd_header_ptr;
   }
 };
+
+struct NdHeader
+{
+  s128 model_root = parent.model_root;
+
+  u32 name_ptr;
+  NdType nd_type;
+  u16 idk1b;
+  u32 unknown_ptr_1;
+  u32 unknown_ptr_2;
+  u32 unknown_u32_1;
+  u32 children_ptr;
+  u32 right_sibling_ptr;
+  u32 prev_node_ptr;
+
+  if (name_ptr != 0) {
+    std::string::NullString name @model_root + name_ptr;
+  }
+
+  if (children_ptr != 0) {
+    NdHeader first_child @model_root + children_ptr;
+  }
+
+  if (right_sibling_ptr != 0) {
+    NdHeader next_sibling @model_root + right_sibling_ptr;
+  }
+
+  match(nd_type)
+  {
+    (NdType::ndVertexBuffer)
+        : NdVertexBufferDetails;
+    (NdType::ndPushBuffer)
+        : NdPushBufferDetails;
+    (NdType::ndBGPushBuffer)
+        : NdBGPushBufferDetails;
+    (NdType::ndSkeleton)
+        : NdSkeletonDetails;
+    (NdType::ndRigidSkinIdx)
+        : NdRigidSkinIdxDetails;
+    (NdType::ndShaderParam2)
+        : NdShaderParam2Details;
+  }
+};
+
+

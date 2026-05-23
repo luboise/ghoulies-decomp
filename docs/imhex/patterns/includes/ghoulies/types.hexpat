@@ -31,7 +31,37 @@ struct quat {
 
 enum AssetType : u32
 {
-  LocText = 0x10,
+    Texture = 1,
+    Anim = 2,
+    Unknown3 = 3,
+    Model = 4,
+    AnimEvents = 5,
+
+    Cutscene = 7,
+    CutsceneEvents = 8,
+
+    Misc = 10,
+    ActorGoals = 11,
+    Marker = 12,
+    FxCallout = 13,
+    AidList = 14,
+
+    Loctext = 16,
+
+    XSoundbank = 18,
+    XDSP = 19,
+    XCueList = 20,
+    Font = 21,
+    Ghoulybox = 22,
+    Ghoulyspawn = 23,
+    Script = 24,
+    ActorAttribs = 25,
+    Emitter = 26,
+    Particle = 27,
+    Rumble = 28,
+    ShakeCam = 29,
+
+    Count, // This will automatically take the next value (30)
 };
 
 struct AssetChunkInfo

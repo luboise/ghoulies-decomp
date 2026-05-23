@@ -1,19 +1,24 @@
 #pragma once
+
+import std.array;
+
 #include "ghoulies/nd/all"
 #include "ghoulies/collision"
 
 enum ModelSubresourceType : u32
 {
   ModelSubres = 0x0,
-  Unknown0x2Subres = 0x2,
-  Unknown0x3Subres = 0x3,
+  Unknown0x2 = 0x2,
+  Unknown0x3 = 0x3,
   RigidSkinSubres = 0x4,
   MatrixSubres = 0x5,
   CollidersSubres = 0x6,
   TexturesSubres = 0x7,
   BoneIndexSubres = 0x9,
-  Subresource0x11 = 0x11,
-  VertexBufferSubres = 0x12
+  Unknown0xa = 0xa,
+  Unknown0xf = 0xf,
+  Unknown0x11 = 0x11,
+  TilesSubres = 0x12
 };
 
 struct Subres0x4Value
@@ -50,16 +55,35 @@ struct VerticesEntry {
     vec3* vertices[numVertices] : u32;
 };
 
+
+struct Some0x11Inner {
+	char bytes[80];
+};
+
+struct uvec3 {
+	u32 x;
+	u32 y;
+	u32 z;
+};
+
+struct IndexList32 {
+	u32 count;
+	uvec3* items[count]: u32; 
+};
+
 struct Subresource0x11 {
     u8 a;
     u8 count;
     u8 c;
     u8 d;
     
-    u32 z;
+	u32 name_ptr;
+	if (name_ptr) {
+   		char name @name_ptr;
+	}
     
     VerticesEntry* some_pt[count]: u32;
-    u32 somePtr;
+    IndexList32* indexLists[count]: u32;
     u32* ptrsList[count]: u32;
 };
 
@@ -67,6 +91,17 @@ struct Mesh
 {
   u32 mesh_data;
 };
+
+struct PrefixedCollection<T> {
+	u32 numItems;
+	T items[numItems];
+};
+
+struct ModelSubresource0xa {
+	// TODO: Switch to transform
+	PrefixedCollection<std::Array<float, 10>> matrices;
+};
+
 
 struct SizedCollection<T>
 {
@@ -157,6 +192,58 @@ struct BoneIndexSubres
   u8 indices[32];
 };
 
+struct Inner0x2 {
+	u16 bone1;
+	u16 bone2;
+	float floats[12];
+};
+
+
+struct RigidSkinSubresourceEntry {
+	s128 start = $;
+
+	s128 end = $;
+
+	if (end - start < 36) {
+		u8 rest[36 - (end - start)];
+	}
+};
+
+using Model0x2Subresource = PrefixedCollection<Inner0x2>;
+using RigidSkinSubresource = PrefixedCollection<RigidSkinSubresourceEntry>;
+using Subresource0xf = PrefixedCollection<std::Array<float, 11>>;
+
+struct Tile {
+    u32 idk1;
+    u32 idk2;
+    u32 resSize;
+    u32 resPtr;
+    
+    u32 d3dVertexBufferHeader;
+    
+    u8 entry[0x8];
+};
+
+struct TilesSubresource {
+    u32 idka1;
+    u32 idka2;
+    u8 pad8[8];
+    
+    u32 numX;
+    u32 numY;
+    u32 numZ;
+    u32 numTiles;
+    
+    vec3 someVec3;   
+    u32 idk0x2c;
+    
+    u32 idk0x30;
+    u32 idk0x34;
+    float scale;
+    
+    Tile* Tile[numTiles]: u32;
+};
+
 struct ModelFooterEntry
 {
   s128 start = parent.start;
@@ -167,19 +254,39 @@ struct ModelFooterEntry
   if (offset != 0) {
     // Model subresource
     if (subres_type == ModelSubresourceType::ModelSubres) {
-      u32 model_start_ptr @parent.start + offset;
-      if (model_start_ptr != 0) {
-        ModelSubresource subres @parent.start + model_start_ptr;
+      u32 ptr @parent.start + offset;
+      if (ptr != 0) {
+        ModelSubresource subres @parent.start + ptr;
       }
+    }
+
+	// Non-model
+	else if (subres_type == ModelSubresourceType::Unknown0x2) {
+      Model0x2Subresource subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::RigidSkinSubres) {
+      RigidSkinSubresource subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::MatrixSubres) {
+      mat4 subres @parent.start + offset;
+	  if ($ % 32 != 0) {
+		  u8 subresPad[32 - ($ % 32)];
+	  }
+    } else if (subres_type == ModelSubresourceType::CollidersSubres) {
+      CollidersSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TexturesSubres) {
       TexturesSubresource subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::BoneIndexSubres) {
       BoneIndexSubres subres @parent.start + offset;
-    } else if (subres_type == ModelSubresourceType::CollidersSubres) {
-      CollidersSubres subres @parent.start + offset;
-    } else if (subres_type == ModelSubresourceType::Subresource0x11) {
+    } else if (subres_type == ModelSubresourceType::Unknown0xa) {
+      ModelSubresource0xa subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::Unknown0xf) {
+      Subresource0xf subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::Unknown0x11) {
       Subresource0x11 subres @parent.start + offset;
-    }
+    } else if (subres_type == ModelSubresourceType::TilesSubres) {
+	  TilesSubresource subres @parent.start + offset;
+	} else {
+	  u32 section @parent.start + offset;
+	}
   }
 };
 
