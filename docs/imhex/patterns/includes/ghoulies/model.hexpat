@@ -1,6 +1,7 @@
 #pragma once
 #pragma array_limit 900000
 
+#include <std/ptr>
 import std.array;
 
 #include "ghoulies/nd/all"
@@ -18,6 +19,8 @@ enum ModelSubresourceType : u32
   GridSubres = 0x8,
   BoneIndexSubres = 0x9,
   Unknown0xa = 0xa,
+  Unknown0xc = 0xc,
+  Unknown0xd = 0xd,
   Unknown0xf = 0xf,
   Unknown0x11 = 0x11,
   TilesSubres = 0x12
@@ -208,6 +211,35 @@ struct RigidSkinSubresourceEntry {
 
 using Model0x2Subresource = PrefixedCollection<Inner0x2>;
 using RigidSkinSubresource = PrefixedCollection<RigidSkinSubresourceEntry>;
+
+struct FloatSet0xc {
+    float float1;
+    float float2;
+    float float3;
+    u32 flags;
+    float float4;
+    float float5;
+};
+
+struct Subresource0xc {
+    u32 count1;
+    FloatSet0xc* floatSets[count1]: u32;
+    u32 numTextures;
+	std::ptr::NullablePtr<TEXTURE_HEADER, u32>* texture_ptrs[numTextures]: u32;
+};
+
+struct Data0xd{
+    u8 data[52];
+};
+
+struct Subresource0xd {
+    u32 count1;
+    Data0xd* data1[count1]: u32;
+    u32 numTextures;
+    std::ptr::NullablePtr<TEXTURE_HEADER, u32>* texture_ptrs[numTextures]: u32;
+};
+
+
 using Subresource0xf = PrefixedCollection<std::Array<float, 11>>;
 
 struct Tile {
@@ -292,6 +324,10 @@ struct ModelFooterEntry
       BoneIndexSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::Unknown0xa) {
       ModelSubresource0xa subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::Unknown0xc) {
+      Subresource0xc subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::Unknown0xd) {
+      Subresource0xd subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::Unknown0xf) {
       Subresource0xf subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::Unknown0x11) {
