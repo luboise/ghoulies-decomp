@@ -15,7 +15,6 @@ fn section1innersptr(u32 offset) {
     return 0x40;
 };
 
-
 struct SubresHeader
 {
   u32 dataSize;
@@ -163,7 +162,7 @@ struct ndMtxArray
   NdHeader subres;
 
   // 0x20
-  ndMtxSomething* somePtr : u32 [[pointer_base("section1innersptr")]];
+  ndMtxSomething* somePtr : u32;
   u32 numSomethings;
 
   // 0x28
@@ -171,7 +170,7 @@ struct ndMtxArray
   u16 maybeNext;
 
   // 0x2c
-  mat4* matrices : u32 [[pointer_base("section1innersptr")]];
+  mat4* matrices : u32;
   u32 numMatrices;
   // 0x30
 };
@@ -184,14 +183,28 @@ struct ndPushBufferDescriptor
   u32 idk2;
   u32 idk3;
   // Pointer lists
-  u32* pushDataPtrs[numDraws]: u32 [[pointer_base("section1innersptr")]];
-  u32* primitiveTypes[numDraws]: u32 [[pointer_base("section1innersptr")]];
-  u32* vertexCounts[numDraws]: u32 [[pointer_base("section1innersptr")]];
+  u32* pushDataPtrs[numDraws]: u32;
+  u32* primitiveTypes[numDraws]: u32;
+  u32* vertexCounts[numDraws]: u32;
   u8 doNotCull;  // Bool
   u8 pad[3];
 
+  u8 pushData[while((subres.right_sibling_ptr == 0 || $ < subres.right_sibling_ptr) && (subres.next_node_ptr == 0 || $ < subres.next_node_ptr))] @ pushDataPtrs;
+};
 
-    u8 pushData[while((subres.right_sibling_ptr == 0 || $ < subres.right_sibling_ptr + 0x40) && (subres.next_node_ptr == 0 || $ < subres.next_node_ptr + 0x40))] @ 0x40 + pushDataPtrs;
+struct ndBGPushBufferDescriptor
+{
+  NdHeader subres;
+  u32 numDraws;
+  u32 idk1;
+  u32 idk2;
+  u32 idk3;
+  // Pointer lists
+  u32* pushDataPtrs : u32;
+  u32* primitiveTypes : u32;
+  u32* vertexCounts : u32;
+  u8 doNotCull;  // Bool
+  u8 pad[3];
 };
 
 struct ndSkeleton
@@ -200,7 +213,7 @@ struct ndSkeleton
 
   // 0x20
   u32 numBones;
-  u32* bonesStart : u32 [[pointer_base("section1innersptr")]];
+  u32* bonesStart : u32;
 };
 
 struct RawColour
@@ -225,19 +238,34 @@ struct TextureAssignment
   u32 unknown7;
 };
 
-struct NDSP2Bruh
-{
+struct NDSP2Assignment {
+	u32 namePtr;
+	if (namePtr > 0) {
+		std::string::NullString name @ namePtr;
+	}
+	u32 idk2;
+	u32 idk3;
+	u32 idk4;
 };
 
 struct ndShaderParam2Payload
 {
-  RawColour* pixelShaderConstants : u32 [[pointer_base("section1innersptr")]];
-  u32* somePtr2 : u32 [[pointer_base("section1innersptr")]];
-  TextureAssignment* textureAssignments : u32
-      [[pointer_base("section1innersptr")]];
+  u32 pixelShaderConstantsPtr; 
+  u32* somePtr2 : u32;
+  u32 textureAssignmentsPtr;
+
   u32 numTextureAssignments;
+  // 0x10
   u32 numBruhs;
   u32 numPixelShaderConstants;
+
+  if (textureAssignmentsPtr > 0 && numTextureAssignments > 0) {
+	TextureAssignment textureAssignments[numTextureAssignments] @ (textureAssignmentsPtr);
+  }
+
+  if (pixelShaderConstantsPtr > 0 && numPixelShaderConstants > 0) {
+	RawColour pixelShaderConstants[numPixelShaderConstants] @ (pixelShaderConstantsPtr);
+  }
 
   // 0x18
   u8 alphaReference;
@@ -248,15 +276,22 @@ struct ndShaderParam2Payload
   u32 someU32_5;
 
   // 0x20
-  u32* child : u32 [[pointer_base("section1innersptr")]];
+  u32 childPtr;
+  if (childPtr != 0) {
+	  u32 child @ childPtr;
+  }
 
-  u32* assignmentsStart : u32 [[pointer_base("section1innersptr")]];
+  u32 assignmentsPtr;
   u32 numAssignments;
+
+  if (numAssignments > 0 && assignmentsPtr > 0) {
+	  NDSP2Assignment assignments[numAssignments] @ assignmentsPtr;
+  }
 };
 
 struct ndShaderParam2Assignment
 {
-  std::string::NullString* namePtr : u32 [[pointer_base("section1innersptr")]];
+  std::string::NullString* namePtr : u32;
   u32 someVal1;
   u32 textureSlot;  // The slot in the renderer which the texture will be loaded
                     // in
@@ -266,25 +301,13 @@ struct ndShaderParam2Assignment
 struct NdShaderParam2Details
 {
   // 0x20
-  ndShaderParam2Payload* payload1 : u32 [[pointer_base("section1innersptr")]];
+  ndShaderParam2Payload* payload1 : u32;
 
   // Payload 2 is optional
-  ndShaderParam2Payload* payload2 : u32 [[pointer_base("section1innersptr")]];
-};
-
-struct ndBGPushBufferDescriptor
-{
-  NdHeader subres;
-  u32 numDraws;
-  u32 idk1;
-  u32 idk2;
-  u32 idk3;
-  // Pointer lists
-  u32* pushDataPtrs : u32 [[pointer_base("section1innersptr")]];
-  u32* primitiveTypes : u32 [[pointer_base("section1innersptr")]];
-  u32* vertexCounts : u32 [[pointer_base("section1innersptr")]];
-  u8 doNotCull;  // Bool
-  u8 pad[3];
+  u32 payload2Ptr;
+  if (payload2Ptr > 0) {
+    ndShaderParam2Payload payload2 @ payload2Ptr;
+  }
 };
 
 struct TextureSubresource

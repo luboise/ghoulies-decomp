@@ -35,4 +35,7 @@ struct NdBGPushBufferDetails
 {
   s128 model_root = parent.model_root;
   NdPushBufferDetails base;
+  u32 idk1;
+  u32 idk2;
+  float floats[6];
 };

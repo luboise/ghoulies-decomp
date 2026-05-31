@@ -114,7 +114,7 @@ struct SizedCollection<T>
 
 struct SubresourcePtr
 {
-  u32* ptr : u32 [[pointer_base("section1innersptr")]];
+  u32* ptr : u32;
 };
 
 struct KeyValue
@@ -291,6 +291,7 @@ struct GridSubresource {
 struct ModelFooterEntry
 {
   s128 start = parent.start;
+  s128 cur = $;
 
   ModelSubresourceType subres_type;
   u32 offset;
@@ -298,10 +299,14 @@ struct ModelFooterEntry
   if (offset != 0) {
     // Model subresource
     if (subres_type == ModelSubresourceType::ModelSubres) {
-      u32 ptr @parent.start + offset;
-      if (ptr != 0) {
-        ModelSubresource subres @parent.start + ptr;
-      }
+	  s128 sectionSize = cur - start - 0x40;
+	  u8 sectionBytes[sectionSize] @ 0x40 [[hex::editor_export]];
+
+	  std::mem::Section modelFileSection = std::mem::create_section("model file");
+	  std::mem::set_section_size(modelFileSection, sectionSize);
+	  std::mem::copy_value_to_section(sectionBytes, modelFileSection, 0);
+
+	  ModelSubresource subres @ 0 in modelFileSection;
     }
 
 	// Non-model
