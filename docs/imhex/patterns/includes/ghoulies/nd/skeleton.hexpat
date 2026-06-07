@@ -16,12 +16,10 @@ struct Bone
 
 struct NdSkeletonDetails
 {
-  s128 model_root = parent.model_root;
-
   u32 num_bones;
   u32 bones_ptr;
 
   if (bones_ptr != 0) {
-    Bone bones[num_bones] @model_root + bones_ptr;
+    Bone bones[num_bones] @bones_ptr;
   }
 };

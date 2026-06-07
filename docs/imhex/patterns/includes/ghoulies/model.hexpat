@@ -7,6 +7,8 @@ import std.array;
 #include "ghoulies/nd/all"
 #include "ghoulies/collision"
 
+using NullPtr<A,B> = std::ptr::NullablePtr<A,B>;
+
 enum ModelSubresourceType : u32
 {
   ModelSubres = 0x0,
@@ -105,11 +107,10 @@ struct ModelSubresource0xa {
 
 struct SizedCollection<T>
 {
-  s128 model_root = parent.model_root;
-
   u32 numValues;
   u32 dataStart;
-  T values[numValues];
+  // TODO: Check this is correct
+  T values[numValues] @ dataStart;
 };
 
 struct SubresourcePtr
@@ -119,57 +120,58 @@ struct SubresourcePtr
 
 struct KeyValue
 {
-  s128 model_root = parent.model_root;
-
   NdPtr<std::string::NullString> key;
   u32 value_ptr;
   u32 value_size;
 
   if (value_size > 0 && value_ptr != 0) {
-    u8 data[value_size] @model_root + value_ptr;
+    u8 data[value_size] @value_ptr;
   }
 };
 
 using ModelKeyValueSet = SizedCollection<KeyValue>;
 
+
+struct ModelSomething {
+	u32 ptr1;
+	u32 ptr2;
+	u32 val;
+};
+
+
+struct ModelMap2 {
+
+};
+
 struct ModelSubresource
 {
-  s128 model_root = $;
-
-  u32 ptr1;
+  std::ptr::NullablePtr<u32, u32> ptr1;
   u32 idk2;
   u32 nd_nodes_ptr;
   u32 num_nd_nodes;
+
+  // 0x10
   NdPtr<ModelKeyValueSet> keyValues;
-  // u32* somePtr : u32 [[pointer_base("section1innersptr")]];
-  // float float1;
-  // float float2;
-  // float float3;
-  // float float4;
-  // u32* nextPtr : u32 [[pointer_base("section1innersptr")]];
-  // u32 model_model_root;
+  std::ptr::NullablePtr<ModelMap2, u32> map2;
+  float float1;
+  float float2;
 
-  if (ptr1 != 0) {
-    u32 unknown_u32_1 @model_root + ptr1;
-  }
+  // 0x20
+  float float3;
+  float float4;
+  u32* nextPtr : u32 [[pointer_base("section1innersptr")]];
+  u32 model_model_root;
 
+  // Derived
   if (nd_nodes_ptr != 0 && num_nd_nodes > 0) {
-    NdHeaderPtr nd_header_ptrs[num_nd_nodes] @model_root + nd_nodes_ptr;
+	  NullPtr<NdHeader, u32> nd_header_ptrs[num_nd_nodes] @nd_nodes_ptr;
   }
 };
 
 struct TexturesSubresource
 {
-  s128 start = parent.start;
-  s128 model_root = start;
-
   u32 num_textures;
-  u32 textures_ptr;
-
-  if (textures_ptr != 0 && num_textures > 0) {
-    NdPtr<TEXTURE_HEADER> texture_headers[num_textures] @model_root
-        + textures_ptr;
-  }
+  NullPtr<std::Array<NullPtr<TEXTURE_HEADER, u32>, num_textures>, u32> textures;
 };
 
 

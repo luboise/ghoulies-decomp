@@ -28,12 +28,10 @@ struct VertexBufferResView
 
 struct NdVertexBufferDetails
 {
-  s128 model_root = parent.model_root;
-
   u32 views_ptr;
   u32 num_views;
 
   if (views_ptr != 0 && num_views > 0) {
-    VertexBufferResView views[num_views] @model_root + views_ptr;
+    VertexBufferResView views[num_views] @views_ptr;
   }
 };

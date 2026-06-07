@@ -250,36 +250,39 @@ struct NDSP2Assignment {
 
 struct ndShaderParam2Payload
 {
-  u32 pixelShaderConstantsPtr; 
-  u32* somePtr2 : u32;
+  // Pixel constants to set in the pixel shader (into 0-255 f32),
+  // starting from index 0
+  u32 pixelShaderColoursPtr; 
+  u32 matricesPtr;
   u32 textureAssignmentsPtr;
 
   u32 numTextureAssignments;
   // 0x10
-  u32 numBruhs;
-  u32 numPixelShaderConstants;
+  u32 numMatrices;
+  u32 numPixelShaderColours;
 
   if (textureAssignmentsPtr > 0 && numTextureAssignments > 0) {
-	TextureAssignment textureAssignments[numTextureAssignments] @ (textureAssignmentsPtr);
+	TextureAssignment textureAssignments[numTextureAssignments] @ textureAssignmentsPtr;
   }
 
-  if (pixelShaderConstantsPtr > 0 && numPixelShaderConstants > 0) {
-	RawColour pixelShaderConstants[numPixelShaderConstants] @ (pixelShaderConstantsPtr);
+  if (matricesPtr > 0 && numMatrices > 0) {
+	mat4 matrices[numMatrices] @ matricesPtr;
+  }
+
+  if (pixelShaderColoursPtr > 0 && numPixelShaderColours > 0) {
+	RawColour pixelShaderConstants[numPixelShaderColours] @ pixelShaderColoursPtr;
   }
 
   // 0x18
   u8 alphaReference;
   u8 flag1;
   u8 flag2;
-  u8 someCount;
+  u8 numWeirdTextures;
 
   u32 someU32_5;
 
   // 0x20
-  u32 childPtr;
-  if (childPtr != 0) {
-	  u32 child @ childPtr;
-  }
+  std::ptr::NullablePtr<u32, u32> child;
 
   u32 assignmentsPtr;
   u32 numAssignments;
@@ -287,6 +290,20 @@ struct ndShaderParam2Payload
   if (numAssignments > 0 && assignmentsPtr > 0) {
 	  NDSP2Assignment assignments[numAssignments] @ assignmentsPtr;
   }
+
+  u32 idkPad[5];
+  // if (    idkPad[0] != 0 || 
+  //   idkPad[1] != 0 || 
+  //   idkPad[2] != 0 || 
+  //   idkPad[3] != 0 || 
+  //   idkPad[4] != 0 || 
+  //   idkPad[5] != 0) {
+  //  s128 BRUH = $ [[hex::editor_export]];
+  // }
+  
+  // 0x40
+  u32 weirdTexIndex;
+  u32 lastValue [[hex::editor_export]];
 };
 
 struct ndShaderParam2Assignment
@@ -362,21 +379,9 @@ bitfield ModelBitfield
   bool bruh8 : 8;
 };
 
-struct NdHeaderPtr
-{
-  s128 model_root = parent.model_root;
-
-  u32 nd_header_ptr;
-  if (nd_header_ptr != 0) {
-    NdHeader header @model_root + nd_header_ptr;
-  }
-};
-
 struct NdHeader
 {
-  s128 model_root = parent.model_root;
-
-  u32 name_ptr;
+  std::ptr::NullablePtr<std::string::NullString, u32> name;
   NdType nd_type;
   u16 idk1b;
   u32 unknown_ptr_1;
@@ -386,16 +391,12 @@ struct NdHeader
   u32 right_sibling_ptr;
   u32 prev_node_ptr;
 
-  if (name_ptr != 0) {
-    std::string::NullString name @model_root + name_ptr;
-  }
-
   if (children_ptr != 0) {
-    NdHeader first_child @model_root + children_ptr;
+    NdHeader first_child @children_ptr;
   }
 
   if (right_sibling_ptr != 0) {
-    NdHeader next_sibling @model_root + right_sibling_ptr;
+    NdHeader next_sibling @right_sibling_ptr;
   }
 
   match(nd_type)
