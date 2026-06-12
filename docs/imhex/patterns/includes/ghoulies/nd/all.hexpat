@@ -315,6 +315,22 @@ struct ndShaderParam2Assignment
   u32 someVal3;
 };
 
+
+struct PixelShader {
+	u32 pixelShaderType;	// used at runtime, expect 0?
+	u32 shaderPtr;
+	u32 length;
+	u32 shaderHandle;		// used at runtime for handle
+	if (shaderPtr > 0 && length > 0) {
+		u8 shader[length] @ shaderPtr;
+	}
+};
+
+struct NdShader2Details {
+	PixelShader* pixelShader1: u32;
+	NullPtr<PixelShader> pixelShader2;
+};
+
 struct NdShaderParam2Details
 {
   // 0x20
@@ -325,6 +341,71 @@ struct NdShaderParam2Details
   if (payload2Ptr > 0) {
     ndShaderParam2Payload payload2 @ payload2Ptr;
   }
+};
+
+struct NdMtxArrayEntry {
+	u16 index;
+	u16 idk1;
+	// 0x4
+	u8 idk2;
+	u8 flags;
+	u16 idk3;
+};
+
+struct NdMtxArrayDetails {
+	u32 entriesPtr;
+	u32 numEntries;
+	u16 count2;
+	u16 calc1;
+	u32 matricesPtr;
+	u32 numMatrices;
+
+	if (entriesPtr > 0 && numEntries > 0) {
+		NdMtxArrayEntry entries[numEntries] @ entriesPtr;
+	}
+
+	if (matricesPtr > 0 && numMatrices > 0) {
+		mat4 matrices @ matricesPtr;
+	}
+};
+
+struct VertexShader {
+	u16 idk1;
+	u16 numDwords;
+
+	u32 data[4 * numDwords];
+
+};
+
+struct OtherStream {
+	u8 data[while (std::mem::read_unsigned($, 4, std::mem::Endian::Little) != 0xffffffff)];
+	u32 sentinel; // 0xffffffff
+};
+
+struct NdVertexShaderDetails {
+	u32 streamSourceIndicesPtr;
+	u32 numStreamSources;
+	u32 constant1;
+	u16 constant2;
+	u16 idk1;
+	// 0x10
+	u32 idk2;
+	u32 idk3;
+	u32 idk4;
+	u32 count1;
+	// 0x20
+	u32 count2;
+	u32 count3;
+	u32 idk_2_1;
+	u32 idk_2_2;
+	// 0x30
+	NullPtr<OtherStream> broski;
+	VertexShader* shaderPtr: u32;
+	u8* strides[numStreamSources]: u32;
+
+	if (streamSourceIndicesPtr > 0 && numStreamSources > 0) {
+		u32 streamSourceIndices[numStreamSources] @ streamSourceIndicesPtr;
+	} 
 };
 
 struct TextureSubresource
@@ -411,8 +492,14 @@ struct NdHeader
         : NdSkeletonDetails;
     (NdType::ndRigidSkinIdx)
         : NdRigidSkinIdxDetails;
+    (NdType::ndVertexShader)
+        : NdVertexShaderDetails;
+    (NdType::ndShader2)
+        : NdShader2Details;
     (NdType::ndShaderParam2)
         : NdShaderParam2Details;
+    (NdType::ndMtxArray)
+        : NdMtxArrayDetails;
   }
 };
 

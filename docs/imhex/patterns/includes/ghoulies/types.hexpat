@@ -1,5 +1,7 @@
 #pragma once
 
+using NullPtr<A> = std::ptr::NullablePtr<A, u32>;
+
 struct Vec3<T> {
 	T x;
 	T y;

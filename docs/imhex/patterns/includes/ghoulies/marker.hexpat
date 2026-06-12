@@ -12,6 +12,7 @@ enum MarkerType : u16 {
     Unknown0x0b = 0x0b,
     Unknown0x0c = 0x0c,
     BgBreak = 0x0D,
+    Scare = 0x16,
 };
 
 struct GhoulyBox {
@@ -41,18 +42,22 @@ struct Marker {
         u16 someCount;
         u16 pad16;
         u32 someValDiv100;
-    }
-	else if (markerType == MarkerType::Powerup) {
+    } else if (markerType == MarkerType::Powerup) {
 		char objParamsAID[128];
-	}
-	else if (markerType == MarkerType::GhoulyBoxGhouly) {
+	} else if (markerType == MarkerType::GhoulyBoxGhouly) {
 		char objParamsAID[128];
 		char someAID1[128];
 		char someAID2[128];
 		char actorAttribsAID[128];
-	}
-	else if (markerType == MarkerType::FxEmitter) {
+	} else if (markerType == MarkerType::FxEmitter) {
 		char fxEmitterAID[128];
+	} else if (markerType == MarkerType::Scare) {
+		u32 scareIndex;
+		float float1;
+		u32 idk1;
+		float float2;
+		u32 idk2;
+		float float3;
 	}
 
 	s128 end = $;

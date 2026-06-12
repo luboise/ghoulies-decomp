@@ -2,21 +2,33 @@
 
 #include "ghoulies/nd/types"
 
+
+struct PushData {
+	u32 ptr;
+	if (ptr != 0) {
+		u16 data[parent.vertex_counts[std::core::array_index()]] @ ptr;
+	}
+};
+
 struct NdPushBufferDetails
 {
   u32 num_draws;
   u32 idk1;
   u32 idk2;
   u32 idk3;
-  // Pointer lists
-  u32 push_data_ptrs;
+  u32 push_data_ptrs_ptr;
   std::ptr::NullablePtr<std::Array<u32, num_draws>, u32> primitives_ptr;
-  std::ptr::NullablePtr<std::Array<u32, num_draws>, u32> vertex_counts;
+  u32 vertex_counts_ptr;
+
   u8 doNotCull;  // Bool
   u8 pad[3];
 
-  if (push_data_ptrs != 0) {
-    NdPtr<std::Array<u16, 2>> push_data_ptrs[num_draws] @ push_data_ptrs;
+  if (vertex_counts_ptr != 0) {
+	  u32 vertex_counts[num_draws] @ vertex_counts_ptr;
+  }
+
+  if (push_data_ptrs_ptr != 0) {
+	  PushData push_data[num_draws] @ push_data_ptrs_ptr;
   }
 };
 

@@ -6,8 +6,7 @@ import std.array;
 
 #include "ghoulies/nd/all"
 #include "ghoulies/collision"
-
-using NullPtr<A,B> = std::ptr::NullablePtr<A,B>;
+#include "ghoulies/types"
 
 enum ModelSubresourceType : u32
 {
@@ -164,14 +163,14 @@ struct ModelSubresource
 
   // Derived
   if (nd_nodes_ptr != 0 && num_nd_nodes > 0) {
-	  NullPtr<NdHeader, u32> nd_header_ptrs[num_nd_nodes] @nd_nodes_ptr;
+	  NullPtr<NdHeader> nd_header_ptrs[num_nd_nodes] @nd_nodes_ptr;
   }
 };
 
 struct TexturesSubresource
 {
   u32 num_textures;
-  NullPtr<std::Array<NullPtr<TEXTURE_HEADER, u32>, num_textures>, u32> textures;
+  NullPtr<std::Array<NullPtr<TEXTURE_HEADER>, num_textures>> textures;
 };
 
 
