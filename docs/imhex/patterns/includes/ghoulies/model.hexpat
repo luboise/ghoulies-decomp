@@ -117,7 +117,7 @@ struct SubresourcePtr
   u32* ptr : u32;
 };
 
-struct KeyValue
+struct ModelProperty
 {
   NdPtr<std::string::NullString> key;
   u32 value_ptr;
@@ -128,8 +128,7 @@ struct KeyValue
   }
 };
 
-using ModelKeyValueSet = SizedCollection<KeyValue>;
-
+using ModelProperties = SizedCollection<ModelProperty>;
 
 struct ModelSomething {
 	u32 ptr1;
@@ -150,7 +149,7 @@ struct ModelSubresource
   u32 num_nd_nodes;
 
   // 0x10
-  NdPtr<ModelKeyValueSet> keyValues;
+  NullPtr<ModelProperties> properties;
   std::ptr::NullablePtr<ModelMap2, u32> map2;
   float float1;
   float float2;
