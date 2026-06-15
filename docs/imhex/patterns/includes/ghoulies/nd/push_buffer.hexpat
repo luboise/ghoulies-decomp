@@ -21,7 +21,9 @@ struct NdPushBufferDetails
   u32 vertex_counts_ptr;
 
   u8 doNotCull;  // Bool
-  u8 pad[3];
+  u8 flag1;
+  u8 flag2;
+  u8 flag3;
 
   if (vertex_counts_ptr != 0) {
 	  u32 vertex_counts[num_draws] @ vertex_counts_ptr;

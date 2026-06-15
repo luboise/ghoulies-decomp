@@ -248,8 +248,13 @@ struct NDSP2Assignment {
 	u32 idk4;
 };
 
-struct ndShaderParam2Payload
-{
+struct ShaderMatrix {
+	mat4 matrix;
+	u32 val1;
+	u32 val2;
+};
+
+struct ndShaderParam2Payload {
   // Pixel constants to set in the pixel shader (into 0-255 f32),
   // starting from index 0
   u32 pixelShaderColoursPtr; 
@@ -266,7 +271,7 @@ struct ndShaderParam2Payload
   }
 
   if (matricesPtr > 0 && numMatrices > 0) {
-	mat4 matrices[numMatrices] @ matricesPtr;
+	ShaderMatrix matrices[numMatrices] @ matricesPtr;
   }
 
   if (pixelShaderColoursPtr > 0 && numPixelShaderColours > 0) {
@@ -282,7 +287,7 @@ struct ndShaderParam2Payload
   u32 someU32_5;
 
   // 0x20
-  std::ptr::NullablePtr<u32, u32> child;
+  u32 childPtr;
 
   u32 assignmentsPtr;
   u32 numAssignments;
@@ -304,7 +309,9 @@ struct ndShaderParam2Payload
   // 0x40
   u32 weirdTexIndex;
   u32 lastValue [[hex::editor_export]];
-};
+  
+  // 0x48
+} [[hex::editor_export]];
 
 struct ndShaderParam2Assignment
 {
@@ -351,6 +358,7 @@ struct NdMtxArrayEntry {
 	u8 flags;
 	u16 idk3;
 };
+
 
 struct NdMtxArrayDetails {
 	u32 entriesPtr;
