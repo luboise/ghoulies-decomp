@@ -15,7 +15,7 @@ enum ModelSubresourceType : u32
   Unknown0x3 = 0x3,
   RigidSkinSubres = 0x4,
   MatrixSubres = 0x5,
-  CollidersSubres = 0x6,
+  CollisionSubres = 0x6,
   TexturesSubres = 0x7,
   GridSubres = 0x8,
   BoneIndexSubres = 0x9,
@@ -172,21 +172,6 @@ struct TexturesSubresource
   NullPtr<std::Array<NullPtr<TEXTURE_HEADER>, num_textures>> textures;
 };
 
-
-struct CollidersSubres
-{
-  u32 numObjects;
-  u16 minFlagMaybe;
-  u16 maxFlagMaybe;
-  u32 numVertices;
-  u32 verticesPtr;
-  CollisionObject objects[numObjects];
-
-  if (numVertices > 0 && verticesPtr != 0) {
-  	vec3 vertices[numVertices] @ verticesPtr;
-  }
-};
-
 struct BoneIndexSubres
 {
   u8 indices[32];
@@ -319,8 +304,8 @@ struct ModelFooterEntry
 	  if ($ % 32 != 0) {
 		  u8 subresPad[32 - ($ % 32)];
 	  }
-    } else if (subres_type == ModelSubresourceType::CollidersSubres) {
-      CollidersSubres subres @parent.start + offset;
+    } else if (subres_type == ModelSubresourceType::CollisionSubres) {
+      CollisionSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TexturesSubres) {
       TexturesSubresource subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::GridSubres) {
