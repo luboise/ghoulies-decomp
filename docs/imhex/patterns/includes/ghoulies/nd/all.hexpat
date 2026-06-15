@@ -59,45 +59,6 @@ struct TEXTURE_HEADER
   }
 };
 
-bitfield CollisionMask
-{
-  bool mask01 : 1;
-  bool mask02 : 1;
-  bool Wall : 1;
-  bool Ground : 1;
-  bool mask0x10 : 1;
-  bool mask0x20 : 1;
-  bool mask0x40 : 1;
-  bool mask0x80 : 1;
-
-  bool mask0x100 : 1;
-  bool mask0x200 : 1;
-  bool mask0x400 : 1;
-  bool mask0x800 : 1;
-  bool mask0x1000 : 1;
-  bool mask0x2000 : 1;
-  bool mask0x4000 : 1;
-  bool mask0x8000 : 1;
-
-  bool mask0x10000 : 1;
-  bool mask0x20000 : 1;
-  bool mask0x40000 : 1;
-  bool mask0x80000 : 1;
-  bool mask0x100000 : 1;
-  bool mask0x200000 : 1;
-  bool mask0x400000 : 1;
-  bool mask0x800000 : 1;
-
-  bool mask0x1000000 : 1;
-  bool mask0x2000000 : 1;
-  bool mask0x4000000 : 1;
-  bool mask0x8000000 : 1;
-  bool mask0x10000000 : 1;
-  bool mask0x20000000 : 1;
-  bool mask0x40000000 : 1;
-  bool mask0x80000000 : 1;
-};
-
 struct DataSpan<T>
 {
   u32 numItems;
