@@ -11,6 +11,7 @@ import std.array;
 enum ModelSubresourceType : u32
 {
   ModelSubres = 0x0,
+  Flags = 0x1,
   Unknown0x2 = 0x2,
   Unknown0x3 = 0x3,
   RigidSkinSubres = 0x4,
@@ -285,7 +286,7 @@ struct ModelFooterEntry
     // Model subresource
     if (subres_type == ModelSubresourceType::ModelSubres) {
 	  s128 sectionSize = cur - start - 0x40;
-	  u8 sectionBytes[sectionSize] @ 0x40 [[hex::editor_export]];
+	  u8 sectionBytes[sectionSize] @ 0x40 [[hex::editor_export, hidden]];
 
 	  std::mem::Section modelFileSection = std::mem::create_section("model file");
 	  std::mem::set_section_size(modelFileSection, sectionSize);
@@ -293,17 +294,22 @@ struct ModelFooterEntry
 
 	  ModelSubresource subres @ 0 in modelFileSection;
     }
-
 	// Non-model
-	else if (subres_type == ModelSubresourceType::Unknown0x2) {
+	if (subres_type == ModelSubresourceType::Flags) {
+		u32 flags = offset;
+	} else if (subres_type == ModelSubresourceType::Unknown0x2) {
       Model0x2Subresource subres @parent.start + offset;
-    } else if (subres_type == ModelSubresourceType::RigidSkinSubres) {
+    } 
+
+	else if (subres_type == ModelSubresourceType::RigidSkinSubres) {
       RigidSkinSubresource subres @parent.start + offset;
-    } else if (subres_type == ModelSubresourceType::MatrixSubres) {
+    } 
+
+	else if (subres_type == ModelSubresourceType::MatrixSubres) {
       mat4 subres @parent.start + offset;
-	  if ($ % 32 != 0) {
-		  u8 subresPad[32 - ($ % 32)];
-	  }
+	  // if ($ % 32 != 0) {
+	  //  u8 subresPad[32 - ($ % 32)];
+	  // }
     } else if (subres_type == ModelSubresourceType::CollisionSubres) {
       CollisionSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TexturesSubres) {
@@ -324,9 +330,13 @@ struct ModelFooterEntry
       // Subresource0x11 subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TilesSubres) {
 	  TilesSubresource subres @parent.start + offset;
-	} else {
+	}
+
+	 /*
+	 else {
 	  u32 section @parent.start + offset;
 	}
+	*/
   }
 };
 

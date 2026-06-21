@@ -118,24 +118,6 @@ struct ndMtxSomething
   u32 something2;
 };
 
-struct ndMtxArray
-{
-  NdHeader subres;
-
-  // 0x20
-  ndMtxSomething* somePtr : u32;
-  u32 numSomethings;
-
-  // 0x28
-  u16 unknown2;
-  u16 maybeNext;
-
-  // 0x2c
-  mat4* matrices : u32;
-  u32 numMatrices;
-  // 0x30
-};
-
 struct ndPushBufferDescriptor
 {
   NdHeader subres;
@@ -319,7 +301,6 @@ struct NdMtxArrayEntry {
 	u8 flags;
 	u16 idk3;
 };
-
 
 struct NdMtxArrayDetails {
 	u32 entriesPtr;
