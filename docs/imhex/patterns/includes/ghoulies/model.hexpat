@@ -285,7 +285,7 @@ struct ModelFooterEntry
     // Model subresource
     if (subres_type == ModelSubresourceType::ModelSubres) {
 	  s128 sectionSize = cur - start - 0x40;
-	  u8 sectionBytes[sectionSize] @ 0x40 [[hex::editor_export]];
+	  u8 sectionBytes[sectionSize] @ 0x40 [[hex::editor_export, hidden]];
 
 	  std::mem::Section modelFileSection = std::mem::create_section("model file");
 	  std::mem::set_section_size(modelFileSection, sectionSize);
