@@ -11,6 +11,7 @@ import std.array;
 enum ModelSubresourceType : u32
 {
   ModelSubres = 0x0,
+  Flags = 0x1,
   Unknown0x2 = 0x2,
   Unknown0x3 = 0x3,
   RigidSkinSubres = 0x4,
@@ -293,17 +294,22 @@ struct ModelFooterEntry
 
 	  ModelSubresource subres @ 0 in modelFileSection;
     }
-
 	// Non-model
-	else if (subres_type == ModelSubresourceType::Unknown0x2) {
+	if (subres_type == ModelSubresourceType::Flags) {
+		u32 flags = offset;
+	} else if (subres_type == ModelSubresourceType::Unknown0x2) {
       Model0x2Subresource subres @parent.start + offset;
-    } else if (subres_type == ModelSubresourceType::RigidSkinSubres) {
+    } 
+
+	else if (subres_type == ModelSubresourceType::RigidSkinSubres) {
       RigidSkinSubresource subres @parent.start + offset;
-    } else if (subres_type == ModelSubresourceType::MatrixSubres) {
+    } 
+
+	else if (subres_type == ModelSubresourceType::MatrixSubres) {
       mat4 subres @parent.start + offset;
-	  if ($ % 32 != 0) {
-		  u8 subresPad[32 - ($ % 32)];
-	  }
+	  // if ($ % 32 != 0) {
+	  //  u8 subresPad[32 - ($ % 32)];
+	  // }
     } else if (subres_type == ModelSubresourceType::CollisionSubres) {
       CollisionSubres subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TexturesSubres) {
@@ -324,9 +330,13 @@ struct ModelFooterEntry
       // Subresource0x11 subres @parent.start + offset;
     } else if (subres_type == ModelSubresourceType::TilesSubres) {
 	  TilesSubresource subres @parent.start + offset;
-	} else {
+	}
+
+	 /*
+	 else {
 	  u32 section @parent.start + offset;
 	}
+	*/
   }
 };
 
