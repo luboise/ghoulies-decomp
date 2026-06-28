@@ -4,9 +4,9 @@ enum VertexBufferViewType : u8
 {
   skin = 0x0,
   skinWeight = 0x8,
-  vertex = 0x9,
-  unknown_10 = 0xa,
-  unknown_11 = 0xb,
+  position = 0x9,
+  normal = 0xa,
+  colour = 0xb,
   UV = 0xd,
   unknown_14 = 0xe,
   unknown_15 = 0xf,

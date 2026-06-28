@@ -342,10 +342,10 @@ struct NdVertexShaderDetails {
 	u32 idk2;
 	u32 idk3;
 	u32 idk4;
-	u32 count1;
+	u32 id1;
 	// 0x20
-	u32 count2;
-	u32 count3;
+	u32 id2;
+	u32 id3;
 	u32 idk_2_1;
 	u32 idk_2_2;
 	// 0x30
