@@ -410,6 +410,20 @@ bitfield ModelBitfield
   bool bruh8 : 8;
 };
 
+struct TempVertexShader {
+	u8 brother[0x20];
+	NdVertexBufferDetails details;
+};
+
+struct NdBlendShapeDetails {
+	u32 shapesPtr;
+	u32 numShapes;
+
+	if (shapesPtr > 0 && numShapes > 0) {
+		NullPtr<TempVertexShader> shapes[numShapes] @ shapesPtr;
+	}
+};
+
 struct NdHeader
 {
   std::ptr::NullablePtr<std::string::NullString, u32> name;
@@ -450,7 +464,10 @@ struct NdHeader
         : NdShaderParam2Details;
     (NdType::ndMtxArray)
         : NdMtxArrayDetails;
+    (NdType::ndBlendShape)
+        : NdBlendShapeDetails;
   }
 };
+
 
 
