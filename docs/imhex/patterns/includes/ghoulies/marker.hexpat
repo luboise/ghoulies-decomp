@@ -54,9 +54,9 @@ struct Marker {
 	} else if (markerType == MarkerType::Scare) {
 		u32 scareIndex;
 		float float1;
-		u32 idk1;
-		float float2;
 		u32 idk2;
+		float float2;
+		u32 idk3;
 		float float3;
 	}
 
