@@ -319,12 +319,15 @@ struct NdMtxArrayDetails {
 	}
 };
 
+struct VertexShaderInstruction {
+	u32 unused;
+	u32 opcode;
+};
+
 struct VertexShader {
 	u16 idk1;
-	u16 numDwords;
-
-	u32 data[4 * numDwords];
-
+	u16 instructionCount;
+	u32 data[4 * instructionCount];
 };
 
 struct OtherStream {
