@@ -137,14 +137,13 @@ struct ModelSomething {
 	u32 val;
 };
 
-
 struct ModelMap2 {
-
+	u32 a;
 };
 
 struct ModelSubresource
 {
-  std::ptr::NullablePtr<u32, u32> ptr1;
+  u32 varDataSize;
   u32 idk2;
   u32 nd_nodes_ptr;
   u32 num_nd_nodes;
@@ -159,7 +158,11 @@ struct ModelSubresource
   float float3;
   float float4;
   u32* nextPtr : u32 [[pointer_base("section1innersptr")]];
-  u32 model_model_root;
+  u32 modelMap2Ptr;
+
+  if (modelMap2Ptr != 0) {
+	  ModelMap2 map2 @ modelMap2Ptr;
+  }
 
   // Derived
   if (nd_nodes_ptr != 0 && num_nd_nodes > 0) {
@@ -299,13 +302,9 @@ struct ModelFooterEntry
 		u32 flags = offset;
 	} else if (subres_type == ModelSubresourceType::Unknown0x2) {
       Model0x2Subresource subres @parent.start + offset;
-    } 
-
-	else if (subres_type == ModelSubresourceType::RigidSkinSubres) {
+    } else if (subres_type == ModelSubresourceType::RigidSkinSubres) {
       RigidSkinSubresource subres @parent.start + offset;
-    } 
-
-	else if (subres_type == ModelSubresourceType::MatrixSubres) {
+    } else if (subres_type == ModelSubresourceType::MatrixSubres) {
       mat4 subres @parent.start + offset;
 	  // if ($ % 32 != 0) {
 	  //  u8 subresPad[32 - ($ % 32)];

@@ -251,10 +251,10 @@ struct ndShaderParam2Payload {
   
   // 0x40
   u32 weirdTexIndex;
-  u32 lastValue [[hex::editor_export]];
+  u32 lastValue;
   
   // 0x48
-} [[hex::editor_export]];
+};
 
 struct ndShaderParam2Assignment
 {
@@ -433,7 +433,7 @@ struct NdHeader
   NdType nd_type;
   u16 idk1b;
   u32 unknown_ptr_1;
-  u32 unknown_ptr_2;
+  u32 variableDataOffset;
   u32 unknown_u32_1;
   u32 children_ptr;
   u32 right_sibling_ptr;
@@ -471,6 +471,3 @@ struct NdHeader
         : NdBlendShapeDetails;
   }
 };
-
-
-
