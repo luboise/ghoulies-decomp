@@ -315,7 +315,7 @@ struct NdMtxArrayDetails {
 	}
 
 	if (matricesPtr > 0 && numMatrices > 0) {
-		mat4 matrices @ matricesPtr;
+		mat4 matrices[numMatrices] @ matricesPtr;
 	}
 };
 
