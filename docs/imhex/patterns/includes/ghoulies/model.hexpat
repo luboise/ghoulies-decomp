@@ -245,7 +245,8 @@ struct Tile {
 struct TilesSubresource {
     u32 idka1;
     u32 idka2;
-    u8 pad8[8];
+	u32 idk3;
+	u32 idk4;
     
     u32 numX;
     u32 numY;
