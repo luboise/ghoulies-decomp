@@ -1,0 +1,70 @@
+/* game_core.h - Core game state, world update, save
+   From Ghidra decompilation of Grabbed by the Ghoulies default.xbe. */
+#pragma once
+#include "common.h"
+
+/* ---- declarations ---- */
+extern actorBodyStateId actorBodyStateId::fromString(char *param_1);
+extern void runtime::ExitGame(int exitCode);
+extern void FUN_000481e0(GamePauseContext *gpc);
+extern void UpdateDoor(short doorId,ushort doorState,int param_3,BOOL nothingToRun);
+extern undefined4 updateAvatarAgainstDoor(avatar *param_1,entityBodyHuman *human);
+extern actorBodyStateId FUN_00075a70(actorBody *param_1);
+extern actorBodyStateId FUN_00076100(actorBody *param_1);
+extern actorBodyStateId FUN_00076130(actorBody *param_1);
+extern actorBodyStateId FUN_00076210(actorBody *param_1);
+extern actorBodyStateId FUN_00076250(actorBody *param_1);
+extern void FUN_00083d90(entitySceneControlGameSelect *param_1);
+extern undefined4 __fastcall FUN_00083e20(entitySceneControlGameSelect *entity);
+extern void FUN_00092d10(entityStateGenerateGhouly *param_1);
+extern void FUN_00094800(actorState param_1,undefined4 param_2);
+extern actorStateVTable * FUN_00095740(void);
+extern void FUN_000a5dc0(actorBody *body,entityStateWalk *state);
+extern int FUN_000a5fd0(entityStateWalk *param_1,float param_2,actorBody *param_3);
+extern void Game::ReplayScene(uint *new_index);
+extern void game::load_cheap_dust_fx(void);
+extern int __fastcall game::get_num_books(uint param_1);
+extern void game::reset_scene_vars_on_leave(void);
+extern void Game::MaybeSaveGame(void);
+extern void runtime::SaveTheGame_(void);
+extern GhoulyBox * DeathDropContext::ctor(void);
+extern int initIntroData(void);
+extern GhoulyBox * game::execute_ghouly_spawn(char *param_1);
+extern void FUN_000fa110(GamepadState *pad);
+extern void onVerticalBlank(D3DVBLANKDATA *data);
+extern void Game::SetSomeVec3(vec3 *param_1);
+extern undefined4 FUN_0010a6d0(powerup *pwup,int param_2,actor *param_3);
+extern void runtime::SetupHeapSaveData(void);
+extern uint Save::getHighestCompletedChapter(LPCWSTR param_1);
+extern void Save::SetSecondsPlayed(uint secondsPlayed,LPCWSTR str);
+extern void Save::SetNumKills(uint param_1);
+extern void Save::SetNumDeaths(uint param_1);
+extern void Save::SetNumPrisoners(uint param_1);
+extern void runtime::ReadSavedGames(void);
+extern void runtime::SomethingSaveRelated(void);
+extern void Game::AddNoAttackTimer(ushort param_1,float param_2);
+extern int GetCurrentScenePauseFlags(void);
+extern void Game::SetBackgroundPositions(vec3 *param_1,vec3 *param_2);
+extern void Game::AddSubres0x14(ModelSubresource0x14 *subres);
+extern void Game::EndScene(int param_1);
+extern BOOL Game::AddSceneControl(char *param_1);
+extern void Game::SetPauseState(PauseState param_1);
+extern void runtime::UpdateGameState(GameState *state);
+extern void __fastcall UpdateGameWorld(GameState *state);
+extern uint Game::GetSceneIndexFromAID(char *param_1);
+extern void deliverMessageToParam1(short param_1);
+extern void UpdatePowerups(void);
+extern void Game::DeactivatePowerup(powerupId pwupType);
+extern int Game::OnSceneBegin(short param_1);
+extern void runtime::UpdateGlobalTimers(void);
+extern BOOL Timer::reduce(float *param_1);
+extern void FUN_00130710(GameState *gameState,int param_2,int param_3);
+extern void FUN_00132540(uint powerupIndex);
+extern undefined4 HauntedObjectActivatedCondition::callback1(ScriptOperation *param_1);
+extern BOOL PlayerEntersRegionCondition::callback1(int param_1);
+extern float Game::AddDamage(byte index,byte damage);
+extern BOOL Game::AllGhoulyBoxesFinishedOpening(void);
+extern void Scene::free(Scene *scene);
+extern void Scene::LoadFromLoadContext(SceneLoadContext *loadContext,Scene *scene);
+extern undefined4 FUN_00146b80(weapon *weapon,int *param_2,ushort weaponState);
+extern void ___FrameUnwindToState(int param_1,undefined4 param_2,int param_3,int param_4);

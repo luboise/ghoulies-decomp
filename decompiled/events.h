@@ -1,0 +1,71 @@
+/* events.h - Event loops, markers, challenge triggers
+   From Ghidra decompilation of Grabbed by the Ghoulies default.xbe. */
+#pragma once
+#include "common.h"
+
+/* ---- declarations ---- */
+extern void FUN_00028500(DerivedMarkerValue *dmv,actor *param_2);
+extern void Events::Update(void);
+extern BOOL Events::loadBnlFromScriptAid(void);
+extern void UpdateAttacks_(void);
+extern void UseRegularSceneOrderAIDList(void);
+extern void Events::RunEndOfScaryShockEvents(void);
+extern void FUN_0004a100(challengeId id);
+extern void EventLoop::SolidifyNewChallengeFromId(int *param_1);
+extern void FUN_0004c560(CutsceneEventsDescriptor *events);
+extern void * CutsceneEvents::Get(CutsceneEvents *param_1,char *eventName);
+extern void EventLoop::PopImportantStack(void);
+extern void __fastcall Events::UpdateDialogState(void);
+extern BOOL __thiscall Events::BeginDialogSequence(char *param_1,undefined1 param_2);
+extern void Events::createMapViewSceneControl(void);
+extern void Events::SetDialogState(DialogState newState);
+extern void UnregisterScript__(int param_1);
+extern void __fastcall FUN_00075120(Message *eventCtx,vec3 *param_2);
+extern actor * EventLoop::SpawnGrimReaper(float param1,float param2);
+extern void GetReaperPosFromMarkerAndSpawn(vec3 *pos,vec3 *rot,vec3 *param_3);
+extern void Events::RunChallengeSetupTriggers(void);
+extern void DrainChallengeList(void);
+extern void ExitChallenge_(void);
+extern void EventLoop::CreateNewChallengeList(ushort param_1,uint param_2,char *eventIntroName);
+extern void CreateNewChallenge(TimeLimitChallenge *chlng);
+extern LiveChallenge * __fastcall FUN_000d0650(undefined4 param_1,int param_2);
+extern void StartEventsSequence(void);
+extern bool onTouchChallengeCompleted(void);
+extern void BeginEventsSequence(PauseState param_1);
+extern bool UpdateChallengeStatus(void);
+extern void UpdateChallenges(void);
+extern void FUN_000d6f90(BonusChallengesMenu *param_1);
+extern undefined4 ExecuteScript(fxParticleImpactFlash *entity,void **bytesPtr,uint *param_3);
+extern void EventLoop::UpdateSceneValues(int param_1);
+extern void Events::ExecuteGhoulieIntroLoctext(void);
+extern void EventLoop::ExecuteGhoulieIntro(void);
+extern uint Events::GetIndexOfStringInTable(int tableSize,char **nameTable,char *tagName);
+extern void FUN_000fffd0(vec3 *param_1,int *param_2,Marker *param_3);
+extern void Events::UpdatePerSecondTimers(void);
+extern void EventLoop::ClearTextureListsAndSwizzle(void);
+extern void Events::UpdateTextureMaybeSomethings(float param_1);
+extern void Events::EmptySceneList(void);
+extern void EventLoop::NewMessage(MessageHeader *param_1);
+extern bool EventLoop::ProcessNewMessage(Message *param_1);
+extern void __fastcall Events::LoadSceneScriptFromAID(GameState *param_1,char *sceneSuffix);
+extern void InvertChallengeStatusGraphics(void);
+extern void Events::UpdateActionBeginEnds(byte param_1,int param_2);
+extern void __fastcall Events::UpdateAmbientAudio(undefined4 param_1);
+extern void Events::UpdateGhoulyBoxes(void);
+extern void EventLoop::RunPostLoadSetupScripts(GameState *param_1);
+extern void Events::BeginScene(void);
+extern void EventLoop::UnpauseGame(void);
+extern void EventLoop::SetLoadState(GameState *state,LoadState new_state);
+extern int Events::RenderAllFromNode(int param_1,int param_2,int param_3,EmbeddedSentinel<> *param_4);
+extern void EventLoop::DispatchMessage(ObjMsgID *msg);
+extern void SetGlobalSceneOrder(char *name);
+extern uint GetChallengeHeader(void);
+extern BOOL EventLoop::IsPlayStateSomething(void);
+extern void EventLoop::SetAggressions(BOOL playerControllable,int playType,char *param_3);
+extern void Events::UpdateDeltaAngles(void);
+extern void EventLoop::CreateTransitionCameraAndText(void);
+extern Events::TriggerAssetTypeCallback1(asset_name *assetName,void *descriptorPtr,void *param_3);
+extern void Events::NotUpdateDialogs_(void);
+extern void DoMarkerSceneStuff(void);
+extern void FUN_001401b0(MarkerInstance *param_1);
+extern void __fastcall SetupEvents_(int *param_1);

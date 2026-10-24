@@ -1,0 +1,72 @@
+/* system.h - Entry point, XBE init, main game loop, state machine
+   From Ghidra decompilation of Grabbed by the Ghoulies default.xbe. */
+#pragma once
+#include "common.h"
+
+/* ---- declarations ---- */
+extern void CodeCave1(void);
+extern void FUN_000320f0(AS58Entry *entry,Model *instance);
+extern void main(void);
+extern void GetLaunchData(void);
+extern void ReturnToDashboard_(LPCSTR path,PLAUNCH_DATA data);
+extern void BigSetupFunction_(void);
+extern void InitialiseEverything(void);
+extern void GameLoop(int param_1);
+extern void addEntryToLinkedList(int entries,char *entryName);
+extern void FUN_0003a830(AnimEventEntry *param_1,avatar *param_2);
+extern uint * FUN_00050880(Entry0xd *param_1,ModelDescriptor *param_2);
+extern undefined4 FUN_000509e0(int param_1,Entry0xd *param_2,int *param_3);
+extern BOOL FUN_00052f80(byte param_1,ModelFooterEntry *param_2);
+extern LONG UnhandledExceptionFilter(_EXCEPTION_POINTERS *ExceptionInfo);
+extern void SecDialogVars(void);
+extern void PeriodicUpdateWithPi_(void);
+extern BOOL createGameselectString(char *category,char *entry,LPWSTR param_3,LoctextDescriptor *param_4);
+extern void InitialiseLocale(void);
+extern undefined4 FUN_0010da80(SaveEntryValue *param_1);
+extern void __cdecl Scene::cleanup(EVP_PKEY_CTX *ctx);
+extern void ResetStateVariables(void);
+extern void WipeGameState(GameState *param_1);
+extern void InitialiseDoors(void);
+extern void OnDeath_(void);
+extern BOOL InitEDB2Entry(Buffer<EDB2Entry> **outBuffer,avatar *av,bool_t param_3);
+extern void RecalculateEDB2Collisions(Buffer<EDB2Entry> *param_1);
+extern int FUN_0013eeb0(int param_1,Buffer<EDB2Entry> **param_2);
+extern void entry(void);
+extern ULONG __cdecl DbgPrint(PCSTR Format,...);
+extern uint IndexOfTableItem(NamedCallbackTable *param_1,char *param_2,NamedCallbackEntry **val);
+extern void * __cdecl _memmove(void *__dest,void *__src,size_t __n);
+extern wchar_t * __cdecl _wcsncpy(wchar_t *__dest,wchar_t *__src,size_t __n);
+extern char * __cdecl _strchr(char *__s,int __c);
+extern long __cdecl _atol(char *__nptr);
+extern long __cdecl _atol(char *__nptr);
+extern wchar_t * __cdecl _wcscat(wchar_t *__dest,wchar_t *__src);
+extern int __cdecl _fclose(FILE *__stream);
+extern int __cdecl _vsprintf(char *__s,char *__format,__gnuc_va_list __arg);
+extern int __cdecl _sprintf(char *__s,char *__format,...);
+extern int __cdecl _strncmp(char *__s1,char *__s2,size_t __n);
+extern char * __cdecl _strncat(char *__dest,char *__src,size_t __n);
+extern char * __cdecl _strncpy(char *__dest,char *__src,size_t __n);
+extern void __cdecl _qsort(void *__base,size_t __nmemb,size_t __size,__compar_fn_t __compar);
+extern int __cdecl _swprintf(wchar_t *__s,size_t __n,wchar_t *__format,...);
+extern int __cdecl _swscanf(wchar_t *__s,wchar_t *__format,...);
+extern char * __cdecl _strstr(char *__haystack,char *__needle);
+extern char * __cdecl _strrchr(char *__s,int __c);
+extern int __cdecl _isalpha(int param_1);
+extern int __cdecl _isdigit(int param_1);
+extern int __cdecl _isspace(int param_1);
+extern int __cdecl _isalnum(int param_1);
+extern wchar_t * __cdecl _wcsstr(wchar_t *__haystack,wchar_t *__needle);
+extern int __cdecl _wcscmp(wchar_t *__s1,wchar_t *__s2);
+extern int __cdecl _vswprintf(wchar_t *__s,size_t __n,wchar_t *__format,__gnuc_va_list __arg);
+extern int __cdecl _atexit(__func *__func);
+extern void * __cdecl _malloc(size_t __size);
+extern int __cdecl _iswspace(wint_t __wc);
+extern int __cdecl _ungetc(int __c,FILE *__stream);
+extern void BigInitXBEFunction(undefined4 param_1,int param_2,undefined4 param_3,int param_4);
+extern undefined4 EnterCriticalSectionP(void);
+extern _LIST_ENTRY * FUN_001c388c(PRTL_CRITICAL_SECTION param_1);
+extern undefined4 FUN_001c497a(PRTL_CRITICAL_SECTION param_1,_LIST_ENTRY *param_2,int param_3);
+extern undefined4 __thiscall FUN_001c4bbf(PRTL_CRITICAL_SECTION param_1,_LIST_ENTRY *param_2,int param_3);
+extern undefined4 __thiscall FUN_001c4c48(PRTL_CRITICAL_SECTION param_1,_LIST_ENTRY *param_2,int param_3);
+extern FUN_001c4d5d(PRTL_CRITICAL_SECTION param_1,int param_2,_LIST_ENTRY *param_3,int param_4);
+extern undefined4 FUN_001c531e(PRTL_CRITICAL_SECTION param_1,_LIST_ENTRY *param_2,LONG param_3);

@@ -1,0 +1,73 @@
+/* entity_state.h - Actor state machines (walk/hit/scoop/pickup, etc.)
+   From Ghidra decompilation of Grabbed by the Ghoulies default.xbe. */
+#pragma once
+#include "common.h"
+
+/* ---- declarations ---- */
+extern entityStateWalk::onActorStruggle(int param_1,actorBody *body,Actor_StruggleMessage *msg);
+extern actorStateVTable * actorState::getVTable(void);
+extern undefined4 actorState::ctor(actorState *res,actorStateParams *params);
+extern ushort actorState::func7(actorState *param_1);
+extern void entityStateDie::getAllocDetails(ObjectAllocDetails *param_1);
+extern undefined ** entityStateDie::getVTable(void);
+extern undefined4 entityStateDie::ctor(entityStateDie *state,entityStateDieParams *params);
+extern void entityStateDie::updateFixed_(entityStateDie *param_1);
+extern actorStateVTable * entityStateExplode::getVTable(void);
+extern undefined4 entityStateExplode::ctor(int param_1);
+extern void entityStateExplode::dtor(actorState *param_1);
+extern void entityStateFaint::getAllocDetails(undefined4 *param_1);
+extern undefined ** entityStateFaint::getVTable(void);
+extern undefined4 entityStateFaint::ctor(entityStateFaint *param_1,entityStateFaintParams *param_2);
+extern void entityStateFaint::dtor(int param_1);
+extern void entityStateFaint::update(entityStateFaint *state);
+extern void switchD_0008f359::caseD_2(void);
+extern void entityStateHit::getAllocDetails(undefined4 *param_1);
+extern void entityStateFly::getAllocDetails(undefined4 *param_1);
+extern void entityStateFly::update(entityStateFly *param_1);
+extern void entityStateFly::updateMovement(entityStateFly *fly,actor *act);
+extern void entityStateGenerateGhouly::getAllocDetails(undefined4 *param_1);
+extern undefined ** entityStateGenerateGhouly::getVTable(void);
+extern void entityStateGenerateGhouly::dtor(entityStateGenerateGhouly *param_1);
+extern void entityStateGenerateGhouly::update(entityStateGenerateGhouly *param_1);
+extern void entityStateGenerateGhouly::func6(entityStateGenerateGhouly *param_1,int param_2);
+extern void entityStateGenerateGhouly::onMessage(int param_1,int *param_2);
+extern void entityStateGrabAndThrow::update(actorState *param_1);
+extern void actorState::getAllocDetails(ObjectAllocDetails *param_1);
+extern void actorState::update(actorState *this);
+extern undefined4 entityStateGroundAttack::ctor(actorState *state,int param_2);
+extern actorStateVTable * entityStateHit::getVTable(void);
+extern void entityStateHit::ctor(entityStateHit *param_1,entityStateHitParams *param_2);
+extern void entityStateHit::dtor(entityStateHit *param_1);
+extern void entityStateHit::update(actorState *param_1,InputHandlerType1 *param_2);
+extern void entityStateJumpOnOff::getAllocDetails(undefined4 *param_1);
+extern void entityStatePickup::getAllocDetails(undefined4 *param_1);
+extern undefined ** entityStatePickup::getVTable(void);
+extern undefined4 entityStatePickup::ctor(entityStatePickup *param_1,int param_2);
+extern void entityStatePickup::dtor(int param_1);
+extern void entityStatePickup::updateFixed_(entityStatePickup *pickup);
+extern void entityStateScoop::update(actorState *param_1,InputHandlerType1 *param_2);
+extern void entityStateShoot::getAllocDetails(undefined4 *param_1);
+extern undefined ** entityStateShoot::getVTable(void);
+extern undefined4 entityStateShoot::ctor(entityStateShoot *state,entityStateShootParams *param_2);
+extern void entityStateShoot::dtor(int param_1);
+extern void entityStateShoot::updateFixed_(entityStateShoot *state);
+extern void entityStateStand::getAllocDetails(undefined4 *param_1);
+extern actorStateVTable * entityStateStand::getVTable(void);
+extern BOOL entityStateStand::ctor(entityStateStand *state,entityStateStandParams *params);
+extern void entityStateStand::dtor(entityStateStand *param_1);
+extern void entityStateStand::update(entityStateStand *param_1,InputHandlerType1 *param_2);
+extern void entityStateStruggle::getAllocDetails(undefined4 *param_1);
+extern undefined ** entityStateStruggle::getVTable(void);
+extern undefined4 entityStateStruggle::ctor(entityStateStruggle *state,entityStateStruggleParams *params);
+extern void entityStateStruggle::dtor(int param_1);
+extern void entityStateStruggle::update(entityStateStruggle *struggle);
+extern void entityStateStruggle::onMessage(entityStateStruggle *param_1,Message *msg);
+extern switchD_000a49eb::caseD_7c(int param_1,undefined4 param_2,undefined4 param_3,int param_4);
+extern void switchD_000a49eb::caseD_15(undefined4 param_1,undefined4 param_2,int param_3);
+extern void entityStateWalk::getAllocDetails(undefined4 *param_1);
+extern actorStateVTable * entityStateWalk::getVTable(void);
+extern undefined4 entityStateWalk::ctor(entityStateWalk *walk,entityStateWalkParams *params);
+extern void entityStateWalk::dtor(int param_1);
+extern void entityStateWalk::update(actorState *this,InputHandlerType1 *param_2);
+extern void entityStateWalk::onMessage(entityStateWalk *param_1,Message *msg);
+extern void pickup::DetachFromActor(entityStatePickup *param_1,actor *param_2);

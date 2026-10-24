@@ -1,0 +1,70 @@
+/* scene_control.h - Scene controllers (chapters, game select, doors)
+   From Ghidra decompilation of Grabbed by the Ghoulies default.xbe. */
+#pragma once
+#include "common.h"
+
+/* ---- declarations ---- */
+extern void switchD_0002123a::caseD_f(void);
+extern void entitySceneControlAmbientTune::getAllocDetails(undefined4 *param_1);
+extern undefined ** entitySceneControlAmbientTune::getVTable(void);
+extern undefined4 entitySceneControlAmbientTune::ctor(entitySceneControlAmbientTune *param_1);
+extern void entitySceneControlAmbientTune::dtor(int param_1);
+extern void entitySceneControlAmbientTune::updateFixed_(entitySceneControlAmbientTune *obj);
+extern void entitySceneControlAmbientTune::PlayMusic(entitySceneControlAmbientTune *obj);
+extern void entitySceneControlAttract::getAllocDetails(undefined4 *param_1);
+extern undefined ** entitySceneControlAttract::getVTable(void);
+extern void entitySceneControlAttract::update(entitySceneControlAttract *param_1);
+extern void entitySceneControlAttract::handleInput(entitySceneControlAttract *param_1);
+extern void entitySceneControlChapter1Scene10::getAllocDetails(undefined4 *param_1);
+extern undefined ** entitySceneControlChapter1Scene10::getVTable(void);
+extern undefined4 entitySceneControlChapter1Scene10::ctor(entitySceneControlChapter1Scene10 *scene);
+extern void entitySceneControlChapter1Scene10::func4(entitySceneControlChapter1Scene10 *param_1);
+extern void entitySceneControlChapter1Scene10::updateFixed_(entitySceneControlChapter1Scene10 *param_1);
+extern void entitySceneControlChapter1Scene10::func5(entitySceneControlChapter1Scene10 *param_1);
+extern void entitySceneControlChapter1Scene2::update(entitySceneControlChapter1Scene2 *this);
+extern entitySceneControlChapter1Scene2::canUseScare(entitySceneControlChapter1Scene2 *this,char index);
+extern void entitySceneControlChapter1Scene2::generateRNG(entitySceneControlChapter1Scene2 *this);
+extern void entitySceneControlChapter2Scene4::getVTable(undefined4 *param_1);
+extern undefined ** entitySceneControlChapter2Scene4::getVTable(void);
+extern void entitySceneControlChapter2Scene4::fixedUpdate_(entitySceneControlChapter2Scene4 *control);
+extern void entitySceneControlChapter2Scene4::dtor(void);
+extern undefined ** entitySceneControlFinalScore::getVTable(void);
+extern undefined4 entitySceneControlFinalScore::ctor(entitySceneControlFinalScore *param_1);
+extern void entitySceneControlFinalScore::dtor(void);
+extern void entitySceneControlFinalScore::update(entitySceneControlFinalScore *control);
+extern void entitySceneControlFx::getAllocDetails(undefined4 *param_1);
+extern undefined ** entitySceneControlFx::getVTable(void);
+extern undefined4 entitySceneControlFx::ctor(entitySceneControlFx *obj,entitySceneControlFxParams *params);
+extern void entitySceneControlFx::updateFixed_(int param_1);
+extern void entitySceneControlGameSelect::getAllocDetails(ObjectAllocDetails *param_1);
+extern undefined ** entitySceneControlGameSelect::getVTable(void);
+extern BOOL entitySceneControlGameSelect::ctor(entitySceneControlGameSelect *control);
+extern void entitySceneControlGameSelect::dtor(entitySceneControlGameSelect *param_1);
+extern void entitySceneControlGameSelect::update(entitySceneControlGameSelect *entity);
+extern void entitySceneControlGameSelect::func5(entitySceneControlGameSelect *param_1);
+extern entitySceneControlGameSelect::isStatus2Or3(entitySceneControlGameSelect *param_1);
+extern BOOL entitySceneControlGameSelect::continueStory(entitySceneControlGameSelect *param_1);
+extern void entitySceneControlMapView::getAllocDetails(undefined4 *param_1);
+extern undefined ** entitySceneControlMapView::getVTable(void);
+extern undefined4 entitySceneControlMapView::ctor(entitySceneControlMapView *control);
+extern void entitySceneControlMapView::dtor(int param_1);
+extern void entitySceneControlMapView::fixedUpdate_(int param_1);
+extern void entitySceneControlSuperScary::getAllocDetails(undefined4 *param_1);
+extern undefined ** entitySceneControlSuperScary::getVTable(void);
+extern void entitySceneControlSuperScary::dtor(int param_1);
+extern void entitySceneControlSuperScary::onMessage(entitySceneControlSuperScary *control,int *param_2);
+extern void entitySceneControlSuperScary::update(entitySceneControlSuperScary *control);
+extern void entitySceneControlSuperScary::func5(entitySceneControlSuperScary *control);
+extern void entitySceneControlGameSelect::getLastMenuUsed(MenuVTable **vtable);
+extern void sceneControlObj::getAllocDetails(ObjectAllocDetails *param_1);
+extern sceneControlObjectVTable * sceneControlObj::getVTable(void);
+extern BOOL sceneControlObj::ctor(sceneControlObj *obj);
+extern void sceneControlObj::dtor(sceneControlObj *param_1);
+extern void sceneControlObj::updateFixed_(int param_1);
+extern undefined4 sceneControlObj::cleanupGameselect(sceneControlObj *control);
+extern void sceneControlObj::onMessage(sceneControlObj *param_1,Message *msg);
+extern void sceneControlObj::destroyStaleControls(void);
+extern void sceneControlObj::processNew(void);
+extern void sceneControlObj::BeginScene(void);
+extern void sceneControlObj::UpdateNewSceneControls(void);
+extern void Challenge::GetChallengeDetails(ChallengeDetails *param_1,uint param_2);
