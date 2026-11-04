@@ -272,8 +272,7 @@ impl App {
     fn update_events(&mut self) -> Result<(), Error> {
         #[expect(dead_code)]
         const MAX_MOVEMENT_SPEED: f32 = 100.0;
-        // const MIN_MOVEMENT_SPEED: f32 = 0.2;
-        const MIN_MOVEMENT_SPEED: f32 = 1.0;
+        const MIN_MOVEMENT_SPEED: f32 = 3.0;
 
         const MOUSE_SENSITIVITY: f32 = 0.01 / 2.0;
 
@@ -303,8 +302,8 @@ impl App {
         }
 
         let (mouse_x, mouse_y) = self.input_helper.mouse_diff();
-        new_cam.yaw += cgmath::Rad(MOUSE_SENSITIVITY * mouse_x);
-        // new_cam.pitch += cgmath::Rad(MOUSE_SENSITIVITY * -mouse_y);
+        new_cam.yaw -= cgmath::Rad(MOUSE_SENSITIVITY * mouse_x);
+        new_cam.pitch -= cgmath::Rad(MOUSE_SENSITIVITY * mouse_y);
 
         self.render_context_mut().update_camera(0, |camera| {
             *camera = new_cam.clone();

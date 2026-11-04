@@ -283,7 +283,11 @@ impl RenderContext {
                         },
                         ::wgpu::BindGroupEntry {
                             binding: 1,
-                            resource: view_bind_group_buffers[i].buffer.as_entire_binding(),
+                            resource: ::wgpu::BindingResource::Buffer(::wgpu::BufferBinding {
+                                buffer: &view_bind_group_buffers[i].buffer,
+                                offset: 256,
+                                size: None,
+                            }),
                         },
                     ],
                 })
@@ -316,6 +320,8 @@ impl RenderContext {
             &self.renderer.queue,
             BindGroup0 {
                 view_uniforms: ViewUniforms::from(camera),
+                padding1: crate::maths::Mat4::identity().into(),
+                padding2: crate::maths::Mat4::identity().into(),
                 model_matrix: crate::maths::Mat4::identity().into(),
             },
         );

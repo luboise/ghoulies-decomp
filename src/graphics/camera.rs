@@ -1,4 +1,6 @@
-use cgmath::{InnerSpace, Matrix, num_traits::Float};
+use cgmath::{InnerSpace, num_traits::Float};
+
+use crate::maths::{Mat3, Mat4, Vec3};
 
 #[derive(Debug, Clone)]
 pub struct Camera {
@@ -25,16 +27,15 @@ const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::from_cols(
 );
 
 impl crate::maths::VecDirections for Camera {
-    fn up(&self) -> crate::maths::Vec3 {
-        crate::maths::Vec3::unit_y()
+    fn up(&self) -> Vec3 {
+        Vec3::unit_y()
     }
-    fn right(&self) -> crate::maths::Vec3 {
+    fn right(&self) -> Vec3 {
         let (yaw_sin, yaw_cos) = self.yaw.0.sin_cos();
-        crate::maths::Vec3::new(yaw_cos, 0.0, yaw_sin).normalize()
+        Vec3::new(yaw_cos, 0.0, yaw_sin).normalize()
     }
-    fn forwards(&self) -> crate::maths::Vec3 {
-        let (yaw_sin, yaw_cos) = self.yaw.0.sin_cos();
-        crate::maths::Vec3::new(-yaw_sin, 0.0, yaw_cos).normalize()
+    fn forwards(&self) -> Vec3 {
+        (Mat3::from_angle_y(self.yaw) * Vec3::unit_z()).normalize()
     }
 }
 
@@ -47,40 +48,20 @@ impl From<Camera> for super::ViewUniforms {
             // let direction =
             //     crate::maths::Vec3::new(cos_pitch * cos_yaw, sin_pitch, cos_pitch * sin_yaw);
 
-            let direction =
-                crate::maths::Vec3::new(sin_yaw * cos_pitch, sin_pitch, cos_yaw * cos_pitch);
+            let direction = Vec3::new(sin_yaw * cos_pitch, sin_pitch, cos_yaw * cos_pitch);
 
-            crate::maths::Mat4::look_to_lh(
-                camera.position,
-                direction.normalize(),
-                crate::maths::Vec3::unit_y(),
-            )
+            Mat4::look_to_lh(camera.position, direction.normalize(), Vec3::unit_y())
         };
 
         const NEAR: f32 = 0.1;
         const FAR: f32 = 1000.0;
 
-        let projection = {
-            let fov_y: f32 = 90.0.to_radians();
-            let scale_factor = 1.0 / ((fov_y / 2.0).tan());
+        let projection = cgmath::perspective(cgmath::Deg(67.0), 16.0 / 9.0, NEAR, FAR);
 
-            crate::maths::Mat4::from_cols(
-                crate::maths::Vec4::new(scale_factor, 0.0, 0.0, 0.0),
-                crate::maths::Vec4::new(0.0, scale_factor, 0.0, 0.0),
-                crate::maths::Vec4::new(
-                    0.0,
-                    0.0,
-                    -(FAR / (FAR - NEAR)),
-                    -(FAR * NEAR / (FAR - NEAR)),
-                ),
-                crate::maths::Vec4::new(0.0, 0.0, -1.0, 0.0),
-            )
-        }
-        .transpose();
+        // let projection = flip_z * projection;
 
-        // OPENGL_TO_WGPU_MATRIX
-        //                     * cgmath::perspective(cgmath::Deg(60.0), 16.0 / 9.0, 0.1, 1000.0)
-        // * cgmath::ortho(-16.0, 16.0, -9.0, 9.0, 0.1, 4000.0)
+        // z [-1, 1] => z [0, 1]
+        let projection = OPENGL_TO_WGPU_MATRIX * projection;
 
         Self {
             view: view.into(),
@@ -116,5 +97,10 @@ mod test {
     #[test]
     fn forwards() {
         assert_eq!(DEFAULT_CAMERA.forwards(), Vec3::new(0.0, 0.0, 1.0));
+
+        let mut cam = DEFAULT_CAMERA;
+        cam.yaw += Deg(90.0).into();
+
+        assert!((cam.forwards() - Vec3::unit_x()).magnitude() <= 0.1);
     }
 }

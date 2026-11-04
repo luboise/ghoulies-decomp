@@ -27,6 +27,8 @@ impl Default for ViewUniforms {
 #[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct BindGroup0 {
     pub view_uniforms: ViewUniforms,
+    pub padding1: [[f32; 4]; 4],
+    pub padding2: [[f32; 4]; 4],
     pub model_matrix: [[f32; 4]; 4],
 }
 impl super::BufferValue for BindGroup0 {}
@@ -35,6 +37,8 @@ impl Default for BindGroup0 {
     fn default() -> Self {
         Self {
             view_uniforms: Default::default(),
+            padding1: cgmath::Matrix4::identity().into(),
+            padding2: cgmath::Matrix4::identity().into(),
             model_matrix: cgmath::Matrix4::identity().into(),
         }
     }
